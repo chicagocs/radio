@@ -381,7 +381,6 @@
         let trackDuration = 0;
         let trackStartTime = 0;
         let currentTrackInfo = null;
-        let songStartedAt = null; // Timestamp cuando inicia la canción en el stream
 
         // Configurar volumen inicial
         audioPlayer.volume = 0.5;
@@ -491,9 +490,6 @@
                         songAlbum.textContent = newTrackInfo.album ? `(${newTrackInfo.album})` : '';
                         console.log('Nueva canción detectada:', newTrackInfo.title);
                         
-                        // Guardar el timestamp de inicio de la canción
-                        songStartedAt = Date.now();
-                        
                         // Obtener duración de la canción
                         await getTrackDuration(newTrackInfo.artist, newTrackInfo.title);
                     }
@@ -512,41 +508,49 @@
             }
         }
 
-        // Obtener duración de la canción desde TheAudioDB
+        // Obtener duración de la canción desde MusicBrainz
         async function getTrackDuration(artist, title) {
             try {
-                console.log('Buscando duración para:', artist, '-', title);
+                console.log('Buscando duración en MusicBrainz para:', artist, '-', title);
                 
-                // Buscar por artista y título
-                const searchUrl = `https://www.theaudiodb.com/api/v1/json/2/searchtrack.php?s=${encodeURIComponent(artist)}&t=${encodeURIComponent(title)}`;
-                const response = await fetch(searchUrl);
+                // Buscar grabación (recording) por artista y título
+                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+                
+                const response = await fetch(searchUrl, {
+                    headers: {
+                        'User-Agent': 'RadioStreamingPlayer/1.0 (https://claude.ai)'
+                    }
+                });
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('Respuesta de TheAudioDB:', data);
+                console.log('Respuesta de MusicBrainz:', data);
                 
-                if (data.track && data.track.length > 0) {
-                    const track = data.track[0];
-                    const durationMs = parseInt(track.intDuration);
-                    
-                    if (durationMs && durationMs > 0) {
-                        trackDuration = Math.floor(durationMs / 1000); // Convertir a segundos
-                        trackStartTime = Date.now();
-                        console.log('Duración encontrada:', trackDuration, 'segundos');
-                        startCountdown();
-                    } else {
-                        console.log('Duración no disponible en la respuesta');
-                        resetCountdown();
+                if (data.recordings && data.recordings.length > 0) {
+                    // Buscar la mejor coincidencia (con duración disponible)
+                    for (const recording of data.recordings) {
+                        if (recording.length) {
+                            // MusicBrainz devuelve la duración en milisegundos
+                            trackDuration = Math.floor(recording.length / 1000);
+                            trackStartTime = Date.now();
+                            console.log('Duración encontrada en MusicBrainz:', trackDuration, 'segundos');
+                            console.log('Título exacto:', recording.title);
+                            console.log('Score de coincidencia:', recording.score);
+                            startCountdown();
+                            return;
+                        }
                     }
+                    console.log('Se encontraron grabaciones pero ninguna tiene duración disponible');
+                    resetCountdown();
                 } else {
-                    console.log('No se encontró información de la canción en TheAudioDB');
+                    console.log('No se encontró información de la canción en MusicBrainz');
                     resetCountdown();
                 }
             } catch (error) {
-                console.error('Error al obtener duración:', error);
+                console.error('Error al obtener duración desde MusicBrainz:', error);
                 resetCountdown();
             }
         }
@@ -568,13 +572,12 @@
 
         // Actualizar visualización del contador
         function updateCountdownDisplay() {
-            if (!trackDuration || !songStartedAt) {
+            if (!trackDuration || !trackStartTime) {
                 resetCountdown();
                 return;
             }
             
-            // Calcular tiempo transcurrido desde que empezó la canción
-            const elapsed = Math.floor((Date.now() - songStartedAt) / 1000);
+            const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
             const remaining = trackDuration - elapsed;
             
             if (remaining <= 0) {
@@ -584,7 +587,6 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                 }
-                // La canción debería cambiar pronto, prepararse para detectar nueva
                 return;
             }
             
@@ -608,7 +610,6 @@
             }
             trackDuration = 0;
             trackStartTime = 0;
-            songStartedAt = null;
             countdownTimer.textContent = '--:--';
             countdownTimer.classList.remove('ending');
         }
