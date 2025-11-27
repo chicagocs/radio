@@ -53,7 +53,7 @@ Es muy sencillo. No necesitas instalar nada.
 
 1.  **Clona el repositorio:**
     ```bash
-    # TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos
+ 
     git clone https://github.com/chicagocs/radiomax.git
     ```
 2.  **Abre el archivo:**
