@@ -54,7 +54,7 @@ Es muy sencillo. No necesitas instalar nada.
 1.  **Clona el repositorio:**
     ```bash
     # TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos
-    git clone https://github.com/TU_USUARIO/TU_REPOSITORIO.git
+    git clone https://github.com/chicagocs/radiomax.git
     ```
 2.  **Abre el archivo:**
     Navega a la carpeta del proyecto y abre el archivo `index.html` en tu navegador web favorito (Chrome, Firefox, Safari, etc.).
