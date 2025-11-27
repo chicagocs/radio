@@ -414,7 +414,6 @@
         // Cargar estaciones desde archivo JSON externo
         async function loadStations() {
             try {
-                // URL del archivo JSON que contiene las estaciones
                 const response = await fetch('stations.json');
                 
                 if (!response.ok) {
@@ -423,15 +422,12 @@
                 
                 const stations = await response.json();
                 
-                // Ocultar mensaje de carga y mostrar el select
                 loadingStations.style.display = 'none';
                 stationSelect.style.display = 'block';
                 
-                // Actualizar información inicial
                 stationName.textContent = 'Selecciona una estación';
                 stationDescription.textContent = 'Elige tu estación favorita para comenzar';
                 
-                // Poblar el select con las estaciones
                 populateStationSelect(stations);
                 
                 return stations;
@@ -442,14 +438,11 @@
             }
         }
 
-        // Poblar el select con las estaciones
         function populateStationSelect(stations) {
-            // Limpiar opciones existentes excepto la primera
             while (stationSelect.options.length > 1) {
                 stationSelect.remove(1);
             }
             
-            // Agregar las estaciones al select
             stations.forEach(station => {
                 const option = document.createElement('option');
                 const value = `${station.url}|${station.name}|${station.description}|${station.id}`;
@@ -459,10 +452,8 @@
             });
         }
 
-        // Inicializar cargando las estaciones
         loadStations();
 
-        // Cambio de estación
         stationSelect.addEventListener('change', function() {
             if (this.value) {
                 const [url, name, description, stationId] = this.value.split('|');
@@ -470,12 +461,11 @@
                 stationName.textContent = name;
                 stationDescription.textContent = description;
                 
-                // Auto-play al seleccionar
                 playStation();
             }
         });
 
-        // Play/Pause (LÓGICA CORREGIDA Y MEJORADA)
+        // *** LÓGICA DE PLAY/PAUSA CORREGIDA Y SIMPLIFICADA ***
         playBtn.addEventListener('click', function() {
             if (isPlaying) {
                 // --- LÓGICA DE PAUSA ---
@@ -483,7 +473,7 @@
                 isPlaying = false;
                 updateStatus(false);
                 
-                // Detener el contador de tiempo y las actualizaciones de canción al pausar
+                // Detener actualizaciones al pausar
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                     countdownInterval = null;
@@ -493,38 +483,13 @@
                     updateInterval = null;
                 }
             } else {
-                // --- LÓGICA DE REPRODUCCIÓN/REANUDACIÓN ---
-                if (audioPlayer.src && currentStation) {
-                    // Caso: Reanudar una reproducción pausada
-                    audioPlayer.play()
-                        .then(() => {
-                            isPlaying = true;
-                            updateStatus(true);
-                            
-                            // *** CORRECCIÓN CLAVE ***
-                            // Al reanudar, forzamos una actualización completa de la UI.
-                            // Limpiamos la info actual para que updateSongInfo la trate como "nueva".
-                            currentTrackInfo = null; 
-                            trackDuration = 0;
-                            trackStartTime = 0;
-                            resetCountdown();
-                            resetAlbumCover();
-
-                            // Mostramos un estado de carga mientras se re-valida la info
-                            songTitle.textContent = 'Reanudando...';
-                            songArtist.textContent = '';
-                            songAlbum.textContent = '';
-                            
-                            // Reiniciar las actualizaciones. Esto ahora se comportará como si fuera una canción nueva.
-                            startSongInfoUpdates();
-                        })
-                        .catch(error => {
-                            console.error('Error al reanudar la reproducción:', error);
-                            alert('Error al reanudar la reproducción. Intenta de nuevo.');
-                        });
-                } else {
-                    // Caso: Primera reproducción o después de detener
+                // --- LÓGICA DE REPRODUCCIÓN ---
+                // Siempre usamos la función playStation para iniciar/reanudar.
+                // Es más robusta porque recarga el stream cada vez.
+                if (currentStation) {
                     playStation();
+                } else {
+                    alert('Por favor selecciona una estación primero');
                 }
             }
         });
@@ -533,23 +498,26 @@
         
         function playStation() {
             if (currentStation) {
-                // Limpiar timeout anterior si existe
                 if (errorTimeout) {
                     clearTimeout(errorTimeout);
                     errorTimeout = null;
                 }
                 
-                // Limpiar intervalos anteriores por si acaso
                 if (updateInterval) clearInterval(updateInterval);
                 if (countdownInterval) clearInterval(countdownInterval);
 
+                // Limpiar estado anterior
+                currentTrackInfo = null; 
+                trackDuration = 0;
+                trackStartTime = 0;
+                resetCountdown();
+                resetAlbumCover();
+
                 audioPlayer.src = currentStation.url;
                 
-                // Mostrar mensaje de carga
                 songTitle.textContent = 'Conectando...';
                 songArtist.textContent = '';
                 songAlbum.textContent = '';
-                resetAlbumCover();
                 
                 audioPlayer.play()
                     .then(() => {
@@ -563,7 +531,8 @@
                     .catch(error => {
                         console.error('Error al reproducir:', error);
                         isPlaying = false;
-                        // Solo mostrar error después de 30 segundos
+                        updateStatus(false);
+                        // Solo mostrar error después de 30 segundos para evitar falsos positivos
                         errorTimeout = setTimeout(() => {
                             alert('Error al reproducir el stream. Intenta de nuevo.');
                             songTitle.textContent = 'Selecciona una estación';
@@ -575,7 +544,6 @@
             }
         }
 
-        // Obtener información de la canción actual
         async function updateSongInfo() {
             if (!currentStation || !currentStation.stationId) {
                 console.log('No hay estación seleccionada');
@@ -653,7 +621,6 @@
             }
         }
 
-        // Obtener duración de la canción desde MusicBrainz
         async function getTrackDuration(artist, title) {
             try {
                 console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
@@ -701,7 +668,6 @@
             }
         }
 
-        // Obtener portada del álbum desde Cover Art Archive
         async function getAlbumCover(releases) {
             try {
                 if (!releases || releases.length === 0) {
@@ -846,7 +812,6 @@
             songAlbum.textContent = '';
         }
 
-        // Stop
         stopBtn.addEventListener('click', function() {
             audioPlayer.pause();
             audioPlayer.src = '';
@@ -855,7 +820,6 @@
             stopSongInfoUpdates();
         });
 
-        // Control de volumen
         volumeSlider.addEventListener('input', function() {
             const volume = this.value / 100;
             audioPlayer.volume = volume;
@@ -872,7 +836,6 @@
             }
         });
 
-        // Toggle mute al hacer clic en el icono
         volumeIcon.addEventListener('click', function() {
             if (isMuted) {
                 volumeSlider.value = previousVolume;
@@ -892,7 +855,6 @@
             }
         });
 
-        // Actualizar estado visual
         function updateStatus(isPlayingNow) {
             if (isPlayingNow) {
                 playBtn.textContent = '⏸ PAUSAR';
@@ -901,7 +863,6 @@
             }
         }
 
-        // Eventos de audio
         audioPlayer.addEventListener('playing', () => {
             isPlaying = true;
             updateStatus(true);
