@@ -96,43 +96,54 @@
             box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
         }
 
+        .now-playing-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .album-cover {
+            width: 120px;
+            height: 120px;
+            background-color: #ff6600;
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        .album-cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .album-cover-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+        }
+
         .now-playing {
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 1px solid #ff6600;
             border-radius: 15px;
             padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-            min-height: 85px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .album-art-container {
-            flex-shrink: 0;
-        }
-
-        .album-art {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            border: 2px solid #ff6600;
-            display: none;
-        }
-
-        .album-art.visible {
-            display: block;
-        }
-
-        .song-info-container {
             flex: 1;
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            min-width: 0;
         }
 
         .now-playing-label {
@@ -356,11 +367,12 @@
             </select>
         </div>
 
-        <div class="now-playing" id="nowPlaying">
-            <div class="album-art-container">
-                <img class="album-art" id="albumArt" alt="Album Cover">
+        <div class="now-playing-container">
+            <div class="album-cover" id="albumCover">
+                <div class="album-cover-placeholder">♪ ♫ ♪</div>
             </div>
-            <div class="song-info-container">
+            <div class="now-playing" id="nowPlaying">
+                <div class="now-playing-label">Reproduciendo ahora</div>
                 <div class="song-title" id="songTitle">Selecciona una estación</div>
                 <div class="song-artist" id="songArtist"></div>
                 <div class="song-album" id="songAlbum"></div>
@@ -402,7 +414,7 @@
         const songAlbum = document.getElementById('songAlbum');
         const volumeIcon = document.getElementById('volumeIcon');
         const countdownTimer = document.getElementById('countdownTimer');
-        const albumArt = document.getElementById('albumArt');
+        const albumCover = document.getElementById('albumCover');
 
         let currentStation = null;
         let updateInterval = null;
@@ -413,7 +425,6 @@
         let trackDuration = 0;
         let trackStartTime = 0;
         let currentTrackInfo = null;
-        let currentReleaseId = null; // Para guardar el Release ID de MusicBrainz
 
         // Configurar volumen inicial
         audioPlayer.volume = 0.5;
@@ -460,6 +471,7 @@
                 songTitle.textContent = 'Conectando...';
                 songArtist.textContent = '';
                 songAlbum.textContent = '';
+                resetAlbumCover();
                 
                 audioPlayer.play()
                     .then(() => {
@@ -477,6 +489,7 @@
                         errorTimeout = setTimeout(() => {
                             alert('Error al reproducir el stream. Intenta de nuevo.');
                             songTitle.textContent = 'Selecciona una estación';
+                            resetAlbumCover();
                         }, 30000);
                     });
             } else {
@@ -525,9 +538,6 @@
                         // ABORTAR contador anterior inmediatamente
                         resetCountdown();
                         
-                        // Ocultar portada anterior
-                        hideAlbumArt();
-                        
                         // Actualizar información de la canción
                         currentTrackInfo = newTrackInfo;
                         songTitle.textContent = newTrackInfo.title;
@@ -537,6 +547,9 @@
                         // Mostrar estado de carga en el contador
                         countdownTimer.textContent = '⏳ ...';
                         countdownTimer.classList.remove('ending');
+                        
+                        // Resetear portada del álbum
+                        resetAlbumCover();
                         
                         // Calcular cuando empezó la canción (SomaFM usa zona horaria Pacific)
                         if (newTrackInfo.date) {
@@ -562,6 +575,7 @@
                     songArtist.textContent = '';
                     songAlbum.textContent = '';
                     resetCountdown();
+                    resetAlbumCover();
                 }
             } catch (error) {
                 console.error('Error al obtener info de la canción:', error);
@@ -569,6 +583,7 @@
                 songArtist.textContent = '';
                 songAlbum.textContent = '';
                 resetCountdown();
+                resetAlbumCover();
             }
         }
 
@@ -609,6 +624,9 @@
                             console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
                             console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
                             
+                            // Obtener la portada del álbum
+                            await getAlbumCover(recording.releases);
+                            
                             // INICIAR el nuevo contador con los datos actualizados
                             startCountdown();
                             return;
@@ -624,6 +642,71 @@
                 console.error('❌ Error al obtener duración desde MusicBrainz:', error);
                 resetCountdown();
             }
+        }
+
+        // Obtener portada del álbum desde Cover Art Archive
+        async function getAlbumCover(releases) {
+            try {
+                if (!releases || releases.length === 0) {
+                    console.log('⚠️ No hay información de lanzamientos para obtener portada');
+                    return;
+                }
+                
+                // Buscar el lanzamiento principal
+                const mainRelease = releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || releases[0];
+                const releaseId = mainRelease.id;
+                
+                if (!releaseId) {
+                    console.log('⚠️ No se encontró ID de lanzamiento');
+                    return;
+                }
+                
+                console.log('🔍 Buscando portada para el lanzamiento:', releaseId);
+                
+                // Consultar la API de Cover Art Archive
+                const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
+                
+                const response = await fetch(coverArtUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const coverData = await response.json();
+                console.log('📥 Datos de portada recibidos:', coverData);
+                
+                if (coverData.images && coverData.images.length > 0) {
+                    // Buscar la portada frontal (front)
+                    const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
+                    
+                    if (frontCover && frontCover.image) {
+                        console.log('✓ Portada encontrada:', frontCover.image);
+                        
+                        // Crear elemento de imagen y mostrarlo
+                        const img = document.createElement('img');
+                        img.src = frontCover.image;
+                        img.alt = 'Portada del álbum';
+                        
+                        // Limpiar el contenedor y agregar la imagen
+                        albumCover.innerHTML = '';
+                        albumCover.appendChild(img);
+                        
+                        return;
+                    }
+                }
+                
+                console.log('⚠️ No se encontró portada frontal');
+            } catch (error) {
+                console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
+            }
+            
+            // Si no se encontró portada o hubo un error, mostrar placeholder naranja
+            resetAlbumCover();
+        }
+
+        // Resetear portada del álbum a placeholder naranja
+        function resetAlbumCover() {
+            albumCover.innerHTML = '<div class="album-cover-placeholder">♪ ♫ ♪</div>';
         }
 
         // Iniciar contador regresivo
@@ -722,7 +805,7 @@
                 updateInterval = null;
             }
             resetCountdown();
-            hideAlbumArt();
+            resetAlbumCover();
             currentTrackInfo = null;
             songTitle.textContent = 'Selecciona una estación';
             songArtist.textContent = '';
