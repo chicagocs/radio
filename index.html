@@ -184,27 +184,27 @@
 
         .countdown-container {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
+            margin: 17px 0;
+            padding: 13px;
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 1px solid #ff6600;
-            border-radius: 15px;
-            min-height: 60px;
+            border-radius: 13px;
+            min-height: 51px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
         .countdown-label {
-            font-size: 11px;
+            font-size: 9px;
             color: #888888;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .countdown-timer {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: #ff6600;
             font-family: 'Courier New', monospace;
@@ -381,6 +381,7 @@
         let trackDuration = 0;
         let trackStartTime = 0;
         let currentTrackInfo = null;
+        let songStartedAt = null; // Timestamp cuando inicia la canción en el stream
 
         // Configurar volumen inicial
         audioPlayer.volume = 0.5;
@@ -490,6 +491,9 @@
                         songAlbum.textContent = newTrackInfo.album ? `(${newTrackInfo.album})` : '';
                         console.log('Nueva canción detectada:', newTrackInfo.title);
                         
+                        // Guardar el timestamp de inicio de la canción
+                        songStartedAt = Date.now();
+                        
                         // Obtener duración de la canción
                         await getTrackDuration(newTrackInfo.artist, newTrackInfo.title);
                     }
@@ -564,12 +568,13 @@
 
         // Actualizar visualización del contador
         function updateCountdownDisplay() {
-            if (!trackDuration || !trackStartTime) {
+            if (!trackDuration || !songStartedAt) {
                 resetCountdown();
                 return;
             }
             
-            const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
+            // Calcular tiempo transcurrido desde que empezó la canción
+            const elapsed = Math.floor((Date.now() - songStartedAt) / 1000);
             const remaining = trackDuration - elapsed;
             
             if (remaining <= 0) {
@@ -579,6 +584,7 @@
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                 }
+                // La canción debería cambiar pronto, prepararse para detectar nueva
                 return;
             }
             
@@ -602,6 +608,7 @@
             }
             trackDuration = 0;
             trackStartTime = 0;
+            songStartedAt = null;
             countdownTimer.textContent = '--:--';
             countdownTimer.classList.remove('ending');
         }
