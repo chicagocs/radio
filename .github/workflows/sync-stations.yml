@@ -1,0 +1,31 @@
+name: Sync stations.json
+
+on:
+  schedule:
+    # Ejecutar cada hora para mantener los datos actualizados
+    - cron: '0 * * * *'
+  workflow_dispatch: # Permitir ejecución manual
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: Download stations.json from private repo
+        run: |
+          curl -H "Authorization: token ${{ secrets.PAT }}" \
+               -H "Accept: application/vnd.github.v3.raw" \
+               -o stations.json \
+               https://api.github.com/repos/chicagocs/private/contents/stations.json
+
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add stations.json
+          git diff --staged --quiet || git commit -m "Update stations.json"
+          git push
