@@ -1,7 +1,7 @@
 # 🎧 RadioMax Streaming Player
 
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
-[![Live Demo](https://img.shields.io/badge/Demo-Live-orange?style=for-the-badge&logo=github-pages)](https://TU_USUARIO.github.io/TU_REPOSITORIO/)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-orange?style=for-the-badge&logo=github-pages)](https://chicagocs.github.io/radiomax/)
 [![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-blue?style=for-the-badge&logo=github)](https://pages.github.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
