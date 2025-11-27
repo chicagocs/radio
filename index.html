@@ -476,7 +476,8 @@
                     const newTrackInfo = {
                         title: currentSong.title || 'Título desconocido',
                         artist: currentSong.artist || 'Artista desconocido',
-                        album: currentSong.album || ''
+                        album: currentSong.album || '',
+                        date: currentSong.date || null // Timestamp de cuando empezó
                     };
                     
                     const isNewTrack = !currentTrackInfo || 
@@ -488,6 +489,16 @@
                         songTitle.textContent = newTrackInfo.title;
                         songArtist.textContent = newTrackInfo.artist;
                         songAlbum.textContent = newTrackInfo.album ? `(${newTrackInfo.album})` : '';
+                        
+                        // Calcular cuando empezó la canción (SomaFM usa zona horaria Pacific)
+                        if (newTrackInfo.date) {
+                            const songDate = new Date(newTrackInfo.date * 1000); // Unix timestamp a milisegundos
+                            trackStartTime = songDate.getTime();
+                            console.log('Canción empezó en:', songDate.toLocaleString());
+                        } else {
+                            trackStartTime = Date.now(); // Fallback si no hay timestamp
+                        }
+                        
                         console.log('Nueva canción detectada:', newTrackInfo.title);
                         
                         // Obtener duración de la canción
@@ -535,10 +546,16 @@
                         if (recording.length) {
                             // MusicBrainz devuelve la duración en milisegundos
                             trackDuration = Math.floor(recording.length / 1000);
-                            trackStartTime = Date.now();
+                            // NO actualizamos trackStartTime aquí, ya lo tenemos de SomaFM
                             console.log('Duración encontrada en MusicBrainz:', trackDuration, 'segundos');
                             console.log('Título exacto:', recording.title);
                             console.log('Score de coincidencia:', recording.score);
+                            
+                            // Calcular tiempo ya transcurrido
+                            const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
+                            console.log('Tiempo transcurrido desde inicio:', elapsed, 'segundos');
+                            console.log('Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
+                            
                             startCountdown();
                             return;
                         }
