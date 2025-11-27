@@ -444,7 +444,7 @@
             }
         });
 
-        // Play/Pause (LÓGICA CORREGIDA AQUÍ)
+        // Play/Pause (LÓGICA CORREGIDA Y MEJORADA)
         playBtn.addEventListener('click', function() {
             if (isPlaying) {
                 // --- LÓGICA DE PAUSA ---
@@ -470,18 +470,22 @@
                             isPlaying = true;
                             updateStatus(true);
                             
-                            // Reiniciar las actualizaciones para detectar el próximo cambio de canción
-                            startSongInfoUpdates();
+                            // *** CORRECCIÓN CLAVE ***
+                            // Al reanudar, forzamos una actualización completa de la UI.
+                            // Limpiamos la info actual para que updateSongInfo la trate como "nueva".
+                            currentTrackInfo = null; 
+                            trackDuration = 0;
+                            trackStartTime = 0;
+                            resetCountdown();
+                            resetAlbumCover();
+
+                            // Mostramos un estado de carga mientras se re-valida la info
+                            songTitle.textContent = 'Reanudando...';
+                            songArtist.textContent = '';
+                            songAlbum.textContent = '';
                             
-                            // Si ya tenemos la info de la canción actual, reanudar su contador
-                            if (currentTrackInfo && trackDuration > 0) {
-                                startCountdown();
-                            } else {
-                                // Si no hay info, la mostramos como "cargando" hasta que startSongInfoUpdates la obtenga
-                                songTitle.textContent = 'Reanudando...';
-                                songArtist.textContent = '';
-                                songAlbum.textContent = '';
-                            }
+                            // Reiniciar las actualizaciones. Esto ahora se comportará como si fuera una canción nueva.
+                            startSongInfoUpdates();
                         })
                         .catch(error => {
                             console.error('Error al reanudar la reproducción:', error);
