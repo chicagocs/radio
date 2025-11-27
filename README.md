@@ -43,7 +43,7 @@ Este proyecto es una demostración de las capacidades de las tecnologías web mo
 ¿Quieres escucharlo ahora mismo? Puedes acceder al reproductor desplegado en GitHub Pages:
 
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
-**[▶️ Escúchalo en vivo aquí](https://TU_USUARIO.github.io/TU_REPOSITORIO/)**
+**[▶️ Escúchalo en vivo aquí](https://chicagocs.github.io/radiomax/)**
 
 ---
 
