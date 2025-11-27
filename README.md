@@ -13,7 +13,7 @@ Un reproductor de radio web elegante y moderno, construido únicamente con HTML,
 
 ![Screenshot of the Radio Player UI](screenshot.png)
 
-*La interfaz muestra el reproductor con la estación "Space Statio Soma" seleccionada, mostrando la información de la canción actual y los controles de reproducción.*
+*La interfaz muestra el reproductor con la estación "Space Station Soma" seleccionada, mostrando la información de la canción actual y los controles de reproducción.*
 
 ---
 
