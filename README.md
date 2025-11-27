@@ -11,13 +11,6 @@ Un reproductor de radio web elegante y moderno, construido únicamente con HTML,
 
 ### 🖼️ Captura de Pantalla
 
-<!-- 
-  INSTRUCCIONES:
-  1. Toma una captura de pantalla de tu reproductor en acción.
-  2. Guarda la imagen como 'screenshot.png' en la misma carpeta que este archivo README.md.
-  3. Asegúrate de que la línea de abajo no esté comentada (quita los <!-- y -->).
--->
-
 ![Screenshot of the Radio Player UI](screenshot.png)
 
 *La interfaz muestra el reproductor con la estación "Space Statio Soma" seleccionada, mostrando la información de la canción actual y los controles de reproducción.*
