@@ -444,16 +444,53 @@
             }
         });
 
-        // Play/Pause
+        // Play/Pause (LÓGICA CORREGIDA AQUÍ)
         playBtn.addEventListener('click', function() {
             if (isPlaying) {
-                // Pausar
+                // --- LÓGICA DE PAUSA ---
                 audioPlayer.pause();
                 isPlaying = false;
                 updateStatus(false);
+                
+                // Detener el contador de tiempo y las actualizaciones de canción al pausar
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
             } else {
-                // Reproducir
-                playStation();
+                // --- LÓGICA DE REPRODUCCIÓN/REANUDACIÓN ---
+                if (audioPlayer.src && currentStation) {
+                    // Caso: Reanudar una reproducción pausada
+                    audioPlayer.play()
+                        .then(() => {
+                            isPlaying = true;
+                            updateStatus(true);
+                            
+                            // Reiniciar las actualizaciones para detectar el próximo cambio de canción
+                            startSongInfoUpdates();
+                            
+                            // Si ya tenemos la info de la canción actual, reanudar su contador
+                            if (currentTrackInfo && trackDuration > 0) {
+                                startCountdown();
+                            } else {
+                                // Si no hay info, la mostramos como "cargando" hasta que startSongInfoUpdates la obtenga
+                                songTitle.textContent = 'Reanudando...';
+                                songArtist.textContent = '';
+                                songAlbum.textContent = '';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error al reanudar la reproducción:', error);
+                            alert('Error al reanudar la reproducción. Intenta de nuevo.');
+                        });
+                } else {
+                    // Caso: Primera reproducción o después de detener
+                    playStation();
+                }
             }
         });
 
@@ -467,6 +504,10 @@
                     errorTimeout = null;
                 }
                 
+                // Limpiar intervalos anteriores por si acaso
+                if (updateInterval) clearInterval(updateInterval);
+                if (countdownInterval) clearInterval(countdownInterval);
+
                 audioPlayer.src = currentStation.url;
                 
                 // Mostrar mensaje de carga
@@ -520,12 +561,11 @@
                 if (data.songs && data.songs.length > 0) {
                     const currentSong = data.songs[0];
                     
-                    // Verificar si es una nueva canción
                     const newTrackInfo = {
                         title: currentSong.title || 'Título desconocido',
                         artist: currentSong.artist || 'Artista desconocido',
                         album: currentSong.album || '',
-                        date: currentSong.date || null // Timestamp de cuando empezó
+                        date: currentSong.date || null
                     };
                     
                     const isNewTrack = !currentTrackInfo || 
@@ -534,41 +574,30 @@
                     
                     if (isNewTrack) {
                         console.log('🔄 CAMBIO DE CANCIÓN DETECTADO');
-                        console.log('Anterior:', currentTrackInfo?.title || 'ninguna');
-                        console.log('Nueva:', newTrackInfo.title);
-                        
-                        // ABORTAR contador anterior inmediatamente
                         resetCountdown();
                         
-                        // Actualizar información de la canción
                         currentTrackInfo = newTrackInfo;
                         songTitle.textContent = newTrackInfo.title;
                         songArtist.textContent = newTrackInfo.artist;
                         songAlbum.textContent = newTrackInfo.album ? `(${newTrackInfo.album})` : '';
                         
-                        // Mostrar estado de carga en el contador
                         countdownTimer.textContent = '⏳ ...';
                         countdownTimer.classList.remove('ending');
                         
-                        // Resetear portada del álbum
                         resetAlbumCover();
                         
-                        // Calcular cuando empezó la canción (SomaFM usa zona horaria Pacific)
                         if (newTrackInfo.date) {
-                            const songDate = new Date(newTrackInfo.date * 1000); // Unix timestamp a milisegundos
+                            const songDate = new Date(newTrackInfo.date * 1000);
                             trackStartTime = songDate.getTime();
                             console.log('⏰ Canción empezó en:', songDate.toLocaleString());
                         } else {
-                            trackStartTime = Date.now(); // Fallback si no hay timestamp
+                            trackStartTime = Date.now();
                             console.log('⚠️ Sin timestamp, usando hora actual como referencia');
                         }
                         
-                        // Obtener duración de la canción y RECALCULAR contador
                         await getTrackDuration(newTrackInfo.artist, newTrackInfo.title);
                     } else {
-                        // Misma canción, solo actualizar el display si ya tenemos duración
                         if (trackDuration > 0 && trackStartTime > 0) {
-                            // El contador ya está corriendo, no hacer nada
                             console.log('✓ Misma canción, contador activo');
                         }
                     }
@@ -593,8 +622,6 @@
         async function getTrackDuration(artist, title) {
             try {
                 console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
-                
-                // Buscar grabación (recording) por artista y título
                 const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
                 
                 const response = await fetch(searchUrl, {
@@ -611,25 +638,18 @@
                 console.log('📥 Respuesta de MusicBrainz recibida');
                 
                 if (data.recordings && data.recordings.length > 0) {
-                    // Buscar la mejor coincidencia (con duración disponible)
                     for (const recording of data.recordings) {
                         if (recording.length) {
-                            // MusicBrainz devuelve la duración en milisegundos
                             trackDuration = Math.floor(recording.length / 1000);
-                            // NO actualizamos trackStartTime aquí, ya lo tenemos de SomaFM
                             console.log('✓ Duración encontrada:', trackDuration, 'segundos');
                             console.log('✓ Título exacto:', recording.title);
                             console.log('✓ Score de coincidencia:', recording.score);
                             
-                            // Calcular tiempo ya transcurrido
                             const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
                             console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
                             console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
                             
-                            // Obtener la portada del álbum
                             await getAlbumCover(recording.releases);
-                            
-                            // INICIAR el nuevo contador con los datos actualizados
                             startCountdown();
                             return;
                         }
@@ -654,7 +674,6 @@
                     return;
                 }
                 
-                // Buscar el lanzamiento principal
                 const mainRelease = releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || releases[0];
                 const releaseId = mainRelease.id;
                 
@@ -664,8 +683,6 @@
                 }
                 
                 console.log('🔍 Buscando portada para el lanzamiento:', releaseId);
-                
-                // Consultar la API de Cover Art Archive
                 const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
                 
                 const response = await fetch(coverArtUrl);
@@ -678,18 +695,15 @@
                 console.log('📥 Datos de portada recibidos:', coverData);
                 
                 if (coverData.images && coverData.images.length > 0) {
-                    // Buscar la portada frontal (front)
                     const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
                     
                     if (frontCover && frontCover.image) {
                         console.log('✓ Portada encontrada:', frontCover.image);
                         
-                        // Crear elemento de imagen y mostrarlo
                         const img = document.createElement('img');
                         img.src = frontCover.image;
                         img.alt = 'Portada del álbum';
                         
-                        // Limpiar el contenedor y agregar la imagen
                         albumCover.innerHTML = '';
                         albumCover.appendChild(img);
                         
@@ -702,29 +716,23 @@
                 console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
             }
             
-            // Si no se encontró portada o hubo un error, mostrar placeholder con gradiente
             resetAlbumCover();
         }
 
-        // Resetear portada del álbum a placeholder con gradiente
         function resetAlbumCover() {
             albumCover.innerHTML = '<div class="album-cover-placeholder">Portada</div>';
         }
 
-        // Iniciar contador regresivo
         function startCountdown() {
             console.log('▶️ Iniciando nuevo contador');
             
-            // Limpiar contador anterior si existe (por seguridad extra)
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 console.log('⚠️ Se encontró un contador anterior activo, limpiándolo');
             }
             
-            // Primera actualización inmediata
             updateCountdownDisplay();
             
-            // Actualizar cada segundo
             countdownInterval = setInterval(() => {
                 updateCountdownDisplay();
             }, 1000);
@@ -732,7 +740,6 @@
             console.log('✓ Contador iniciado correctamente');
         }
 
-        // Actualizar visualización del contador
         function updateCountdownDisplay() {
             if (!trackDuration || !trackStartTime) {
                 console.log('⚠️ Sin datos de duración o tiempo de inicio');
@@ -758,7 +765,6 @@
             const seconds = remaining % 60;
             countdownTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             
-            // Agregar efecto cuando quedan menos de 10 segundos
             if (remaining <= 10) {
                 countdownTimer.classList.add('ending');
             } else {
@@ -766,41 +772,32 @@
             }
         }
 
-        // Resetear contador
         function resetCountdown() {
             console.log('🛑 Abortando contador anterior');
             
-            // Detener el intervalo inmediatamente
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
                 console.log('✓ Intervalo de contador detenido');
             }
             
-            // Limpiar todas las variables de tiempo
             trackDuration = 0;
             trackStartTime = 0;
             
-            // Resetear display visual
             countdownTimer.textContent = '--:--';
             countdownTimer.classList.remove('ending');
         }
 
-        // Iniciar actualizaciones periódicas
         function startSongInfoUpdates() {
-            // Actualizar inmediatamente
             updateSongInfo();
             
-            // Limpiar intervalo anterior si existe
             if (updateInterval) {
                 clearInterval(updateInterval);
             }
             
-            // Actualizar cada 10 segundos
             updateInterval = setInterval(updateSongInfo, 10000);
         }
 
-        // Detener actualizaciones
         function stopSongInfoUpdates() {
             if (updateInterval) {
                 clearInterval(updateInterval);
@@ -829,7 +826,6 @@
             audioPlayer.volume = volume;
             volumeValue.textContent = this.value + '%';
             
-            // Actualizar icono según el volumen
             if (this.value == 0) {
                 volumeIcon.textContent = '🔇';
                 volumeIcon.classList.add('muted');
@@ -844,7 +840,6 @@
         // Toggle mute al hacer clic en el icono
         volumeIcon.addEventListener('click', function() {
             if (isMuted) {
-                // Restaurar volumen
                 volumeSlider.value = previousVolume;
                 audioPlayer.volume = previousVolume / 100;
                 volumeValue.textContent = previousVolume + '%';
@@ -852,7 +847,6 @@
                 volumeIcon.classList.remove('muted');
                 isMuted = false;
             } else {
-                // Guardar volumen actual y mutear
                 previousVolume = volumeSlider.value;
                 volumeSlider.value = 0;
                 audioPlayer.volume = 0;
