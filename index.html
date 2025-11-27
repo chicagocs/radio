@@ -105,7 +105,7 @@
         .album-cover {
             width: 120px;
             height: 120px;
-            background-color: #000000;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 1px solid #ff6600;
             border-radius: 10px;
             overflow: hidden;
@@ -133,7 +133,7 @@
             font-weight: bold;
             text-align: center;
             padding: 10px;
-            background-color: #000000;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
         }
 
         .now-playing {
@@ -702,11 +702,11 @@
                 console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
             }
             
-            // Si no se encontró portada o hubo un error, mostrar placeholder negro
+            // Si no se encontró portada o hubo un error, mostrar placeholder con gradiente
             resetAlbumCover();
         }
 
-        // Resetear portada del álbum a placeholder negro
+        // Resetear portada del álbum a placeholder con gradiente
         function resetAlbumCover() {
             albumCover.innerHTML = '<div class="album-cover-placeholder">♪ ♫ ♪</div>';
         }
