@@ -485,24 +485,41 @@
                         currentTrackInfo.artist !== newTrackInfo.artist;
                     
                     if (isNewTrack) {
+                        console.log('🔄 CAMBIO DE CANCIÓN DETECTADO');
+                        console.log('Anterior:', currentTrackInfo?.title || 'ninguna');
+                        console.log('Nueva:', newTrackInfo.title);
+                        
+                        // ABORTAR contador anterior inmediatamente
+                        resetCountdown();
+                        
+                        // Actualizar información de la canción
                         currentTrackInfo = newTrackInfo;
                         songTitle.textContent = newTrackInfo.title;
                         songArtist.textContent = newTrackInfo.artist;
                         songAlbum.textContent = newTrackInfo.album ? `(${newTrackInfo.album})` : '';
                         
+                        // Mostrar estado de carga en el contador
+                        countdownTimer.textContent = '⏳ ...';
+                        countdownTimer.classList.remove('ending');
+                        
                         // Calcular cuando empezó la canción (SomaFM usa zona horaria Pacific)
                         if (newTrackInfo.date) {
                             const songDate = new Date(newTrackInfo.date * 1000); // Unix timestamp a milisegundos
                             trackStartTime = songDate.getTime();
-                            console.log('Canción empezó en:', songDate.toLocaleString());
+                            console.log('⏰ Canción empezó en:', songDate.toLocaleString());
                         } else {
                             trackStartTime = Date.now(); // Fallback si no hay timestamp
+                            console.log('⚠️ Sin timestamp, usando hora actual como referencia');
                         }
                         
-                        console.log('Nueva canción detectada:', newTrackInfo.title);
-                        
-                        // Obtener duración de la canción
+                        // Obtener duración de la canción y RECALCULAR contador
                         await getTrackDuration(newTrackInfo.artist, newTrackInfo.title);
+                    } else {
+                        // Misma canción, solo actualizar el display si ya tenemos duración
+                        if (trackDuration > 0 && trackStartTime > 0) {
+                            // El contador ya está corriendo, no hacer nada
+                            console.log('✓ Misma canción, contador activo');
+                        }
                     }
                 } else {
                     songTitle.textContent = 'Reproduciendo...';
@@ -522,7 +539,7 @@
         // Obtener duración de la canción desde MusicBrainz
         async function getTrackDuration(artist, title) {
             try {
-                console.log('Buscando duración en MusicBrainz para:', artist, '-', title);
+                console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
                 
                 // Buscar grabación (recording) por artista y título
                 const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
@@ -538,7 +555,7 @@
                 }
                 
                 const data = await response.json();
-                console.log('Respuesta de MusicBrainz:', data);
+                console.log('📥 Respuesta de MusicBrainz recibida');
                 
                 if (data.recordings && data.recordings.length > 0) {
                     // Buscar la mejor coincidencia (con duración disponible)
@@ -547,49 +564,57 @@
                             // MusicBrainz devuelve la duración en milisegundos
                             trackDuration = Math.floor(recording.length / 1000);
                             // NO actualizamos trackStartTime aquí, ya lo tenemos de SomaFM
-                            console.log('Duración encontrada en MusicBrainz:', trackDuration, 'segundos');
-                            console.log('Título exacto:', recording.title);
-                            console.log('Score de coincidencia:', recording.score);
+                            console.log('✓ Duración encontrada:', trackDuration, 'segundos');
+                            console.log('✓ Título exacto:', recording.title);
+                            console.log('✓ Score de coincidencia:', recording.score);
                             
                             // Calcular tiempo ya transcurrido
                             const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
-                            console.log('Tiempo transcurrido desde inicio:', elapsed, 'segundos');
-                            console.log('Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
+                            console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
+                            console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
                             
+                            // INICIAR el nuevo contador con los datos actualizados
                             startCountdown();
                             return;
                         }
                     }
-                    console.log('Se encontraron grabaciones pero ninguna tiene duración disponible');
+                    console.log('⚠️ Se encontraron grabaciones pero ninguna tiene duración disponible');
                     resetCountdown();
                 } else {
-                    console.log('No se encontró información de la canción en MusicBrainz');
+                    console.log('❌ No se encontró información de la canción en MusicBrainz');
                     resetCountdown();
                 }
             } catch (error) {
-                console.error('Error al obtener duración desde MusicBrainz:', error);
+                console.error('❌ Error al obtener duración desde MusicBrainz:', error);
                 resetCountdown();
             }
         }
 
         // Iniciar contador regresivo
         function startCountdown() {
-            // Limpiar contador anterior si existe
+            console.log('▶️ Iniciando nuevo contador');
+            
+            // Limpiar contador anterior si existe (por seguridad extra)
             if (countdownInterval) {
                 clearInterval(countdownInterval);
+                console.log('⚠️ Se encontró un contador anterior activo, limpiándolo');
             }
             
+            // Primera actualización inmediata
             updateCountdownDisplay();
             
             // Actualizar cada segundo
             countdownInterval = setInterval(() => {
                 updateCountdownDisplay();
             }, 1000);
+            
+            console.log('✓ Contador iniciado correctamente');
         }
 
         // Actualizar visualización del contador
         function updateCountdownDisplay() {
             if (!trackDuration || !trackStartTime) {
+                console.log('⚠️ Sin datos de duración o tiempo de inicio');
                 resetCountdown();
                 return;
             }
@@ -598,6 +623,7 @@
             const remaining = trackDuration - elapsed;
             
             if (remaining <= 0) {
+                console.log('⏰ Tiempo terminado - esperando nueva canción');
                 countdownTimer.textContent = '00:00';
                 countdownTimer.classList.remove('ending');
                 if (countdownInterval) {
@@ -621,12 +647,20 @@
 
         // Resetear contador
         function resetCountdown() {
+            console.log('🛑 Abortando contador anterior');
+            
+            // Detener el intervalo inmediatamente
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
+                console.log('✓ Intervalo de contador detenido');
             }
+            
+            // Limpiar todas las variables de tiempo
             trackDuration = 0;
             trackStartTime = 0;
+            
+            // Resetear display visual
             countdownTimer.textContent = '--:--';
             countdownTimer.classList.remove('ending');
         }
