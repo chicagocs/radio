@@ -21,7 +21,7 @@
         "id": "u80s",
         "name": "Underground 80s",
         "description": "Synthpop británico de los 80s y un poco de New Wave",
-        "url": "https://ice1.somafm.com/u80s-128-mp3"
+        "url": "https://ice5.somafm.com/u80s-128-mp3"
     },
     {
         "id": "groovesalad",
@@ -209,4 +209,5 @@
         "description": "De black a doom, prog a sludge, thrash a post, stoner a crossover, punk a industrial",
         "url": "https://ice5.somafm.com/metal-128-mp3"
     }
+
 ]
