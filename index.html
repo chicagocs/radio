@@ -344,18 +344,38 @@
             vertical-align: middle;
             /* margin-left: 5px; ELIMINADO, ahora se usa 'gap' */
             width: 20px;
-            height: 12.5px;
+            height: 13.5px; /* Reducido en 10% */
             border-radius: 2px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
 
-        /* *** ESTILOS PARA LA COLUMNA ISRC VACÍA *** */
-        .isrc-column {
+        /* *** ESTILOS PARA LA COLUMNA DEL SELLO DISCOGRÁFICO *** */
+        .label-column {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding-left: 15px;
+        }
+
+        .label-label {
+            font-size: 9px;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .label-name {
+            font-size: 13px;
+            color: #cccccc;
+            font-style: italic;
+            line-height: 1.3;
+            max-height: 32px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
 
         @keyframes blink {
@@ -464,8 +484,10 @@
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
-            <!-- Columna ISRC vacía -->
-            <div class="isrc-column">
+            <!-- Columna para el sello discográfico -->
+            <div class="label-column">
+                <div class="label-label">Sello</div>
+                <div class="label-name" id="labelName">----</div>
             </div>
         </div>
 
@@ -504,6 +526,7 @@
         const releaseDate = document.getElementById('releaseDate');
         const releaseCountry = document.getElementById('releaseCountry');
         const releaseCountryFlag = document.getElementById('releaseCountryFlag');
+        const labelName = document.getElementById('labelName'); // Nueva variable para el sello discográfico
 
         let currentStation = null;
         let updateInterval = null;
@@ -728,7 +751,7 @@
         async function getTrackDuration(artist, title) {
             try {
                 console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
-                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5&inc=labels+release-groups`;
                 
                 const response = await fetch(searchUrl, {
                     headers: {
@@ -770,20 +793,30 @@
                         // Obtener y mostrar la información del lanzamiento
                         let releaseDate = null;
                         let releaseCountry = null;
+                        let recordLabel = null;
                         
                         if (bestRecording.releases && bestRecording.releases.length > 0) {
                             const mainRelease = bestRecording.releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || bestRecording.releases[0];
                             releaseDate = mainRelease.date;
                             releaseCountry = mainRelease.country;
                             
+                            // Obtener el sello discográfico
+                            if (mainRelease['label-info'] && mainRelease['label-info'].length > 0) {
+                                const labelInfo = mainRelease['label-info'][0];
+                                if (labelInfo.label && labelInfo.label.name) {
+                                    recordLabel = labelInfo.label.name;
+                                }
+                            }
+                            
                             console.log('📀 Información de lanzamiento:', {
                                 date: releaseDate,
-                                country: releaseCountry
+                                country: releaseCountry,
+                                label: recordLabel
                             });
                         }
                         
                         // Mostrar la información de lanzamiento
-                        displayReleaseInfo(releaseDate, releaseCountry);
+                        displayReleaseInfo(releaseDate, releaseCountry, recordLabel);
                         
                         // Obtener la portada del álbum
                         await getAlbumCover(bestRecording.releases);
@@ -804,8 +837,8 @@
             }
         }
 
-        function displayReleaseInfo(date, country) {
-            console.log('🎵 Mostrando información de lanzamiento:', { date, country });
+        function displayReleaseInfo(date, country, label) {
+            console.log('🎵 Mostrando información de lanzamiento:', { date, country, label });
             
             // Mostrar solo el año
             if (date) {
@@ -837,6 +870,13 @@
                 releaseCountryFlag.style.display = 'none';
                 releaseCountryFlag.src = '';
             }
+            
+            // Mostrar el sello discográfico
+            if (label) {
+                labelName.textContent = label;
+            } else {
+                labelName.textContent = '----';
+            }
         }
 
         function resetReleaseInfo() {
@@ -844,6 +884,7 @@
             releaseCountry.textContent = '';
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
+            labelName.textContent = '----';
         }
 
         async function getAlbumCover(releases) {
