@@ -344,7 +344,7 @@
             vertical-align: middle;
             /* margin-left: 5px; ELIMINADO, ahora se usa 'gap' */
             width: 20px;
-            height: 12.15px; /* Reducido en 10% */
+            height: 13.5px; /* Reducido en 10% */
             border-radius: 2px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
@@ -631,6 +631,7 @@
                 trackStartTime = 0;
                 resetCountdown();
                 resetAlbumCover();
+                resetReleaseInfo(); // Resetear información de lanzamiento al cambiar de estación
 
                 audioPlayer.src = currentStation.url;
                 
@@ -654,6 +655,7 @@
                             alert('Error al reproducir el stream. Intenta de nuevo.');
                             songTitle.textContent = 'Selecciona una estación';
                             resetAlbumCover();
+                            resetReleaseInfo();
                         }, 30000);
                     });
             } else {
@@ -705,6 +707,7 @@
                         countdownTimer.classList.remove('ending');
                         
                         resetAlbumCover();
+                        resetReleaseInfo(); // Resetear información de lanzamiento al cambiar de canción
                         
                         if (newTrackInfo.date) {
                             const songDate = new Date(newTrackInfo.date * 1000);
@@ -727,6 +730,7 @@
                     songAlbum.textContent = '';
                     resetCountdown();
                     resetAlbumCover();
+                    resetReleaseInfo();
                 }
             } catch (error) {
                 console.error('Error al obtener info de la canción:', error);
@@ -735,6 +739,7 @@
                 songAlbum.textContent = '';
                 resetCountdown();
                 resetAlbumCover();
+                resetReleaseInfo();
             }
         }
 
@@ -757,47 +762,74 @@
                 console.log('📥 Respuesta de MusicBrainz recibida');
                 
                 if (data.recordings && data.recordings.length > 0) {
+                    // Buscar la grabación con más información completa
+                    let bestRecording = null;
+                    let maxInfo = 0;
+                    
                     for (const recording of data.recordings) {
-                        if (recording.length) {
-                            trackDuration = Math.floor(recording.length / 1000);
-                            console.log('✓ Duración encontrada:', trackDuration, 'segundos');
-                            
-                            const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
-                            console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
-                            console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
-                            
-                            // Obtener el ISRC si está disponible
-                            const isrc = recording.isrcs && recording.isrcs.length > 0 ? recording.isrcs[0] : null;
-                            
-                            // Obtener y mostrar la información del lanzamiento
-                            if (recording.releases && recording.releases.length > 0) {
-                                const mainRelease = recording.releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || recording.releases[0];
-                                displayReleaseInfo(mainRelease.date, mainRelease.country, isrc);
-                            } else {
-                                displayReleaseInfo(null, null, isrc);
-                            }
-
-                            await getAlbumCover(recording.releases);
-                            startCountdown();
-                            return;
+                        let infoScore = 0;
+                        if (recording.length) infoScore++;
+                        if (recording.isrcs && recording.isrcs.length > 0) infoScore++;
+                        if (recording.releases && recording.releases.length > 0) infoScore++;
+                        
+                        if (infoScore > maxInfo) {
+                            maxInfo = infoScore;
+                            bestRecording = recording;
                         }
                     }
+                    
+                    if (bestRecording && bestRecording.length) {
+                        trackDuration = Math.floor(bestRecording.length / 1000);
+                        console.log('✓ Duración encontrada:', trackDuration, 'segundos');
+                        
+                        const elapsed = Math.floor((Date.now() - trackStartTime) / 1000);
+                        console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
+                        console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
+                        
+                        // Obtener el ISRC si está disponible
+                        const isrc = bestRecording.isrcs && bestRecording.isrcs.length > 0 ? bestRecording.isrcs[0] : null;
+                        
+                        // Obtener y mostrar la información del lanzamiento
+                        let releaseDate = null;
+                        let releaseCountry = null;
+                        
+                        if (bestRecording.releases && bestRecording.releases.length > 0) {
+                            const mainRelease = bestRecording.releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || bestRecording.releases[0];
+                            releaseDate = mainRelease.date;
+                            releaseCountry = mainRelease.country;
+                            
+                            console.log('📀 Información de lanzamiento:', {
+                                date: releaseDate,
+                                country: releaseCountry,
+                                isrc: isrc
+                            });
+                        }
+                        
+                        // Mostrar la información de lanzamiento
+                        displayReleaseInfo(releaseDate, releaseCountry, isrc);
+                        
+                        // Obtener la portada del álbum
+                        await getAlbumCover(bestRecording.releases);
+                        
+                        startCountdown();
+                        return;
+                    }
+                    
                     console.log('⚠️ Se encontraron grabaciones pero ninguna tiene duración disponible');
                     resetCountdown();
-                    resetReleaseInfo();
                 } else {
                     console.log('❌ No se encontró información de la canción en MusicBrainz');
                     resetCountdown();
-                    resetReleaseInfo();
                 }
             } catch (error) {
                 console.error('❌ Error al obtener duración desde MusicBrainz:', error);
                 resetCountdown();
-                resetReleaseInfo();
             }
         }
 
         function displayReleaseInfo(date, country, isrc) {
+            console.log('🎵 Mostrando información de lanzamiento:', { date, country, isrc });
+            
             // Mostrar solo el año
             if (date) {
                 const year = date.substring(0, 4);
@@ -925,7 +957,7 @@
 
         function resetAlbumCover() {
             albumCover.innerHTML = '<div class="album-cover-placeholder">Portada</div>';
-            resetReleaseInfo(); // También reseteamos la info de lanzamiento
+            // NO llamar a resetReleaseInfo() aquí para evitar borrar los datos
         }
 
         function startCountdown() {
@@ -1010,6 +1042,7 @@
             }
             resetCountdown();
             resetAlbumCover();
+            resetReleaseInfo();
             currentTrackInfo = null;
             songTitle.textContent = 'Selecciona una estación';
             songArtist.textContent = '';
