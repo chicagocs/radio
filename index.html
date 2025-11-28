@@ -320,6 +320,13 @@
             color: #ff3300;
             animation: blink 1s infinite;
         }
+        
+        /* *** NUEVO ESTILO PARA ALINEAR AÑO Y PAÍS *** */
+        .release-info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* Espacio entre el año y el país/bandera */
+        }
 
         .release-info-date, .release-info-country {
             font-size: 13px;
@@ -328,14 +335,14 @@
 
         .release-info-country {
             color: #ff6600;
-            font-weight: bold;
-            margin-left: 8px;
+            /* font-weight: bold; ELIMINADO */
+            /* margin-left: 8px; ELIMINADO, ahora se usa 'gap' */
         }
 
-        /* *** NUEVO ESTILO PARA EL ICONO DE LA BANDERA *** */
+        /* *** ESTILO PARA EL ICONO DE LA BANDERA *** */
         .release-info-flag {
             vertical-align: middle;
-            margin-left: 5px;
+            /* margin-left: 5px; ELIMINADO, ahora se usa 'gap' */
             width: 20px;
             height: 15px;
             border-radius: 2px;
@@ -441,10 +448,10 @@
             </div>
             <div class="release-info-column">
                 <div class="release-info-label">Lanzamiento</div>
-                <div>
+                <!-- *** SE AÑADE LA CLASE 'release-info-row' AL DIV CONTENEDOR *** -->
+                <div class="release-info-row">
                     <span class="release-info-date" id="releaseDate">----</span>
                     <span class="release-info-country" id="releaseCountry"></span>
-                    <!-- *** NUEVA ETIQUETA IMG PARA LA BANDERA *** -->
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
@@ -484,7 +491,7 @@
         const loadingStations = document.getElementById('loadingStations');
         const releaseDate = document.getElementById('releaseDate');
         const releaseCountry = document.getElementById('releaseCountry');
-        const releaseCountryFlag = document.getElementById('releaseCountryFlag'); // *** NUEVA CONSTANTE ***
+        const releaseCountryFlag = document.getElementById('releaseCountryFlag');
 
         let currentStation = null;
         let updateInterval = null;
@@ -757,7 +764,6 @@
             }
         }
 
-        // *** FUNCIÓN MODIFICADA PARA USAR ICONO DE IMAGEN ***
         function displayReleaseInfo(date, country) {
             // Mostrar solo el año
             if (date) {
@@ -784,7 +790,6 @@
         function resetReleaseInfo() {
             releaseDate.textContent = '----';
             releaseCountry.textContent = '';
-            // *** OCULTAR Y LIMPIAR EL ICONO DE LA BANDERA ***
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
         }
