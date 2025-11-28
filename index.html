@@ -392,7 +392,7 @@
             </div>
             <div class="now-playing" id="nowPlaying">
                 <div class="now-playing-label">Ahora</div>
-                <div class="song-title" id="songTitle">Selecciona una estación</div>
+                <div class="song-title" id="songTitle">Seleccionar estación</div>
                 <div class="song-artist" id="songArtist"></div>
                 <div class="song-album" id="songAlbum"></div>
             </div>
@@ -465,7 +465,7 @@
             loadingStations.style.display = 'none';
             stationSelect.style.display = 'block';
         
-            stationName.textContent = 'Selecciona una estación';
+            stationName.textContent = 'Seleccionar estación';
             stationDescription.textContent = 'Elige tu estación favorita para comenzar';
         
             populateStationSelect(stations);
@@ -529,7 +529,7 @@
                 if (currentStation) {
                     playStation();
                 } else {
-                    alert('Por favor selecciona una estación primero');
+                    alert('Por favor seleccionar estación primero');
                 }
             }
         });
@@ -575,12 +575,12 @@
                         // Solo mostrar error después de 30 segundos para evitar falsos positivos
                         errorTimeout = setTimeout(() => {
                             alert('Error al reproducir el stream. Intenta de nuevo.');
-                            songTitle.textContent = 'Selecciona una estación';
+                            songTitle.textContent = 'Seleccionar estación';
                             resetAlbumCover();
                         }, 30000);
                     });
             } else {
-                alert('Por favor selecciona una estación primero');
+                alert('Por favor seleccionar estación primero');
             }
         }
 
@@ -892,7 +892,7 @@
             resetCountdown();
             resetAlbumCover();
             currentTrackInfo = null;
-            songTitle.textContent = 'Selecciona una estación';
+            songTitle.textContent = 'Seleccionar estación';
             songArtist.textContent = '';
             songAlbum.textContent = '';
         }
