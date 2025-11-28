@@ -838,9 +838,8 @@
                 releaseDate.textContent = '----';
             }
 
-            // Mostrar el código del país con el separador " | "
             if (country) {
-                releaseCountry.textContent = ` | ${country}`;
+                releaseCountry.textContent = `${country}`;
                 // Usar el servicio flagcdn.com para obtener el icono
                 releaseCountryFlag.src = `https://flagcdn.com/w20/${country.toLowerCase()}.png`;
                 releaseCountryFlag.alt = `Bandera de ${country}`;
