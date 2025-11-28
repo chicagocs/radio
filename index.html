@@ -349,28 +349,13 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
 
-        /* *** ESTILOS PARA LA COLUMNA ISRC *** */
+        /* *** ESTILOS PARA LA COLUMNA ISRC VACÍA *** */
         .isrc-column {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding-left: 15px;
-            /* Eliminado: border-left: 1px solid #ff6600; */
-        }
-
-        .isrc-label {
-            font-size: 9px;
-            color: #888888;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-
-        .isrc-code {
-            font-size: 13px;
-            color: #cccccc;
-            font-family: 'Courier New', monospace;
         }
 
         @keyframes blink {
@@ -479,10 +464,8 @@
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
-            <!-- Nueva columna para el código ISRC -->
+            <!-- Columna ISRC vacía -->
             <div class="isrc-column">
-                <div class="isrc-label">Código ISRC</div>
-                <div class="isrc-code" id="isrcCode">---- ---- ----</div>
             </div>
         </div>
 
@@ -521,7 +504,6 @@
         const releaseDate = document.getElementById('releaseDate');
         const releaseCountry = document.getElementById('releaseCountry');
         const releaseCountryFlag = document.getElementById('releaseCountryFlag');
-        const isrcCode = document.getElementById('isrcCode'); // Nueva variable para el código ISRC
 
         let currentStation = null;
         let updateInterval = null;
@@ -769,7 +751,6 @@
                     for (const recording of data.recordings) {
                         let infoScore = 0;
                         if (recording.length) infoScore++;
-                        if (recording.isrcs && recording.isrcs.length > 0) infoScore++;
                         if (recording.releases && recording.releases.length > 0) infoScore++;
                         
                         if (infoScore > maxInfo) {
@@ -786,9 +767,6 @@
                         console.log('⏱️ Tiempo transcurrido:', elapsed, 'segundos');
                         console.log('⏳ Tiempo restante estimado:', trackDuration - elapsed, 'segundos');
                         
-                        // Obtener el ISRC si está disponible
-                        const isrc = bestRecording.isrcs && bestRecording.isrcs.length > 0 ? bestRecording.isrcs[0] : null;
-                        
                         // Obtener y mostrar la información del lanzamiento
                         let releaseDate = null;
                         let releaseCountry = null;
@@ -800,13 +778,12 @@
                             
                             console.log('📀 Información de lanzamiento:', {
                                 date: releaseDate,
-                                country: releaseCountry,
-                                isrc: isrc
+                                country: releaseCountry
                             });
                         }
                         
                         // Mostrar la información de lanzamiento
-                        displayReleaseInfo(releaseDate, releaseCountry, isrc);
+                        displayReleaseInfo(releaseDate, releaseCountry);
                         
                         // Obtener la portada del álbum
                         await getAlbumCover(bestRecording.releases);
@@ -827,8 +804,8 @@
             }
         }
 
-        function displayReleaseInfo(date, country, isrc) {
-            console.log('🎵 Mostrando información de lanzamiento:', { date, country, isrc });
+        function displayReleaseInfo(date, country) {
+            console.log('🎵 Mostrando información de lanzamiento:', { date, country });
             
             // Mostrar solo el año
             if (date) {
@@ -860,21 +837,6 @@
                 releaseCountryFlag.style.display = 'none';
                 releaseCountryFlag.src = '';
             }
-            
-            // Mostrar el código ISRC
-            if (isrc) {
-                isrcCode.textContent = formatISRC(isrc);
-            } else {
-                isrcCode.textContent = '---- ---- ----';
-            }
-        }
-
-        function formatISRC(isrc) {
-            // Formatear el ISRC como "CC-XXX-YY-NNNNN"
-            if (isrc.length === 12) {
-                return `${isrc.substring(0, 2)}-${isrc.substring(2, 5)}-${isrc.substring(5, 7)}-${isrc.substring(7)}`;
-            }
-            return isrc;
         }
 
         function resetReleaseInfo() {
@@ -882,7 +844,6 @@
             releaseCountry.textContent = '';
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
-            isrcCode.textContent = '---- ---- ----';
         }
 
         async function getAlbumCover(releases) {
