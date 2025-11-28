@@ -838,9 +838,8 @@
                 releaseDate.textContent = '----';
             }
 
-            // Mostrar el código del país con el separador " | "
             if (country) {
-                releaseCountry.textContent = ` | ${country}`;
+                releaseCountry.textContent = `${country}`;
                 
                 // *** CORRECCIÓN: Comprobar si el código de país es válido para mostrar una bandera ***
                 const countryCode = country.toLowerCase();
