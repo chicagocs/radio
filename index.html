@@ -344,7 +344,7 @@
             vertical-align: middle;
             /* margin-left: 5px; ELIMINADO, ahora se usa 'gap' */
             width: 20px;
-            height: 12px;
+            height: 13.5px; /* Reducido en 10% */
             border-radius: 2px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
@@ -838,12 +838,24 @@
                 releaseDate.textContent = '----';
             }
 
+            // Mostrar el código del país con el separador " | "
             if (country) {
-                releaseCountry.textContent = `${country}`;
-                // Usar el servicio flagcdn.com para obtener el icono
-                releaseCountryFlag.src = `https://flagcdn.com/w20/${country.toLowerCase()}.png`;
-                releaseCountryFlag.alt = `Bandera de ${country}`;
-                releaseCountryFlag.style.display = 'inline-block';
+                releaseCountry.textContent = ` | ${country}`;
+                
+                // *** CORRECCIÓN: Comprobar si el código de país es válido para mostrar una bandera ***
+                const countryCode = country.toLowerCase();
+                const nonStandardCodes = ['xw', 'xe']; // Worldwide, Europe
+                
+                if (!nonStandardCodes.includes(countryCode)) {
+                    // Es un código de país estándar, mostrar la bandera
+                    releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
+                    releaseCountryFlag.alt = `Bandera de ${country}`;
+                    releaseCountryFlag.style.display = 'inline-block';
+                } else {
+                    // Es un código no estándar (ej. Worldwide), ocultar la bandera para evitar error 404
+                    releaseCountryFlag.style.display = 'none';
+                    releaseCountryFlag.src = ''; // Limpiar src para no cargar imagen anterior
+                }
             } else {
                 releaseCountry.textContent = '';
                 releaseCountryFlag.style.display = 'none';
