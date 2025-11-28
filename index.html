@@ -332,6 +332,16 @@
             margin-left: 8px;
         }
 
+        /* *** NUEVO ESTILO PARA EL ICONO DE LA BANDERA *** */
+        .release-info-flag {
+            vertical-align: middle;
+            margin-left: 5px;
+            width: 20px;
+            height: 15px;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0.5; }
@@ -434,6 +444,8 @@
                 <div>
                     <span class="release-info-date" id="releaseDate">----</span>
                     <span class="release-info-country" id="releaseCountry"></span>
+                    <!-- *** NUEVA ETIQUETA IMG PARA LA BANDERA *** -->
+                    <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
         </div>
@@ -472,6 +484,7 @@
         const loadingStations = document.getElementById('loadingStations');
         const releaseDate = document.getElementById('releaseDate');
         const releaseCountry = document.getElementById('releaseCountry');
+        const releaseCountryFlag = document.getElementById('releaseCountryFlag'); // *** NUEVA CONSTANTE ***
 
         let currentStation = null;
         let updateInterval = null;
@@ -486,19 +499,6 @@
 
         // Configurar volumen inicial
         audioPlayer.volume = 0.5;
-
-        // *** NUEVA FUNCIÓN PARA OBTENER LA BANDERA ***
-        function getCountryFlag(countryCode) {
-            if (!countryCode || countryCode.length !== 2) {
-                return '';
-            }
-            const codePoints = countryCode.toUpperCase().split('').map(char => 0x1F1E6 + char.charCodeAt(0) - 0x41);
-            try {
-                return String.fromCodePoint(...codePoints);
-            } catch (e) {
-                return '';
-            }
-        }
 
         // Cargar estaciones desde archivo JSON externo
         async function loadStations() {
@@ -757,7 +757,7 @@
             }
         }
 
-        // *** FUNCIÓN MODIFICADA ***
+        // *** FUNCIÓN MODIFICADA PARA USAR ICONO DE IMAGEN ***
         function displayReleaseInfo(date, country) {
             // Mostrar solo el año
             if (date) {
@@ -767,18 +767,26 @@
                 releaseDate.textContent = '----';
             }
 
-            // Mostrar el código del país y la bandera
+            // Mostrar el código del país y el icono de la bandera
             if (country) {
-                const flag = getCountryFlag(country);
-                releaseCountry.textContent = `${country} ${flag}`;
+                releaseCountry.textContent = country;
+                // Usar el servicio flagcdn.com para obtener el icono
+                releaseCountryFlag.src = `https://flagcdn.com/w20/${country.toLowerCase()}.png`;
+                releaseCountryFlag.alt = `Bandera de ${country}`;
+                releaseCountryFlag.style.display = 'inline-block';
             } else {
                 releaseCountry.textContent = '';
+                releaseCountryFlag.style.display = 'none';
+                releaseCountryFlag.src = ''; // Limpiar src para no cargar imagen anterior
             }
         }
 
         function resetReleaseInfo() {
             releaseDate.textContent = '----';
             releaseCountry.textContent = '';
+            // *** OCULTAR Y LIMPIAR EL ICONO DE LA BANDERA ***
+            releaseCountryFlag.style.display = 'none';
+            releaseCountryFlag.src = '';
         }
 
         async function getAlbumCover(releases) {
