@@ -432,7 +432,7 @@
             <div class="release-info-column">
                 <div class="release-info-label">Lanzamiento</div>
                 <div>
-                    <span class="release-info-date" id="releaseDate">--/--/----</span>
+                    <span class="release-info-date" id="releaseDate">----</span>
                     <span class="release-info-country" id="releaseCountry"></span>
                 </div>
             </div>
@@ -486,6 +486,19 @@
 
         // Configurar volumen inicial
         audioPlayer.volume = 0.5;
+
+        // *** NUEVA FUNCIÓN PARA OBTENER LA BANDERA ***
+        function getCountryFlag(countryCode) {
+            if (!countryCode || countryCode.length !== 2) {
+                return '';
+            }
+            const codePoints = countryCode.toUpperCase().split('').map(char => 0x1F1E6 + char.charCodeAt(0) - 0x41);
+            try {
+                return String.fromCodePoint(...codePoints);
+            } catch (e) {
+                return '';
+            }
+        }
 
         // Cargar estaciones desde archivo JSON externo
         async function loadStations() {
@@ -744,30 +757,27 @@
             }
         }
 
+        // *** FUNCIÓN MODIFICADA ***
         function displayReleaseInfo(date, country) {
+            // Mostrar solo el año
             if (date) {
                 const year = date.substring(0, 4);
-                const month = date.substring(5, 7);
-                const day = date.substring(8, 10);
-                releaseDate.textContent = `${day}/${month}/${year}`;
+                releaseDate.textContent = year;
             } else {
-                releaseDate.textContent = '--/--/----';
+                releaseDate.textContent = '----';
             }
 
+            // Mostrar el código del país y la bandera
             if (country) {
-                const countryNames = {
-                    'US': 'EE.UU.', 'GB': 'R.U.', 'DE': 'Alemania', 'FR': 'Francia', 'JP': 'Japón',
-                    'MX': 'México', 'AR': 'Argentina', 'ES': 'España', 'IT': 'Italia', 'CA': 'Canadá',
-                    'AU': 'Australia', 'NL': 'Países Bajos', 'SE': 'Suecia', 'NO': 'Noruega'
-                };
-                releaseCountry.textContent = `(${countryNames[country] || country})`;
+                const flag = getCountryFlag(country);
+                releaseCountry.textContent = `${country} ${flag}`;
             } else {
                 releaseCountry.textContent = '';
             }
         }
 
         function resetReleaseInfo() {
-            releaseDate.textContent = '--/--/----';
+            releaseDate.textContent = '----';
             releaseCountry.textContent = '';
         }
 
