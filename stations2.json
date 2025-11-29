@@ -248,7 +248,7 @@
         "id": "rp-rock",
         "name": "Radio Paradise - Main Rock Mix",
         "description": "Una mezcla ecléctica de rock, desde clásicos hasta nuevos lanzamientos.",
-        "url": "https://stream.radioparadise.com/rock-128.mp3",
+        "url": "http://stream.radioparadise.com/ogg-192m",
         "service": "radioparadise",
         "channelId": 1
     },
