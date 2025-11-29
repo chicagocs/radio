@@ -686,7 +686,7 @@
 
         async function getSomaFmTrackDuration(artist, title) {
             try {
-                console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
+                console.log('🔍 Buscando duración y portada en MusicBrainz para:', artist, '-', title);
                 const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5&inc=labels+release-groups`;
                 const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -706,7 +706,10 @@
                             releaseCountry = mainRelease.country;
                         }
                         displayReleaseInfo(releaseDate, releaseCountry);
-                        await getSomaFmAlbumCover(bestRecording.releases);
+                        
+                        // Buscar la portada usando la función genérica
+                        await getAlbumCoverFromMusicBrainz(artist, title);
+                        
                         startCountdown();
                         return;
                     }
@@ -719,43 +722,7 @@
             }
         }
 
-        async function getSomaFmAlbumCover(releases) {
-            if (!releases || releases.length === 0) return;
-            const mainRelease = releases[0];
-            const releaseId = mainRelease.id;
-            if (!releaseId) return;
-            
-            try {
-                const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
-                const response = await fetch(coverArtUrl);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const coverData = await response.json();
-                
-                if (coverData.images && coverData.images.length > 0) {
-                    const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
-                    if (frontCover && frontCover.image) {
-                        albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                        if (currentImageCache.has(frontCover.image)) {
-                            displayAlbumCover(currentImageCache.get(frontCover.image));
-                            return;
-                        }
-                        const img = new Image();
-                        img.crossOrigin = 'anonymous';
-                        img.onload = function() {
-                            currentImageCache.set(frontCover.image, this);
-                            displayAlbumCover(this);
-                        };
-                        img.onerror = resetAlbumCover;
-                        img.src = frontCover.image;
-                    }
-                }
-            } catch (error) {
-                console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
-                resetAlbumCover();
-            }
-        }
-
-        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA) ---
+        // --- LÓGICA PARA RADIO PARADISE ---
         async function updateRadioParadiseInfo() {
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
@@ -776,15 +743,12 @@
                 const data = await response.json();
                 console.log('Datos recibidos de Radio Paradise (vía proxy):', data);
 
-                // *** CORRECCIÓN AQUÍ ***
-                // La API ahora devuelve los datos directamente en el objeto 'data', no en 'data.song'.
                 if (!data || !data.title) {
                     console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
                     resetUI();
                     return;
                 }
 
-                // Usamos 'data' directamente en lugar de 'data.song'
                 const song = data;
                 
                 const newTrackInfo = {
@@ -804,12 +768,15 @@
                     updateUIWithTrackInfo(newTrackInfo);
                     
                     trackDuration = song.duration;
-                    // El tiempo de inicio es el tiempo actual menos el tiempo que ya ha transcurrido
                     trackStartTime = Date.now() - (song.time * 1000);
                     console.log(`Duración: ${trackDuration}s, Inicio calculado: ${new Date(trackStartTime).toLocaleString()}`);
 
-                    displayReleaseInfo(song.year, null); // RP da 'year' en lugar de 'release_date'
+                    displayReleaseInfo(song.year, null);
+                    
+                    // Intenta cargar la portada desde la URL de Radio Paradise.
+                    // Si falla, la función displayRpAlbumCover buscará en MusicBrainz.
                     displayRpAlbumCover(song.cover_art);
+                    
                     startCountdown();
                 }
             } catch (error) {
@@ -822,9 +789,69 @@
             }
         }
 
+        // --- FUNCIÓN GENÉRICA PARA OBTENER PORTADAS ---
+        async function getAlbumCoverFromMusicBrainz(artist, title) {
+            if (!artist || !title) {
+                console.log('Artista o título no proporcionados para buscar portada.');
+                resetAlbumCover();
+                return;
+            }
+            try {
+                console.log(`🔍 Buscando portada en MusicBrainz/Cover Art Archive para: ${artist} - ${title}`);
+                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+                const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+
+                if (data.recordings && data.recordings.length > 0) {
+                    const recordingWithReleases = data.recordings.find(r => r.releases && r.releases.length > 0);
+                    if (recordingWithReleases) {
+                        const mainRelease = recordingWithReleases.releases[0];
+                        const releaseId = mainRelease.id;
+                        if (releaseId) {
+                            const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
+                            const coverResponse = await fetch(coverArtUrl);
+                            if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
+                            const coverData = await coverResponse.json();
+
+                            if (coverData.images && coverData.images.length > 0) {
+                                const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
+                                if (frontCover && frontCover.image) {
+                                    albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
+                                    if (currentImageCache.has(frontCover.image)) {
+                                        displayAlbumCover(currentImageCache.get(frontCover.image));
+                                        return;
+                                    }
+                                    const img = new Image();
+                                    img.crossOrigin = 'anonymous';
+                                    img.onload = function() {
+                                        currentImageCache.set(frontCover.image, this);
+                                        displayAlbumCover(this);
+                                    };
+                                    img.onerror = () => {
+                                        console.error('Error al cargar la imagen de portada desde Cover Art Archive.');
+                                        resetAlbumCover();
+                                    };
+                                    img.src = frontCover.image;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                console.log('⚠️ No se encontró portada en Cover Art Archive.');
+                resetAlbumCover();
+            } catch (error) {
+                console.error('❌ Error al obtener portada desde MusicBrainz/Cover Art Archive:', error);
+                resetAlbumCover();
+            }
+        }
+
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
-                resetAlbumCover();
+                // Si no hay URL de RP, buscar en MusicBrainz inmediatamente
+                console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
+                getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
             }
             albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
@@ -832,7 +859,11 @@
             img.onload = function() {
                 displayAlbumCover(this);
             };
-            img.onerror = resetAlbumCover;
+            img.onerror = function() {
+                // Si la imagen de RP falla, buscar en MusicBrainz como respaldo
+                console.log('Error al cargar la portada de Radio Paradise, buscando en MusicBrainz...');
+                getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
+            };
             img.src = imageUrl;
         }
 
@@ -868,7 +899,6 @@
 
         function displayReleaseInfo(date, country) {
             if (date) {
-                // Aseguramos que solo se muestre el año
                 const year = date.substring(0, 4);
                 releaseDate.textContent = year;
             } else {
