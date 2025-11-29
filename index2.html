@@ -481,9 +481,6 @@
         <audio id="audioPlayer"></audio>
     </div>
 
-    <!-- Contenedor para scripts JSONP dinámicos -->
-    <script id="jsonp-script"></script>
-
     <script>
         const stationSelect = document.getElementById('stationSelect');
         const playBtn = document.getElementById('playBtn');
@@ -514,6 +511,7 @@
         let trackStartTime = 0;
         let currentTrackInfo = null;
         let currentImageCache = new Map();
+        let currentRpScript = null; // Variable para gestionar el script de Radio Paradise
 
         audioPlayer.volume = 0.5;
 
@@ -758,17 +756,18 @@
             }
         }
 
+        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA) ---
+
         // Función de callback global para JSONP
         function handleRadioParadiseResponse(data) {
             console.log('Datos recibidos de Radio Paradise (JSONP):', data);
 
-            // Limpiamos el script de JSONP
-            const jsonpScript = document.getElementById('jsonp-script');
-            if (jsonpScript) {
-                jsonpScript.parentNode.removeChild(jsonpScript);
+            // Limpiamos el script de JSONP si existe
+            if (currentRpScript) {
+                currentRpScript.remove();
+                currentRpScript = null;
             }
 
-            // Verificamos si la respuesta contiene la información de la canción
             if (!data || !data.song) {
                 console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
                 resetUI();
@@ -803,34 +802,35 @@
             }
         }
 
-        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON JSONP) ---
         function updateRadioParadiseInfo() {
             console.log('Obteniendo info de Radio Paradise con JSONP...');
             
-            // Definimos un nombre de callback único para evitar conflictos
+            // Si ya hay un script de una petición anterior, lo eliminamos.
+            if (currentRpScript) {
+                currentRpScript.remove();
+            }
+
             const callbackName = 'handleRadioParadiseResponse';
-            
-            // Creamos la URL de la API con el parámetro de callback
             const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=1&callback=${callbackName}`;
             
-            // Obtenemos el elemento script
-            const jsonpScript = document.getElementById('jsonp-script');
+            // Creamos un nuevo elemento <script> para cada petición
+            currentRpScript = document.createElement('script');
+            currentRpScript.src = apiUrl;
             
-            // Configuramos el script para que apunte a la API
-            jsonpScript.src = apiUrl;
-            
-            // Manejo de errores: si el script no se carga, limpiamos y mostramos un error
-            jsonpScript.onerror = function() {
+            currentRpScript.onerror = function() {
                 console.error('Error al cargar el script de JSONP de Radio Paradise.');
                 resetUI();
                 songTitle.textContent = 'Error al cargar metadatos';
                 songArtist.textContent = 'Reintentando...';
-                // Limpiamos el script para que el próximo intento pueda crear uno nuevo
-                this.parentNode.removeChild(this);
+                // Limpiamos el script si falla
+                if (currentRpScript) {
+                    currentRpScript.remove();
+                    currentRpScript = null;
+                }
             };
 
             // Añadimos el script al head para iniciar la petición
-            document.head.appendChild(jsonpScript);
+            document.head.appendChild(currentRpScript);
         }
 
         function displayRpAlbumCover(imageUrl) {
