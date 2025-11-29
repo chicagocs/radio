@@ -49,7 +49,7 @@
         }
 
         .station-description {
-            font-size: 13px;
+            font-size:13px;
             color: #cccccc;
             line-height: 1.4;
             margin-top: 5px;
@@ -209,7 +209,7 @@
             font-size: 16px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom: 4px;
+            margin-bottom:4px;
             line-height: 1.2;
         }
 
@@ -301,7 +301,7 @@
         }
 
         /* Estilos unificados para todas las cabeceras */
-        .countdown-label, .release-info-label, .label-label {
+        .countdown-label, .release-info-label {
             font-size: 10px; /* Tamaño de fuente unificado */
             color: #888888;
             text-transform: uppercase;
@@ -354,25 +354,13 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
 
-        /* *** ESTILOS PARA LA COLUMNA DEL MBID *** */
+        /* *** ESTILOS PARA LA COLUMNA VACÍA (ANTES MBID) *** */
         .label-column {
             flex: 1.5;
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding-left: 15px;
-        }
-
-        .label-name {
-            font-size: 11px; /* Reducido para que quepa mejor el MBID */
-            color: #cccccc;
-            line-height: 1.3;
-            max-height: 32px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            word-break: break-all; /* Para que el MBID largo se parta si es necesario */
         }
 
         @keyframes blink {
@@ -481,10 +469,8 @@
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
-            <!-- Columna para el MBID -->
+            <!-- Columna vacía con el mismo ancho que tenía antes -->
             <div class="label-column">
-                <div class="label-label">MBID</div>
-                <div class="label-name" id="labelName">----</div>
             </div>
         </div>
 
@@ -523,7 +509,6 @@
         const releaseDate = document.getElementById('releaseDate');
         const releaseCountry = document.getElementById('releaseCountry');
         const releaseCountryFlag = document.getElementById('releaseCountryFlag');
-        const labelName = document.getElementById('labelName'); // Variable para el MBID
 
         let currentStation = null;
         let updateInterval = null;
@@ -790,27 +775,20 @@
                         // Obtener y mostrar la información del lanzamiento
                         let releaseDate = null;
                         let releaseCountry = null;
-                        let releaseMBID = null; // Cambiado de recordLabel a releaseMBID
                         
                         if (bestRecording.releases && bestRecording.releases.length > 0) {
                             const mainRelease = bestRecording.releases.find(r => r['release-group'] && r['release-group']['primary-type'] === 'Album') || bestRecording.releases[0];
                             releaseDate = mainRelease.date;
                             releaseCountry = mainRelease.country;
                             
-                            // Obtener el MBID del lanzamiento
-                            if (mainRelease.id) {
-                                releaseMBID = mainRelease.id;
-                            }
-                            
                             console.log('📀 Información de lanzamiento:', {
                                 date: releaseDate,
-                                country: releaseCountry,
-                                mbid: releaseMBID
+                                country: releaseCountry
                             });
                         }
                         
                         // Mostrar la información de lanzamiento
-                        displayReleaseInfo(releaseDate, releaseCountry, releaseMBID);
+                        displayReleaseInfo(releaseDate, releaseCountry);
                         
                         // Obtener la portada del álbum
                         await getAlbumCover(bestRecording.releases);
@@ -831,8 +809,8 @@
             }
         }
 
-        function displayReleaseInfo(date, country, mbid) {
-            console.log('🎵 Mostrando información de lanzamiento:', { date, country, mbid });
+        function displayReleaseInfo(date, country) {
+            console.log('🎵 Mostrando información de lanzamiento:', { date, country });
             
             // Mostrar solo el año
             if (date) {
@@ -864,13 +842,6 @@
                 releaseCountryFlag.style.display = 'none';
                 releaseCountryFlag.src = '';
             }
-            
-            // Mostrar el MBID del lanzamiento
-            if (mbid) {
-                labelName.textContent = mbid;
-            } else {
-                labelName.textContent = '----';
-            }
         }
 
         function resetReleaseInfo() {
@@ -878,7 +849,6 @@
             releaseCountry.textContent = '';
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
-            labelName.textContent = '----'; // Ahora representa el MBID
         }
 
         async function getAlbumCover(releases) {
