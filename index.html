@@ -581,7 +581,7 @@
 
         // Cargar estaciones de SomaFM desde el archivo JSON local
         async function loadSomaFMStations() {
-            const response = await fetch('stations.json');
+            const response = await fetch('somafm-stations.json');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
