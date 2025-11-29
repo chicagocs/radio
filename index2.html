@@ -511,7 +511,6 @@
         let trackStartTime = 0;
         let currentTrackInfo = null;
         let currentImageCache = new Map();
-        let currentRpScript = null; // Variable para gestionar el script de Radio Paradise
 
         audioPlayer.volume = 0.5;
 
@@ -756,81 +755,66 @@
             }
         }
 
-        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA) ---
-
-        // Función de callback global para JSONP
-        function handleRadioParadiseResponse(data) {
-            console.log('Datos recibidos de Radio Paradise (JSONP):', data);
-
-            // Limpiamos el script de JSONP si existe
-            if (currentRpScript) {
-                currentRpScript.remove();
-                currentRpScript = null;
-            }
-
-            if (!data || !data.song) {
-                console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
-                resetUI();
-                return;
-            }
-
-            const song = data.song;
-            
-            const newTrackInfo = {
-                title: song.title,
-                artist: song.artist,
-                album: song.album,
-            };
-            
-            const isNewTrack = !currentTrackInfo || 
-                currentTrackInfo.title !== newTrackInfo.title || 
-                currentTrackInfo.artist !== newTrackInfo.artist;
-
-            if (isNewTrack) {
-                console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
-                resetCountdown();
-                currentTrackInfo = newTrackInfo;
-                updateUIWithTrackInfo(newTrackInfo);
+        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON PROXY) ---
+        async function updateRadioParadiseInfo() {
+            try {
+                console.log('Obteniendo info de Radio Paradise a través de un proxy...');
                 
-                trackDuration = song.duration;
-                trackStartTime = song.played_at * 1000;
-                console.log(`Duración: ${trackDuration}s, Inicio: ${new Date(trackStartTime).toLocaleString()}`);
+                // Usamos un proxy diferente que debería ser más fiable.
+                // La URL original es: https://api.radioparadise.com/api/now_playing?chan=1
+                const proxyUrl = 'https://api.allorigins.win/raw?url=';
+                const apiUrl = encodeURIComponent('https://api.radioparadise.com/api/now_playing?chan=1');
+                
+                const response = await fetch(proxyUrl + apiUrl);
 
-                displayReleaseInfo(song.release_date, null);
-                displayRpAlbumCover(song.cover_art);
-                startCountdown();
-            }
-        }
-
-        function updateRadioParadiseInfo() {
-            console.log('Obteniendo info de Radio Paradise con JSONP...');
-            
-            // Si ya hay un script de una petición anterior, lo eliminamos.
-            if (currentRpScript) {
-                currentRpScript.remove();
-            }
-
-            const callbackName = 'handleRadioParadiseResponse';
-            const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=1&callback=${callbackName}`;
-            
-            // Creamos un nuevo elemento <script> para cada petición
-            currentRpScript = document.createElement('script');
-            currentRpScript.src = apiUrl;
-            
-            currentRpScript.onerror = function() {
-                console.error('Error al cargar el script de JSONP de Radio Paradise.');
-                resetUI();
-                songTitle.textContent = 'Error al cargar metadatos';
-                songArtist.textContent = 'Reintentando...';
-                // Limpiamos el script si falla
-                if (currentRpScript) {
-                    currentRpScript.remove();
-                    currentRpScript = null;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            };
 
-            // Añadimos el script al head para iniciar la petición
-            document.head.appendChild(currentRpScript);
+                const data = await response.json();
+                console.log('Datos recibidos de Radio Paradise (vía proxy):', data);
+
+                if (!data || !data.song) {
+                    console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
+                    resetUI();
+                    return;
+                }
+
+                const song = data.song;
+                
+                const newTrackInfo = {
+                    title: song.title,
+                    artist: song.artist,
+                    album: song.album,
+                };
+                
+                const isNewTrack = !currentTrackInfo || 
+                    currentTrackInfo.title !== newTrackInfo.title || 
+                    currentTrackInfo.artist !== newTrackInfo.artist;
+
+                if (isNewTrack) {
+                    console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
+                    resetCountdown();
+                    currentTrackInfo = newTrackInfo;
+                    updateUIWithTrackInfo(newTrackInfo);
+                    
+                    trackDuration = song.duration;
+                    trackStartTime = song.played_at * 1000;
+                    console.log(`Duración: ${trackDuration}s, Inicio: ${new Date(trackStartTime).toLocaleString()}`);
+
+                    displayReleaseInfo(song.release_date, null);
+                    displayRpAlbumCover(song.cover_art);
+                    startCountdown();
+                }
+            } catch (error) {
+                console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
+                // Si este proxy también falla, puede que sea un problema de red o que el usuario tenga un bloqueador muy agresivo.
+                songTitle.textContent = 'Error al cargar metadatos';
+                songArtist.textContent = 'Inténtalo de nuevo más tarde';
+                resetCountdown();
+                resetAlbumCover();
+                resetReleaseInfo();
+            }
         }
 
         function displayRpAlbumCover(imageUrl) {
