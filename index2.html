@@ -481,6 +481,9 @@
         <audio id="audioPlayer"></audio>
     </div>
 
+    <!-- Contenedor para scripts JSONP dinámicos -->
+    <script id="jsonp-script"></script>
+
     <script>
         const stationSelect = document.getElementById('stationSelect');
         const playBtn = document.getElementById('playBtn');
@@ -755,43 +758,79 @@
             }
         }
 
-        // --- LÓGICA PARA RADIO PARADISE ---
-        async function updateRadioParadiseInfo() {
-            try {
-                // chan=1 es el canal principal de Rock
-                const response = await fetch('https://api.radioparadise.com/api/now_playing?chan=1');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                const song = data.song;
-                
-                const newTrackInfo = {
-                    title: song.title,
-                    artist: song.artist,
-                    album: song.album,
-                };
-                
-                const isNewTrack = !currentTrackInfo || 
-                    currentTrackInfo.title !== newTrackInfo.title || 
-                    currentTrackInfo.artist !== newTrackInfo.artist;
+        // Función de callback global para JSONP
+        function handleRadioParadiseResponse(data) {
+            console.log('Datos recibidos de Radio Paradise (JSONP):', data);
 
-                if (isNewTrack) {
-                    console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
-                    resetCountdown();
-                    currentTrackInfo = newTrackInfo;
-                    updateUIWithTrackInfo(newTrackInfo);
-                    
-                    // RP proporciona duración y tiempo de inicio directamente
-                    trackDuration = song.duration;
-                    trackStartTime = song.played_at * 1000;
-
-                    displayReleaseInfo(song.release_date, null); // RP no da país
-                    displayRpAlbumCover(song.cover_art);
-                    startCountdown();
-                }
-            } catch (error) {
-                console.error('Error al obtener info de Radio Paradise:', error);
-                resetUI();
+            // Limpiamos el script de JSONP
+            const jsonpScript = document.getElementById('jsonp-script');
+            if (jsonpScript) {
+                jsonpScript.parentNode.removeChild(jsonpScript);
             }
+
+            // Verificamos si la respuesta contiene la información de la canción
+            if (!data || !data.song) {
+                console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
+                resetUI();
+                return;
+            }
+
+            const song = data.song;
+            
+            const newTrackInfo = {
+                title: song.title,
+                artist: song.artist,
+                album: song.album,
+            };
+            
+            const isNewTrack = !currentTrackInfo || 
+                currentTrackInfo.title !== newTrackInfo.title || 
+                currentTrackInfo.artist !== newTrackInfo.artist;
+
+            if (isNewTrack) {
+                console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
+                resetCountdown();
+                currentTrackInfo = newTrackInfo;
+                updateUIWithTrackInfo(newTrackInfo);
+                
+                trackDuration = song.duration;
+                trackStartTime = song.played_at * 1000;
+                console.log(`Duración: ${trackDuration}s, Inicio: ${new Date(trackStartTime).toLocaleString()}`);
+
+                displayReleaseInfo(song.release_date, null);
+                displayRpAlbumCover(song.cover_art);
+                startCountdown();
+            }
+        }
+
+        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON JSONP) ---
+        function updateRadioParadiseInfo() {
+            console.log('Obteniendo info de Radio Paradise con JSONP...');
+            
+            // Definimos un nombre de callback único para evitar conflictos
+            const callbackName = 'handleRadioParadiseResponse';
+            
+            // Creamos la URL de la API con el parámetro de callback
+            const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=1&callback=${callbackName}`;
+            
+            // Obtenemos el elemento script
+            const jsonpScript = document.getElementById('jsonp-script');
+            
+            // Configuramos el script para que apunte a la API
+            jsonpScript.src = apiUrl;
+            
+            // Manejo de errores: si el script no se carga, limpiamos y mostramos un error
+            jsonpScript.onerror = function() {
+                console.error('Error al cargar el script de JSONP de Radio Paradise.');
+                resetUI();
+                songTitle.textContent = 'Error al cargar metadatos';
+                songArtist.textContent = 'Reintentando...';
+                // Limpiamos el script para que el próximo intento pueda crear uno nuevo
+                this.parentNode.removeChild(this);
+            };
+
+            // Añadimos el script al head para iniciar la petición
+            document.head.appendChild(jsonpScript);
         }
 
         function displayRpAlbumCover(imageUrl) {
@@ -807,7 +846,6 @@
             img.onerror = resetAlbumCover;
             img.src = imageUrl;
         }
-
 
         // --- FUNCIONES COMUNES DE UI ---
         function updateUIWithTrackInfo(trackInfo) {
