@@ -248,7 +248,7 @@
         "id": "rp-rock",
         "name": "Radio Paradise - Main Rock Mix",
         "description": "Una mezcla ecléctica de rock, desde clásicos hasta nuevos lanzamientos.",
-        "url": "https://stream.radioparadise.com/rock-192",
+        "url": "https://stream.radioparadise.com/rock-128-mp3",
         "service": "radioparadise",
         "channelId": 1
     },
@@ -256,7 +256,7 @@
         "id": "rp-mellow",
         "name": "Radio Paradise - Mellow Mix",
         "description": "Canciones más suaves y relajadas, ideal para un ambiente tranquilo.",
-        "url": "https://stream.radioparadise.com/mellow-192",
+        "url": "https://stream.radioparadise.com/mellow-128-mp3",
         "service": "radioparadise",
         "channelId": 2
     },
@@ -264,7 +264,7 @@
         "id": "rp-world",
         "name": "Radio Paradise - World/Etc",
         "description": "Música de todo el mundo, incluyendo folk, jazz y otros géneros.",
-        "url": "https://stream.radioparadise.com/world-192",
+        "url": "https://stream.radioparadise.com/world-128-mp3",
         "service": "radioparadise",
         "channelId": 3
     },
@@ -272,7 +272,7 @@
         "id": "rp-classical",
         "name": "Radio Paradise - Classical",
         "description": "Lo mejor de la música clásica, desde la barroca hasta la contemporánea.",
-        "url": "https://stream.radioparadise.com/classical-192",
+        "url": "https://stream.radioparadise.com/classical-128-mp3",
         "service": "radioparadise",
         "channelId": 4
     },
@@ -280,7 +280,7 @@
         "id": "rp-oldies",
         "name": "Radio Paradise - Oldies",
         "description": "Grandes éxitos de los 50, 60 y 70.",
-        "url": "https://stream.radioparadise.com/oldies-192",
+        "url": "https://stream.radioparadise.com/oldies-128-mp3",
         "service": "radioparadise",
         "channelId": 5
     },
@@ -288,7 +288,7 @@
         "id": "rp-folk",
         "name": "Radio Paradise - Folk",
         "description": "Música folk, acústica y de cantautores.",
-        "url": "https://stream.radioparadise.com/folk-192",
+        "url": "https://stream.radioparadise.com/folk-128-mp3",
         "service": "radioparadise",
         "channelId": 6
     }
