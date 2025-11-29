@@ -540,7 +540,6 @@
             }
             stations.forEach(station => {
                 const option = document.createElement('option');
-                // Agrega el channelId al valor de la opción para Radio Paradise
                 const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
                 option.value = value;
                 option.textContent = station.name;
@@ -552,7 +551,6 @@
 
         stationSelect.addEventListener('change', function() {
             if (this.value) {
-                // Extrae el channelId del valor seleccionado
                 const [url, name, description, stationId, service, channelId] = this.value.split('|');
                 currentStation = { url, name, description, stationId, service, channelId };
                 stationName.textContent = name;
@@ -757,13 +755,11 @@
             }
         }
 
-        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON NUEVO PROXY) ---
+        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA) ---
         async function updateRadioParadiseInfo() {
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
                 
-                // Usamos un proxy diferente que suele ser más fiable, pero puede requerir activación temporal.
-                // Visita https://cors-anywhere.herokuapp.com/corsdemo y solicita acceso para este dominio si falla.
                 const channelId = currentStation.channelId || 1;
                 const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
                 const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=${channelId}`;
@@ -771,7 +767,6 @@
                 const response = await fetch(proxyUrl + apiUrl);
 
                 if (!response.ok) {
-                    // Si el estado es 403, es muy probable que el proxy necesite activación.
                     if (response.status === 403) {
                         throw new Error(`El proxy requiere activación. Visita https://cors-anywhere.herokuapp.com/corsdemo y haz clic en "Request temporary access" para tu dominio.`);
                     }
@@ -781,13 +776,16 @@
                 const data = await response.json();
                 console.log('Datos recibidos de Radio Paradise (vía proxy):', data);
 
-                if (!data || !data.song) {
+                // *** CORRECCIÓN AQUÍ ***
+                // La API ahora devuelve los datos directamente en el objeto 'data', no en 'data.song'.
+                if (!data || !data.title) {
                     console.error('La respuesta de Radio Paradise no contiene la información de la canción.');
                     resetUI();
                     return;
                 }
 
-                const song = data.song;
+                // Usamos 'data' directamente en lugar de 'data.song'
+                const song = data;
                 
                 const newTrackInfo = {
                     title: song.title,
@@ -806,16 +804,16 @@
                     updateUIWithTrackInfo(newTrackInfo);
                     
                     trackDuration = song.duration;
-                    trackStartTime = song.played_at * 1000;
-                    console.log(`Duración: ${trackDuration}s, Inicio: ${new Date(trackStartTime).toLocaleString()}`);
+                    // El tiempo de inicio es el tiempo actual menos el tiempo que ya ha transcurrido
+                    trackStartTime = Date.now() - (song.time * 1000);
+                    console.log(`Duración: ${trackDuration}s, Inicio calculado: ${new Date(trackStartTime).toLocaleString()}`);
 
-                    displayReleaseInfo(song.release_date, null);
+                    displayReleaseInfo(song.year, null); // RP da 'year' en lugar de 'release_date'
                     displayRpAlbumCover(song.cover_art);
                     startCountdown();
                 }
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-                // Mostramos un mensaje de error más específico en la UI
                 songTitle.textContent = 'Error al cargar metadatos';
                 songArtist.textContent = 'Revisa la consola para más detalles';
                 resetCountdown();
@@ -870,6 +868,7 @@
 
         function displayReleaseInfo(date, country) {
             if (date) {
+                // Aseguramos que solo se muestre el año
                 const year = date.substring(0, 4);
                 releaseDate.textContent = year;
             } else {
