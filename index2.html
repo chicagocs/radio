@@ -516,7 +516,7 @@
 
         async function loadStations() {
             try {
-               const response = await fetch('stations2.json');
+               const response = await fetch('stations.json');
                if (!response.ok) {
                    throw new Error(`HTTP error! status: ${response.status}`);
                }
@@ -540,7 +540,8 @@
             }
             stations.forEach(station => {
                 const option = document.createElement('option');
-                const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}`;
+                // Agrega el channelId al valor de la opción para Radio Paradise
+                const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
                 option.value = value;
                 option.textContent = station.name;
                 stationSelect.appendChild(option);
@@ -551,8 +552,9 @@
 
         stationSelect.addEventListener('change', function() {
             if (this.value) {
-                const [url, name, description, stationId, service] = this.value.split('|');
-                currentStation = { url, name, description, stationId, service };
+                // Extrae el channelId del valor seleccionado
+                const [url, name, description, stationId, service, channelId] = this.value.split('|');
+                currentStation = { url, name, description, stationId, service, channelId };
                 stationName.textContent = name;
                 stationDescription.textContent = description;
                 playStation();
@@ -760,10 +762,10 @@
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
                 
-                // Usamos un proxy diferente que debería ser más fiable.
-                // La URL original es: https://api.radioparadise.com/api/now_playing?chan=1
+                // Usa el channelId de la estación actual, por defecto a 1 si no existe
+                const channelId = currentStation.channelId || 1;
                 const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const apiUrl = encodeURIComponent('https://api.radioparadise.com/api/now_playing?chan=1');
+                const apiUrl = encodeURIComponent(`https://api.radioparadise.com/api/now_playing?chan=${channelId}`);
                 
                 const response = await fetch(proxyUrl + apiUrl);
 
@@ -808,7 +810,6 @@
                 }
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-                // Si este proxy también falla, puede que sea un problema de red o que el usuario tenga un bloqueador muy agresivo.
                 songTitle.textContent = 'Error al cargar metadatos';
                 songArtist.textContent = 'Inténtalo de nuevo más tarde';
                 resetCountdown();
