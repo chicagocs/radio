@@ -757,19 +757,24 @@
             }
         }
 
-        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON PROXY) ---
+        // --- LÓGICA PARA RADIO PARADISE (CORREGIDA CON NUEVO PROXY) ---
         async function updateRadioParadiseInfo() {
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
                 
-                // Usa el channelId de la estación actual, por defecto a 1 si no existe
+                // Usamos un proxy diferente que suele ser más fiable, pero puede requerir activación temporal.
+                // Visita https://cors-anywhere.herokuapp.com/corsdemo y solicita acceso para este dominio si falla.
                 const channelId = currentStation.channelId || 1;
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const apiUrl = encodeURIComponent(`https://api.radioparadise.com/api/now_playing?chan=${channelId}`);
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=${channelId}`;
                 
                 const response = await fetch(proxyUrl + apiUrl);
 
                 if (!response.ok) {
+                    // Si el estado es 403, es muy probable que el proxy necesite activación.
+                    if (response.status === 403) {
+                        throw new Error(`El proxy requiere activación. Visita https://cors-anywhere.herokuapp.com/corsdemo y haz clic en "Request temporary access" para tu dominio.`);
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
@@ -810,8 +815,9 @@
                 }
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
+                // Mostramos un mensaje de error más específico en la UI
                 songTitle.textContent = 'Error al cargar metadatos';
-                songArtist.textContent = 'Inténtalo de nuevo más tarde';
+                songArtist.textContent = 'Revisa la consola para más detalles';
                 resetCountdown();
                 resetAlbumCover();
                 resetReleaseInfo();
