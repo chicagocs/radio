@@ -705,7 +705,7 @@
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
                 const channelId = currentStation.channelId || 1;
-                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const proxyUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
                 const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=${channelId}`;
                 const response = await fetch(proxyUrl + apiUrl);
                 if (!response.ok) {
@@ -745,7 +745,7 @@ async function getSpotifyTrackDetails(artist, title) {
         return; 
     }
     
-    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/';
+    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
     
     try {
         console.log(`🎧 Buscando detalles en Spotify para: "${artist}" - "${title}"`);
