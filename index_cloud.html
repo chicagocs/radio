@@ -473,7 +473,7 @@
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
-                <div class="total-duration" id="totalDuration">/ --:--</div>
+                <div class="total-duration" id="totalDuration">(--:--)</div>
             </div>
             <div class="release-info-column">
                 <div class="release-info-label">Lanzamiento</div>
@@ -948,7 +948,7 @@ async function getSpotifyTrackDetails(artist, title) {
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             trackDuration = 0; trackStartTime = 0;
             countdownTimer.textContent = '--:--';
-            totalDuration.textContent = '/ --:--';
+            totalDuration.textContent = '(--:--)';
             countdownTimer.classList.remove('ending');
         }
 
