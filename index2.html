@@ -425,8 +425,8 @@
 <body>
     <div class="player-container">
         <div class="station-info">
-            <h1 class="station-name" id="stationName">RadioMax</h1>
-            <p class="station-description" id="stationDescription">sintoniza tu camino</p>
+            <h1 class="station-name" id="stationName">Cargando estaciones...</h1>
+            <p class="station-description" id="stationDescription">Por favor espera un momento</p>
         </div>
 
         <div class="station-selector">
@@ -540,8 +540,8 @@
 
                loadingStations.style.display = 'none';
                stationSelect.style.display = 'block';
-               stationName.textContent = 'RadioMax';
-               stationDescription.textContent = 'Sintoniza tu camino';
+               stationName.textContent = 'Seleccionar estación';
+               stationDescription.textContent = 'Elige tu estación favorita para comenzar';
                
                populateStationSelect(groupedStations);
                return groupedStations;
@@ -836,7 +836,7 @@
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
                 songTitle.textContent = 'Error al cargar metadatos';
-                songArtist.textContent = error.message || 'Revisa la consola para más detalles';
+                songArtist.textContent = 'Revisa la consola para más detalles';
                 resetCountdown();
                 resetAlbumCover();
                 resetReleaseInfo();
@@ -884,7 +884,8 @@
                                     };
                                     img.onerror = () => {
                                         console.error('Error al cargar la imagen de portada desde Cover Art Archive.');
-                                        resetAlbumCover();
+                                        // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
+                                        getAlbumCoverFromAudioDb(artist, title);
                                     };
                                     img.src = frontCover.image;
                                     return;
@@ -894,15 +895,54 @@
                     }
                 }
                 console.log('⚠️ No se encontró portada en Cover Art Archive.');
+                // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
+                getAlbumCoverFromAudioDb(artist, title);
+            } catch (error) {
+                console.error('❌ Error al obtener portada desde MusicBrainz:', error);
+                // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
+                getAlbumCoverFromAudioDb(artist, title);
+            }
+        }
+
+        // *** NUEVA FUNCIÓN DE FALLBACK PARA AUDIO DB ***
+        async function getAlbumCoverFromAudioDb(artist, title) {
+            try {
+                console.log(`🔍 Buscando portada en AudioDB para: ${artist} - ${title}`);
+                // La API de AudioDB requiere una clave de API.
+                // Para este ejemplo, usaremos una clave de demostración.
+                // En un entorno de producción, deberías obtener tu propia clave en https://www.theaudiodb.com/api_key_registration.php
+                const apiKey = '1'; // Clave de demostración. ¡Reemplázala con la tuya!
+                const searchUrl = `https://theaudiodb.com/api/v1/search.php?s=${encodeURIComponent(`${artist} ${title}`)}&limit=5&apikey=${apiKey}`;
+                const response = await fetch(searchUrl);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+
+                if (data.albums && data.albums.length > 0) {
+                    const album = data.albums[0]; // Usar el primer resultado
+                    if (album.cover_art && album.cover_art_size) {
+                        const img = new Image();
+                        img.onload = function() {
+                            displayAlbumCover(this);
+                        };
+                        img.onerror = () => {
+                            console.error('Error al cargar la imagen de portada desde AudioDB.');
+                            resetAlbumCover();
+                        };
+                        img.src = album.cover_art;
+                        return;
+                    }
+                }
+                console.log('⚠️ No se encontró portada en AudioDB.');
                 resetAlbumCover();
             } catch (error) {
-                console.error('❌ Error al obtener portada desde MusicBrainz/Cover Art Archive:', error);
+                console.error('❌ Error al obtener portada desde AudioDB:', error);
                 resetAlbumCover();
             }
         }
 
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
+                // Si no hay URL de RP, buscar en MusicBrainz inmediatamente
                 console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
                 getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
@@ -913,6 +953,7 @@
                 displayAlbumCover(this);
             };
             img.onerror = function() {
+                // Si la imagen de RP falla, buscar en MusicBrainz como respaldo
                 console.log('Error al cargar la portada de Radio Paradise, buscando en MusicBrainz...');
                 getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
             };
