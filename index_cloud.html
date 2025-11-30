@@ -739,65 +739,104 @@
             }
         }
 
-        // Versión actualizada de la función con mejor manejo de errores
-        async function getSpotifyTrackDetails(artist, title) {
-            if (!artist || !title) { 
-                console.log('Artista o título no proporcionados para buscar en Spotify.'); 
-                return; 
-            }
-            
-            const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/';
-            
-            try {
-                console.log(`🎧 Buscando detalles en Spotify para: ${artist} - ${title}`);
-                
-                const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const currentImg = albumCover.querySelector('img');
-                
-                if (!currentImg && data.imageUrl) {
-                    albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                    const img = new Image();
-                    img.onload = function() { displayAlbumCover(this); };
-                    img.onerror = resetAlbumCover;
-                    img.src = data.imageUrl;
-                }
-                
-                updateInfoWithSpotifyData(data);
-            } catch (error) {
-                console.error('❌ Error al obtener detalles de Spotify:', error);
-                // Comportamiento de fallback en caso de error
-                // Por ejemplo, intentar una fuente alternativa de metadatos
-                // o simplemente continuar sin la información de Spotify
-            }
+async function getSpotifyTrackDetails(artist, title) {
+    if (!artist || !title) { 
+        console.log('⚠️ Artista o título no proporcionados para buscar en Spotify.'); 
+        return; 
+    }
+    
+    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/';
+    
+    try {
+        console.log(`🎧 Buscando detalles en Spotify para: "${artist}" - "${title}"`);
+        
+        const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
+        
+        if (!response.ok) {
+            console.error(`❌ Error HTTP: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        function updateInfoWithSpotifyData(data) {
-            if (data.release_date && releaseDate.textContent === '----') { const year = data.release_date.substring(0, 4); releaseDate.textContent = year; }
-            if (data.country && !releaseCountry.textContent) {
-                releaseCountry.textContent = `${data.country}`; const countryCode = data.country.toLowerCase();
-                const nonStandardCodes = ['xw', 'xe'];
-                if (!nonStandardCodes.includes(countryCode)) {
-                    releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
-                    releaseCountryFlag.alt = `Bandera de ${data.country}`; releaseCountryFlag.style.display = 'inline-block';
-                }
-            }
-            if (data.label) { recordLabel.textContent = data.label; }
-            if (data.genres && data.genres.length > 0) { trackGenre.textContent = data.genres[0]; }
-            
-            // Usar la duración de Spotify como fallback y mostrarla
-            if (data.duration && trackDuration === 0) {
-                trackDuration = data.duration;
-                console.log(`✓ Duración obtenida desde Spotify: ${trackDuration}s`);
-                startCountdown(); // Inicia o actualiza el contador con la nueva duración
-            }
+        const data = await response.json();
+        console.log('📦 Respuesta completa de Spotify:', data);
+        
+        const currentImg = albumCover.querySelector('img');
+        
+        // Actualizar portada si no existe
+        if (!currentImg && data.imageUrl) {
+            albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
+            const img = new Image();
+            img.onload = function() { 
+                console.log('✓ Portada cargada correctamente');
+                displayAlbumCover(this); 
+            };
+            img.onerror = function() {
+                console.error('❌ Error al cargar la portada');
+                resetAlbumCover();
+            };
+            img.src = data.imageUrl;
         }
-
+        
+        // Actualizar información con los datos de Spotify
+        updateInfoWithSpotifyData(data);
+        
+    } catch (error) {
+        console.error('❌ Error al obtener detalles de Spotify:', error);
+        console.error('Detalles del error:', error.message);
+    }
+    }
+            
+    function updateInfoWithSpotifyData(data) {
+    console.log('📊 Datos recibidos de Spotify:', data);
+    
+    // Actualizar fecha de lanzamiento
+    if (data.release_date && releaseDate.textContent === '----') {
+        const year = data.release_date.substring(0, 4);
+        releaseDate.textContent = year;
+        console.log('✓ Fecha de lanzamiento:', year);
+    }
+    
+    // Actualizar país
+    if (data.country && !releaseCountry.textContent) {
+        releaseCountry.textContent = `${data.country}`;
+        const countryCode = data.country.toLowerCase();
+        const nonStandardCodes = ['xw', 'xe'];
+        if (!nonStandardCodes.includes(countryCode)) {
+            releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
+            releaseCountryFlag.alt = `Bandera de ${data.country}`;
+            releaseCountryFlag.style.display = 'inline-block';
+            console.log('✓ País:', data.country);
+        }
+    }
+    
+    // MEJORADO: Actualizar sello discográfico con validación
+    if (data.label && data.label.trim() !== '') {
+        recordLabel.textContent = data.label;
+        console.log('✓ Sello discográfico:', data.label);
+    } else {
+        recordLabel.textContent = '';
+        console.log('⚠️ Sin sello discográfico disponible');
+    }
+    
+    // MEJORADO: Actualizar géneros con mejor formato
+    if (data.genres && data.genres.length > 0) {
+        // Tomar los primeros 2 géneros si hay múltiples
+        const displayGenres = data.genres.slice(0, 2).join(', ');
+        trackGenre.textContent = displayGenres;
+        console.log('✓ Géneros:', displayGenres);
+    } else {
+        trackGenre.textContent = '';
+        console.log('⚠️ Sin géneros disponibles');
+    }
+    
+    // Usar la duración de Spotify como fallback
+    if (data.duration && trackDuration === 0) {
+        trackDuration = data.duration;
+        trackStartTime = Date.now();
+        console.log(`✓ Duración obtenida desde Spotify: ${trackDuration}s`);
+        startCountdown();
+    }
+    }
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) { console.log('URL de portada de Radio Paradise vacía, buscando con fallback...'); getSpotifyTrackDetails(currentTrackInfo.artist, currentTrackInfo.title); return; }
             albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
