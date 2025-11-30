@@ -918,7 +918,7 @@ async function getSpotifyTrackDetails(artist, title) {
                 // Mostrar la duración total
                 const totalMinutes = Math.floor(trackDuration / 60);
                 const totalSeconds = Math.floor(trackDuration % 60);
-                const formattedTotalTime = `/${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+                const formattedTotalTime = `0000${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
                 totalDuration.textContent = formattedTotalTime;
 
                 countdownInterval = setInterval(() => {
