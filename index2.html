@@ -514,20 +514,37 @@
 
         audioPlayer.volume = 0.5;
 
+        // --- FUNCIÓN MODIFICADA PARA CARGAR Y AGRUPAR ESTACIONES ---
         async function loadStations() {
             try {
-               // *** CAMBIO CLAVE: Cargar desde stations2.json ***
                const response = await fetch('stations2.json');
                if (!response.ok) {
                    throw new Error(`HTTP error! status: ${response.status}`);
                }
-               const stations = await response.json();
+               const allStations = await response.json();
+
+               // Agrupar estaciones por servicio
+               const groupedStations = allStations.reduce((acc, station) => {
+                   const serviceName = station.service === 'somafm' ? 'SomaFM' : 'Radio Paradise';
+                   if (!acc[serviceName]) {
+                       acc[serviceName] = [];
+                   }
+                   acc[serviceName].push(station);
+                   return acc;
+               }, {});
+
+               // Ordenar estaciones alfabéticamente dentro de cada grupo
+               for (const serviceName in groupedStations) {
+                   groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
+               }
+
                loadingStations.style.display = 'none';
                stationSelect.style.display = 'block';
                stationName.textContent = 'Seleccionar estación';
                stationDescription.textContent = 'Elige tu estación favorita para comenzar';
-               populateStationSelect(stations);
-               return stations;
+               
+               populateStationSelect(groupedStations);
+               return groupedStations;
              } catch (error) {
                console.error('Error al cargar las estaciones:', error);
                loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
@@ -535,17 +552,36 @@
             }
         }
       
-        function populateStationSelect(stations) {
-            while (stationSelect.options.length > 1) {
-                stationSelect.remove(1);
+        // --- FUNCIÓN MODIFICADA PARA POBLAR EL SELECT CON GRUPOS ---
+        function populateStationSelect(groupedStations) {
+            // Limpiar opciones existentes, incluyendo optgroups
+            while (stationSelect.firstChild) {
+                stationSelect.removeChild(stationSelect.firstChild);
             }
-            stations.forEach(station => {
-                const option = document.createElement('option');
-                const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
-                option.value = value;
-                option.textContent = station.name;
-                stationSelect.appendChild(option);
-            });
+
+            // Añadir una opción por defecto
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "-- Seleccionar Estación --";
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            stationSelect.appendChild(defaultOption);
+
+            // Iterar sobre los grupos y crear optgroups
+            for (const serviceName in groupedStations) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = serviceName;
+
+                groupedStations[serviceName].forEach(station => {
+                    const option = document.createElement('option');
+                    const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
+                    option.value = value;
+                    option.textContent = station.name;
+                    optgroup.appendChild(option);
+                });
+
+                stationSelect.appendChild(optgroup);
+            }
         }
 
         loadStations();
@@ -708,7 +744,6 @@
                         }
                         displayReleaseInfo(releaseDate, releaseCountry);
                         
-                        // Buscar la portada usando la función genérica
                         await getAlbumCoverFromMusicBrainz(artist, title);
                         
                         startCountdown();
@@ -777,8 +812,6 @@
 
                     displayReleaseInfo(song.year, null);
                     
-                    // Intenta cargar la portada desde la URL de Radio Paradise.
-                    // Si falla, la función displayRpAlbumCover buscará en MusicBrainz.
                     displayRpAlbumCover(song.cover_art);
                     
                     startCountdown();
@@ -853,7 +886,6 @@
 
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
-                // Si no hay URL de RP, buscar en MusicBrainz inmediatamente
                 console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
                 getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
@@ -864,7 +896,6 @@
                 displayAlbumCover(this);
             };
             img.onerror = function() {
-                // Si la imagen de RP falla, buscar en MusicBrainz como respaldo
                 console.log('Error al cargar la portada de Radio Paradise, buscando en MusicBrainz...');
                 getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
             };
@@ -979,7 +1010,6 @@
         function startSongInfoUpdates() {
             updateSongInfo();
             if (updateInterval) clearInterval(updateInterval);
-            // *** CAMBIO CLAVE: Aumentamos el intervalo a 30 segundos ***
             updateInterval = setInterval(updateSongInfo, 30000);
         }
 
