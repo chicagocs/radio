@@ -348,6 +348,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
 
+        /* *** NUEVO: Estilos para la nueva columna *** */
         .label-column {
             flex: 1.5;
             display: flex;
@@ -355,6 +356,26 @@
             justify-content: center;
             padding-left: 15px;
         }
+
+        .label-info-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        
+        .label-info-text {
+            font-size: 12px;
+            color: #cccccc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .label-info-text.genre {
+            color: #ff6600;
+        }
+
 
         @keyframes blink {
             0%, 50% { opacity: 1; }
@@ -461,7 +482,13 @@
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
                 </div>
             </div>
+            <!-- *** NUEVO: Columna para Sello y Género *** -->
             <div class="label-column">
+                <div class="release-info-label"></div>
+                <div class="label-info-row">
+                    <span id="recordLabel" class="label-info-text"></span>
+                    <span id="trackGenre" class="label-info-text genre"></span>
+                </div>
             </div>
         </div>
 
@@ -502,6 +529,9 @@
             const releaseDate = document.getElementById('releaseDate');
             const releaseCountry = document.getElementById('releaseCountry');
             const releaseCountryFlag = document.getElementById('releaseCountryFlag');
+            // *** NUEVO: Obtener referencias a los nuevos elementos ***
+            const recordLabel = document.getElementById('recordLabel');
+            const trackGenre = document.getElementById('trackGenre');
 
             let currentStation = null;
             let updateInterval = null;
@@ -525,7 +555,6 @@
                     }
                     const allStations = await response.json();
 
-                    // Agrupar estaciones por servicio
                     const groupedStations = allStations.reduce((acc, station) => {
                         const serviceName = station.service === 'somafm' ? 'SomaFM' : 'Radio Paradise';
                         if (!acc[serviceName]) {
@@ -535,7 +564,6 @@
                         return acc;
                     }, {});
 
-                    // Ordenar estaciones alfabéticamente dentro de cada grupo
                     for (const serviceName in groupedStations) {
                         groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
                     }
@@ -555,12 +583,10 @@
             }
       
             function populateStationSelect(groupedStations) {
-                // Limpiar opciones existentes, incluyendo optgroups
                 while (stationSelect.firstChild) {
                     stationSelect.removeChild(stationSelect.firstChild);
                 }
 
-                // Añadir una opción por defecto
                 const defaultOption = document.createElement('option');
                 defaultOption.value = "";
                 defaultOption.textContent = "-- Seleccionar Estación --";
@@ -568,7 +594,6 @@
                 defaultOption.selected = true;
                 stationSelect.appendChild(defaultOption);
 
-                // Iterar sobre los grupos y crear optgroups
                 for (const serviceName in groupedStations) {
                     const optgroup = document.createElement('optgroup');
                     optgroup.label = serviceName;
@@ -578,12 +603,10 @@
                         const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
                         option.value = value;
                         
-                        // *** CAMBIO CLAVE: Simplificar el nombre para el menú desplegable ***
                         let displayName = station.name;
                         if (station.service === 'radioparadise') {
                             displayName = station.name.split(' - ')[1] || station.name;
                         }
-                        // *** FIN DEL CAMBIO ***
                         
                         option.textContent = displayName;
                         optgroup.appendChild(option);
@@ -600,12 +623,10 @@
                     const [url, name, description, stationId, service, channelId] = this.value.split('|');
                     currentStation = { url, name, description, stationId, service, channelId };
                     
-                    // *** CAMBIO CLAVE: Simplificar el nombre para el título principal ***
                     let displayName = name;
                     if (service === 'radioparadise') {
                         displayName = name.split(' - ')[1] || name;
                     }
-                    // *** FIN DEL CAMBIO ***
                     
                     stationName.textContent = displayName;
                     stationDescription.textContent = description;
@@ -693,7 +714,7 @@
                 }
             }
         
-            // --- LÓGICA PARA SOMAFM ---
+            // --- LÓGICA PARA SOMAFM (VERSIÓN MODIFICADA) ---
             async function updateSomaFmInfo() {
                 try {
                     console.log('Obteniendo info de SomaFM para:', currentStation.stationId);
@@ -717,17 +738,23 @@
                         if (isNewTrack) {
                             console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (SomaFM)');
                             resetCountdown();
+                            resetReleaseInfo(); // Resetear para evitar datos de la canción anterior
                             currentTrackInfo = newTrackInfo;
                             updateUIWithTrackInfo(newTrackInfo);
                             resetAlbumCover();
-                            resetReleaseInfo();
                             
                             if (newTrackInfo.date) {
                                 trackStartTime = newTrackInfo.date * 1000;
                             } else {
                                 trackStartTime = Date.now();
                             }
+
+                            // 1. Buscar duración en MusicBrainz
                             await getSomaFmTrackDuration(newTrackInfo.artist, newTrackInfo.title);
+
+                            // 2. Obtener detalles adicionales desde Spotify (portada, fecha fallback, sello, género)
+                            console.log('Buscando detalles en Spotify para SomaFM...');
+                            await getSpotifyTrackDetails(newTrackInfo.artist, newTrackInfo.title);
                         }
                     } else {
                         resetUI();
@@ -738,6 +765,7 @@
                 }
             }
         
+            // --- FUNCIÓN MODIFICADA (ya no busca portadas) ---
             async function getSomaFmTrackDuration(artist, title) {
                 try {
                     console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
@@ -752,6 +780,7 @@
                             trackDuration = Math.floor(bestRecording.length / 1000);
                             console.log('✓ Duración encontrada:', trackDuration, 'segundos');
                             
+                            // Mostrar info de lanzamiento de MusicBrainz si existe
                             let releaseDate = null;
                             let releaseCountry = null;
                             if (bestRecording.releases && bestRecording.releases.length > 0) {
@@ -761,7 +790,6 @@
                             }
                             displayReleaseInfo(releaseDate, releaseCountry);
                             
-                            await getSomaFmAlbumCover(bestRecording.releases);
                             startCountdown();
                             return;
                         }
@@ -773,47 +801,8 @@
                     resetCountdown();
                 }
             }
-        
-            async function getSomaFmAlbumCover(releases) {
-                if (!releases || releases.length === 0) return;
-                const mainRelease = releases[0];
-                const releaseId = mainRelease.id;
-                if (!releaseId) return;
-                
-                try {
-                    const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
-                    const coverResponse = await fetch(coverArtUrl);
-                    if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
-                    const coverData = await coverResponse.json();
-                    
-                    if (coverData.images && coverData.images.length > 0) {
-                        const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
-                        if (frontCover && frontCover.image) {
-                            albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                            if (currentImageCache.has(frontCover.image)) {
-                                displayAlbumCover(currentImageCache.get(frontCover.image));
-                                return;
-                            }
-                            const img = new Image();
-                            img.crossOrigin = 'anonymous';
-                            img.onload = function() {
-                                currentImageCache.set(frontCover.image, this);
-                                displayAlbumCover(this);
-                            };
-                            img.onerror = resetAlbumCover;
-                            img.src = frontCover.image;
-                            return;
-                        }
-                    }
-                    console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                    resetAlbumCover();
-                } catch (error) {
-                    console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
-                    resetAlbumCover();
-                }
-            }
             
-        // --- LÓGICA PARA RADIO PARADISE ---
+        // --- LÓGICA PARA RADIO PARADISE (VERSIÓN MODIFICADA) ---
         async function updateRadioParadiseInfo() {
             try {
                 console.log('Obteniendo info de Radio Paradise a través de un proxy...');
@@ -858,6 +847,7 @@
                 if (isNewTrack) {
                     console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
                     resetCountdown();
+                    resetReleaseInfo(); // Resetear para evitar datos de la canción anterior
                     currentTrackInfo = newTrackInfo;
                     updateUIWithTrackInfo(newTrackInfo);
                     
@@ -865,11 +855,17 @@
                     trackStartTime = Date.now() - (song.time * 1000);
                     console.log(`Duración: ${trackDuration}s, Inicio calculado: ${new Date(trackStartTime).toLocaleString()}`);
 
+                    // Mostrar info de lanzamiento de Radio Paradise si existe
                     displayReleaseInfo(song.year, null);
                     
+                    // Intentar mostrar la portada de RP, si falla, buscar en Spotify
                     displayRpAlbumCover(song.cover_art);
                     
                     startCountdown();
+
+                    // *** NUEVO: Obtener detalles adicionales desde Spotify (sello, género, y fallback de fecha/país) ***
+                    console.log('Buscando detalles en Spotify para Radio Paradise...');
+                    await getSpotifyTrackDetails(song.artist, song.title);
                 }
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
@@ -881,64 +877,77 @@
             }
         }
 
-        // --- FUNCIÓN GENÉRICA PARA OBTENER PORTADAS ---
-        async function getAlbumCoverFromMusicBrainz(artist, title) {
+        // *** NUEVO: FUNCIÓN UNIFICADA PARA OBTENER DETALLES DESDE SPOTIFY ***
+        async function getSpotifyTrackDetails(artist, title) {
             if (!artist || !title) {
-                console.log('Artista o título no proporcionados para buscar portada.');
-                resetAlbumCover();
+                console.log('Artista o título no proporcionados para buscar en Spotify.');
                 return;
             }
-            try {
-                console.log(`🔍 Buscando portada en MusicBrainz/Cover Art Archive para: ${artist} - ${title}`);
-                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-                const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
 
-                if (data.recordings && data.recordings.length > 0) {
-                    const recordingWithReleases = data.recordings.find(r => r.releases && r.releases.length > 0);
-                    if (recordingWithReleases) {
-                        const mainRelease = recordingWithReleases.releases[0];
-                        const releaseId = mainRelease.id;
-                        if (releaseId) {
-                            const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
-                            const coverResponse = await fetch(coverArtUrl);
-                            if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
-                            const coverData = await coverResponse.json();
-                            if (coverData.images && coverData.images.length > 0) {
-                                const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
-                                if (frontCover && frontCover.image) {
-                                    albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                                    if (currentImageCache.has(frontCover.image)) {
-                                        displayAlbumCover(currentImageCache.get(frontCover.image));
-                                        return;
-                                    }
-                                    const img = new Image();
-                                    img.crossOrigin = 'anonymous';
-                                    img.onload = function() {
-                                        currentImageCache.set(frontCover.image, this);
-                                        displayAlbumCover(this);
-                                    };
-                                    img.onerror = resetAlbumCover;
-                                    img.src = frontCover.image;
-                                    return;
-                                }
-                            }
-                        }
-                    }
+            // URL de tu backend desplegado en Netlify
+            // IMPORTANTE: Este endpoint debe ser modificado para devolver más datos que solo la portada.
+            // Para este ejemplo, asumiremos que devuelve un JSON con: { imageUrl, release_date, label, genres, country }
+            const netlifyApiUrl = 'https://jazzy-kataifi-de9f7f.netlify.app/.netlify/functions/get-spotify-cover';
+
+            try {
+                console.log(`🎧 Buscando detalles en Spotify para: ${artist} - ${title}`);
+                const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
+                const data = await response.json();
+                
+                // Actualizar portada si no se ha cargado aún o si la actual es un placeholder
+                const currentImg = albumCover.querySelector('img');
+                if (!currentImg && data.imageUrl) {
+                    albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
+                    const img = new Image();
+                    img.onload = function() {
+                        displayAlbumCover(this);
+                    };
+                    img.onerror = resetAlbumCover;
+                    img.src = data.imageUrl;
                 }
-                console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                resetAlbumCover();
+
+                // *** NUEVO: Actualizar los demás campos con el fallback ***
+                updateInfoWithSpotifyData(data);
+
             } catch (error) {
-                console.error('❌ Error al obtener portada desde MusicBrainz/Cover Art Archive:', error);
-                resetAlbumCover();
+                console.error('❌ Error al obtener detalles de Spotify:', error);
+            }
+        }
+        
+        // *** NUEVO: Función para actualizar la UI con datos de Spotify, aplicando fallback ***
+        function updateInfoWithSpotifyData(data) {
+            // Fallback para fecha de lanzamiento
+            if (data.release_date && releaseDate.textContent === '----') {
+                const year = data.release_date.substring(0, 4);
+                releaseDate.textContent = year;
+            }
+
+            // Fallback para país y bandera
+            if (data.country && !releaseCountry.textContent) {
+                releaseCountry.textContent = `${data.country}`;
+                const countryCode = data.country.toLowerCase();
+                const nonStandardCodes = ['xw', 'xe'];
+                if (!nonStandardCodes.includes(countryCode)) {
+                    releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
+                    releaseCountryFlag.alt = `Bandera de ${data.country}`;
+                    releaseCountryFlag.style.display = 'inline-block';
+                }
+            }
+            
+            // *** NUEVO: Mostrar sello discográfico y género ***
+            if (data.label) {
+                recordLabel.textContent = data.label;
+            }
+            if (data.genres && data.genres.length > 0) {
+                trackGenre.textContent = data.genres[0]; // Muestra el primer género asociado
             }
         }
 
+
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
-                console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
-                getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
+                console.log('URL de portada de Radio Paradise vacía, buscando con fallback...');
+                getSpotifyTrackDetails(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
             }
             albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
@@ -947,8 +956,8 @@
                 displayAlbumCover(this);
             };
             img.onerror = function() {
-                console.log('Error al cargar la portada de Radio Paradise, buscando en MusicBrainz...');
-                getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
+                console.log('Error al cargar la portada de Radio Paradise, buscando con fallback...');
+                getSpotifyTrackDetails(currentTrackInfo.artist, currentTrackInfo.title);
             };
             img.src = imageUrl;
         }
@@ -1009,11 +1018,14 @@
             }
         }
 
+        // *** MODIFICADO: Resetear también los nuevos campos ***
         function resetReleaseInfo() {
             releaseDate.textContent = '----';
             releaseCountry.textContent = '';
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
+            recordLabel.textContent = '';
+            trackGenre.textContent = '';
         }
 
         function startCountdown() {
@@ -1135,8 +1147,6 @@
         audioPlayer.addEventListener('playing', () => { isPlaying = true; updateStatus(true); });
         audioPlayer.addEventListener('pause', () => { isPlaying = false; updateStatus(false); });
         audioPlayer.addEventListener('ended', () => { isPlaying = false; updateStatus(false); });
-
-        // This is the missing closing brace for the 'DOMContentLoaded' listener
         });
     </script>
 </body>
