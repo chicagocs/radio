@@ -723,9 +723,9 @@ async function updateRadioParadiseInfo() {
 
         // 1. Crea un objeto con la información de la canción, similar a como lo hace SomaFM
         const newTrackInfo = {
-            title: data.song.title || 'Título desconocido',
-            artist: data.song.artist || 'Artista desconocido',
-            album: data.song.album || '',
+            title: data.title || 'Título desconocido',
+            artist: data.artist || 'Artista desconocido',
+            album: data.album || '',
         };
 
         // 2. Comprueba si la canción ha cambiado para no actualizar la UI innecesariamente
