@@ -254,9 +254,9 @@
 },
 {
   "id": "rp-mellow",
-  "name": "Radio Paradise - Mellow Mix",
-  "description": "Un flujo relajado y melódico. Perfecto para concentrarse, relajarse o simplemente disfrutar de buena música.",
-  "url": "http://stream.radioparadise.com/mellow-192m",
+  "name": "Radio Paradise - Rock Mix",
+  "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
+  "url": "http://stream.radioparadise.com/rock-flacm",
   "service": "radioparadise",
   "channelId": 1
 }
