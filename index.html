@@ -275,7 +275,7 @@
             background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
             border: 1px solid #ff6600;
             border-radius: 13px;
-            align-items: flex-start;
+            align-items: center;
         }
 
         .countdown-timer-column {
@@ -288,14 +288,7 @@
             align-items: center;
         }
 
-        .release-info-column {
-            flex: 0.5;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .countdown-label, .release-info-label {
+        .countdown-label {
             font-size: 10px;
             color: #888888;
             text-transform: uppercase;
@@ -327,12 +320,23 @@
             animation: blink 1s infinite;
         }
         
-        .release-info-row {
+        /* --- NUEVO CSS PARA LAS COLUMNAS COMBINADAS --- */
+        .details-column {
+            flex: 1;
             display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
 
+        .details-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
         .release-info-date, .release-info-country {
             font-size: 13px;
             color: #cccccc;
@@ -348,21 +352,6 @@
             height: 12.5px;
             border-radius: 2px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        }
-
-        .label-column {
-            flex: 1.5;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding-left: 15px;
-        }
-
-        .label-info-row {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 4px;
         }
         
         .label-info-text {
@@ -469,24 +458,22 @@
             </div>
         </div>
 
+        <!-- ESTRUCTURA HTML MODIFICADA -->
         <div class="countdown-container" id="countdownContainer">
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
             </div>
-            <div class="release-info-column">
-                <div class="release-info-label">Album</div>
-                <div class="release-info-row">
+            <div class="details-column">
+                <!-- Primera fila: Año, Bandera, Sello -->
+                <div class="details-row">
                     <span class="release-info-date" id="releaseDate">----</span>
-                    <span class="release-info-country" id="releaseCountry"></span>
                     <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
-                </div>
-            </div>
-            <div class="label-column">
-                <div class="release-info-label"></div>
-                <div class="label-info-row">
                     <span id="recordLabel" class="label-info-text"></span>
+                </div>
+                <!-- Segunda fila: Género -->
+                <div class="details-row">
                     <span id="trackGenre" class="label-info-text genre"></span>
                 </div>
             </div>
@@ -527,7 +514,7 @@
             const albumCover = document.getElementById('albumCover');
             const loadingStations = document.getElementById('loadingStations');
             const releaseDate = document.getElementById('releaseDate');
-            const releaseCountry = document.getElementById('releaseCountry');
+            // const releaseCountry = document.getElementById('releaseCountry'); // Ya no se necesita
             const releaseCountryFlag = document.getElementById('releaseCountryFlag');
             const recordLabel = document.getElementById('recordLabel');
             const trackGenre = document.getElementById('trackGenre');
@@ -704,7 +691,6 @@
 async function updateRadioParadiseInfo() {
     try {
         const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
-        // Usamos el channelId de la estación seleccionada, o 1 por defecto
         const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
         const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
 
@@ -719,42 +705,28 @@ async function updateRadioParadiseInfo() {
         const data = await response.json();
         console.log('Info de Radio Paradise:', data);
 
-        // -- INICIO DE LA LÓGICA QUE FALTABA ---
-
-        // 1. Crea un objeto con la información de la canción, similar a como lo hace SomaFM
         const newTrackInfo = {
             title: data.title || 'Título desconocido',
             artist: data.artist || 'Artista desconocido',
             album: data.album || '',
         };
 
-        // 2. Comprueba si la canción ha cambiado para no actualizar la UI innecesariamente
         const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== newTrackInfo.title || currentTrackInfo.artist !== newTrackInfo.artist;
 
         if (isNewTrack) {
             console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
-            
-            // 3. Resea los contadores y la información anterior
             resetCountdown();
             resetReleaseInfo();
             currentTrackInfo = newTrackInfo;
-
-            // 4. Actualiza la UI con la información básica (título, artista, álbum)
             updateUIWithTrackInfo(newTrackInfo);
             resetAlbumCover();
-            
-            // 5. Establece la hora de inicio para el contador
             trackStartTime = Date.now();
-            
-            // 6. ¡La parte más importante! Llama a Spotify para obtener la portada y otros detalles
             console.log('Buscando detalles en Spotify para Radio Paradise...');
             await getSpotifyTrackDetails(newTrackInfo.artist, newTrackInfo.title);
         }
 
     } catch (error) {
         console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-        // Opcional: puedes resetear la UI si hay un error
-        // resetUI(); 
     }
 }
             
@@ -781,7 +753,6 @@ async function getSpotifyTrackDetails(artist, title) {
         
         const currentImg = albumCover.querySelector('img');
         
-        // Actualizar portada si no existe
         if (!currentImg && data.imageUrl) {
             albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
             const img = new Image();
@@ -796,7 +767,6 @@ async function getSpotifyTrackDetails(artist, title) {
             img.src = data.imageUrl;
         }
         
-        // Actualizar información con los datos de Spotify
         updateInfoWithSpotifyData(data);
         
     } catch (error) {
@@ -808,16 +778,13 @@ async function getSpotifyTrackDetails(artist, title) {
     function updateInfoWithSpotifyData(data) {
     console.log('📊 Datos recibidos de Spotify:', data);
     
-    // Actualizar fecha de lanzamiento
     if (data.release_date && releaseDate.textContent === '----') {
         const year = data.release_date.substring(0, 4);
         releaseDate.textContent = year;
         console.log('✓ Fecha de lanzamiento:', year);
     }
     
-    // Actualizar país
-    if (data.country && !releaseCountry.textContent) {
-        releaseCountry.textContent = `${data.country}`;
+    if (data.country && releaseCountryFlag.style.display === 'none') {
         const countryCode = data.country.toLowerCase();
         const nonStandardCodes = ['xw', 'xe'];
         if (!nonStandardCodes.includes(countryCode)) {
@@ -828,7 +795,6 @@ async function getSpotifyTrackDetails(artist, title) {
         }
     }
     
-    // MEJORADO: Actualizar sello discográfico con validación
     if (data.label && data.label.trim() !== '') {
         recordLabel.textContent = data.label;
         console.log('✓ Sello discográfico:', data.label);
@@ -837,9 +803,7 @@ async function getSpotifyTrackDetails(artist, title) {
         console.log('⚠️ Sin sello discográfico disponible');
     }
     
-    // MEJORADO: Actualizar géneros con mejor formato
     if (data.genres && data.genres.length > 0) {
-        // Tomar los primeros 2 géneros si hay múltiples
         const displayGenres = data.genres.slice(0, 2).join(', ');
         trackGenre.textContent = displayGenres;
         console.log('✓ Géneros:', displayGenres);
@@ -848,7 +812,6 @@ async function getSpotifyTrackDetails(artist, title) {
         console.log('⚠️ Sin géneros disponibles');
     }
     
-    // Usar la duración de Spotify como fallback
     if (data.duration && trackDuration === 0) {
         trackDuration = data.duration;
         trackStartTime = Date.now();
@@ -865,7 +828,6 @@ async function getSpotifyTrackDetails(artist, title) {
             img.src = imageUrl;
         }
 
-        // --- FUNCIONES COMUNES DE UI ---
         function updateUIWithTrackInfo(trackInfo) {
             songTitle.textContent = trackInfo.title;
             songArtist.textContent = trackInfo.artist;
@@ -903,7 +865,6 @@ async function getSpotifyTrackDetails(artist, title) {
                 releaseDate.textContent = '----';
             }
             if (country) {
-                releaseCountry.textContent = `${country}`;
                 const countryCode = country.toLowerCase();
                 const nonStandardCodes = ['xw', 'xe'];
                 if (!nonStandardCodes.includes(countryCode)) {
@@ -915,7 +876,6 @@ async function getSpotifyTrackDetails(artist, title) {
                     releaseCountryFlag.src = '';
                 }
             } else {
-                releaseCountry.textContent = '';
                 releaseCountryFlag.style.display = 'none';
                 releaseCountryFlag.src = '';
             }
@@ -923,7 +883,6 @@ async function getSpotifyTrackDetails(artist, title) {
 
         function resetReleaseInfo() {
             releaseDate.textContent = '----';
-            releaseCountry.textContent = '';
             releaseCountryFlag.style.display = 'none';
             releaseCountryFlag.src = '';
             recordLabel.textContent = '';
@@ -934,7 +893,6 @@ async function getSpotifyTrackDetails(artist, title) {
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
             if (trackDuration > 0 && trackStartTime > 0) {
-                // Mostrar la duración total
                 const totalMinutes = Math.floor(trackDuration / 60);
                 const totalSeconds = Math.floor(trackDuration % 60);
                 const formattedTotalTime = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
