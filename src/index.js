@@ -86,22 +86,37 @@ export default {
             const tokenData = await tokenResponse.json();
             const accessToken = tokenData.access_token;
 
-            // Buscar en Spotify
-            const searchQuery = `q=artist:${encodeURIComponent(artist)} track:${encodeURIComponent(title)}&type=track&limit=1`;
-            const searchResponse = await fetch(`https://api.spotify.com/v1/search?${searchQuery}`, {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
+            // Buscar en Spotify con múltiples estrategias
+            let searchData = null;
+            
+            // Estrategia 1: Búsqueda exacta con artista y título
+            const searchQuery1 = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
+            let searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery1}&type=track&limit=5`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
             });
+
+            if (searchResponse.ok) {
+                searchData = await searchResponse.json();
+            }
+
+            // Si no encontró resultados, intentar búsqueda más flexible
+            if (!searchData || searchData.tracks.items.length === 0) {
+                const searchQuery2 = `${encodeURIComponent(artist)} ${encodeURIComponent(title)}`;
+                searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery2}&type=track&limit=5`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+
+                if (searchResponse.ok) {
+                    searchData = await searchResponse.json();
+                }
+            }
 
             if (!searchResponse.ok) {
                 throw new Error('Error al buscar en Spotify.');
             }
 
-            const searchData = await searchResponse.json();
-
             // Procesar resultados
-            if (searchData.tracks.items.length > 0) {
+            if (searchData && searchData.tracks.items.length > 0) {
                 const track = searchData.tracks.items[0];
                 const album = track.album;
 
@@ -110,48 +125,105 @@ export default {
                     imageUrl = album.images[0].url;
                 }
 
-                const release_date = album.release_date;
-                const label = album.label;
+                const release_date = album.release_date || null;
                 const duration_ms = track.duration_ms;
 
-                // Obtener géneros del artista
+                // MEJORADO: Obtener información completa del álbum (incluye el sello)
+                let label = album.label || null;
+                let albumType = album.album_type || null;
+                
+                // Solicitar datos completos del álbum para asegurar el sello discográfico
+                if (album.id) {
+                    try {
+                        const albumResponse = await fetch(
+                            `https://api.spotify.com/v1/albums/${album.id}`,
+                            {
+                                headers: { 'Authorization': `Bearer ${accessToken}` }
+                            }
+                        );
+
+                        if (albumResponse.ok) {
+                            const albumData = await albumResponse.json();
+                            label = albumData.label || label;
+                            
+                            console.log('Datos completos del álbum:', {
+                                name: albumData.name,
+                                label: albumData.label,
+                                copyrights: albumData.copyrights
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error al obtener datos completos del álbum:', error);
+                    }
+                }
+
+                // MEJORADO: Obtener géneros de TODOS los artistas, no solo el primario
                 let genres = [];
                 if (track.artists && track.artists.length > 0) {
-                    const primaryArtistId = track.artists[0].id;
-                    const artistResponse = await fetch(
-                        `https://api.spotify.com/v1/artists/${primaryArtistId}`,
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${accessToken}`
-                            }
-                        }
-                    );
+                    // Crear array de promesas para obtener datos de todos los artistas
+                    const artistPromises = track.artists.slice(0, 3).map(async (artist) => {
+                        try {
+                            const artistResponse = await fetch(
+                                `https://api.spotify.com/v1/artists/${artist.id}`,
+                                {
+                                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                                }
+                            );
 
-                    if (artistResponse.ok) {
-                        const artistData = await artistResponse.json();
-                        genres = artistData.genres;
-                    }
+                            if (artistResponse.ok) {
+                                const artistData = await artistResponse.json();
+                                return artistData.genres || [];
+                            }
+                        } catch (error) {
+                            console.error(`Error al obtener datos del artista ${artist.name}:`, error);
+                        }
+                        return [];
+                    });
+
+                    // Esperar todas las respuestas
+                    const artistsGenres = await Promise.all(artistPromises);
+                    
+                    // Combinar y eliminar duplicados
+                    const allGenres = artistsGenres.flat();
+                    genres = [...new Set(allGenres)];
+
+                    console.log('Géneros encontrados:', genres);
                 }
 
                 // Extraer país del copyright
                 let country = null;
                 if (album.copyrights && album.copyrights.length > 0) {
                     const copyrightText = album.copyrights[0].text;
+                    // Buscar código de país en formato (XX)
                     const match = copyrightText.match(/\(([A-Z]{2})\)/);
                     if (match) {
                         country = match[1];
                     }
                 }
 
+                // Si no hay país en copyright, intentar obtenerlo de los mercados disponibles
+                if (!country && album.available_markets && album.available_markets.length > 0) {
+                    // Usar el primer mercado como referencia
+                    country = album.available_markets[0];
+                }
+
+                const responseData = {
+                    imageUrl,
+                    release_date,
+                    label,
+                    genres,
+                    country,
+                    duration: Math.floor(duration_ms / 1000),
+                    // Información adicional para debug
+                    albumType,
+                    trackName: track.name,
+                    artistName: track.artists[0].name
+                };
+
+                console.log('Respuesta final:', responseData);
+
                 return new Response(
-                    JSON.stringify({
-                        imageUrl,
-                        release_date,
-                        label,
-                        genres,
-                        country,
-                        duration: Math.floor(duration_ms / 1000)
-                    }),
+                    JSON.stringify(responseData),
                     {
                         status: 200,
                         headers: {
@@ -163,6 +235,7 @@ export default {
             }
 
             // No se encontró la canción
+            console.log('No se encontró la canción en Spotify');
             return new Response(
                 JSON.stringify({
                     imageUrl: null,
@@ -184,7 +257,10 @@ export default {
         } catch (error) {
             console.error('Error en el worker de Spotify:', error);
             return new Response(
-                JSON.stringify({ error: 'Error interno del servidor' }),
+                JSON.stringify({ 
+                    error: 'Error interno del servidor',
+                    details: error.message 
+                }),
                 {
                     status: 500,
                     headers: {
