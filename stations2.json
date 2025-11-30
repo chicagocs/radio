@@ -246,11 +246,11 @@
     },
     {
         "id": "rp-rock",
-        "name": "Radio Paradise - Main Rock Mix",
+        "name": "Radio Paradise - Main Mix",
         "description": "Una mezcla ecléctica de rock, desde clásicos hasta nuevos lanzamientos.",
         "url": "https://stream.radioparadise.com/rock-192",
         "service": "radioparadise",
-        "channelId": 1
+        "channelId": 2
     },
     {
         "id": "rp-mellow",
@@ -258,7 +258,7 @@
         "description": "Canciones más suaves y relajadas, ideal para un ambiente tranquilo.",
         "url": "https://stream.radioparadise.com/mellow-192",
         "service": "radioparadise",
-        "channelId": 2
+        "channelId": 1
     },
     {
         "id": "rp-world",
