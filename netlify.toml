@@ -1,8 +1,14 @@
-[build]
-  # Este comando no es estrictamente necesario si no tienes un paso de construcción,
-  # pero es una buena práctica.
-  command = "echo 'No build command required'"
-
 [functions]
-  # Le decimos a Netlify que nuestras funciones están en la carpeta "netlify/functions"
   directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
