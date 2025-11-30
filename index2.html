@@ -805,15 +805,14 @@
                             return;
                         }
                     }
+                    console.log('⚠️ No se encontró portada en Cover Art Archive.');
+                    resetAlbumCover();
+                } catch (error) {
+                    console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
+                    resetAlbumCover();
                 }
-                console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                resetAlbumCover();
-            } catch (error) {
-                console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
-                resetAlbumCover();
             }
-        }
-
+            
         // --- LÓGICA PARA RADIO PARADISE ---
         async function updateRadioParadiseInfo() {
             try {
