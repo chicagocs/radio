@@ -693,7 +693,7 @@
                 }
             }
         
-            // --- LÓGICA PARA SOMAFM ---
+            // --- LÓGICA PARA SOMAFM (MODIFICADA) ---
             async function updateSomaFmInfo() {
                 try {
                     console.log('Obteniendo info de SomaFM para:', currentStation.stationId);
@@ -727,7 +727,13 @@
                             } else {
                                 trackStartTime = Date.now();
                             }
+                            
+                            // 1. Intentar obtener la duración (y otros datos de lanzamiento)
                             await getSomaFmTrackDuration(newTrackInfo.artist, newTrackInfo.title);
+
+                            // 2. SIEMPRE intentar obtener la portada, sin importar si se encontró la duración
+                            console.log('Buscando portada para SomaFM (con fallback a Spotify)...');
+                            getAlbumCoverWithFallback(newTrackInfo.artist, newTrackInfo.title);
                         }
                     } else {
                         resetUI();
@@ -738,6 +744,7 @@
                 }
             }
         
+            // --- FUNCIÓN MODIFICADA (ya no busca portadas) ---
             async function getSomaFmTrackDuration(artist, title) {
                 try {
                     console.log('🔍 Buscando duración en MusicBrainz para:', artist, '-', title);
@@ -761,7 +768,7 @@
                             }
                             displayReleaseInfo(releaseDate, releaseCountry);
                             
-                            await getSomaFmAlbumCover(bestRecording.releases);
+                            // Iniciar la cuenta atrás solo si se encontró la duración
                             startCountdown();
                             return;
                         }
@@ -771,45 +778,6 @@
                 } catch (error) {
                     console.error('❌ Error al obtener duración desde MusicBrainz:', error);
                     resetCountdown();
-                }
-            }
-        
-            async function getSomaFmAlbumCover(releases) {
-                if (!releases || releases.length === 0) return;
-                const mainRelease = releases[0];
-                const releaseId = mainRelease.id;
-                if (!releaseId) return;
-                
-                try {
-                    const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
-                    const coverResponse = await fetch(coverArtUrl);
-                    if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
-                    const coverData = await coverResponse.json();
-                    
-                    if (coverData.images && coverData.images.length > 0) {
-                        const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
-                        if (frontCover && frontCover.image) {
-                            albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                            if (currentImageCache.has(frontCover.image)) {
-                                displayAlbumCover(currentImageCache.get(frontCover.image));
-                                return;
-                            }
-                            const img = new Image();
-                            img.crossOrigin = 'anonymous';
-                            img.onload = function() {
-                                currentImageCache.set(frontCover.image, this);
-                                displayAlbumCover(this);
-                            };
-                            img.onerror = () => getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title); // CAMBIO: Llama a la nueva función con fallback
-                            img.src = frontCover.image;
-                            return;
-                        }
-                    }
-                    console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                    getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title); // CAMBIO: Llama a la nueva función con fallback
-                } catch (error) {
-                    console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
-                    getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title); // CAMBIO: Llama a la nueva función con fallback
                 }
             }
             
@@ -966,7 +934,7 @@
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
                 console.log('URL de portada de Radio Paradise vacía, buscando con fallback...');
-                getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title); // CAMBIO: Llama a la nueva función con fallback
+                getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
             }
             albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
@@ -976,7 +944,7 @@
             };
             img.onerror = function() {
                 console.log('Error al cargar la portada de Radio Paradise, buscando con fallback...');
-                getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title); // CAMBIO: Llama a la nueva función con fallback
+                getAlbumCoverWithFallback(currentTrackInfo.artist, currentTrackInfo.title);
             };
             img.src = imageUrl;
         }
