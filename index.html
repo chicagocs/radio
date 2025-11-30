@@ -702,35 +702,60 @@
             }
             
 async function updateRadioParadiseInfo() {
-  try {
-    // URL base de tu Worker para Radio Paradise
-    const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
+    try {
+        const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
+        // Usamos el channelId de la estación seleccionada, o 1 por defecto
+        const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
+        const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
 
-    // Path específico de la API de Radio Paradise que quieres consultar
-    const apiPath = 'api/now_playing?chan=1'; // O el canal que necesites
+        console.log(`Consultando Radio Paradise vía proxy: ${finalUrl}`);
 
-    // Construye la URL final para tu Worker
-    const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
+        const response = await fetch(finalUrl);
 
-    console.log(`Consultando Radio Paradise vía proxy: ${finalUrl}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-    const response = await fetch(finalUrl);
+        const data = await response.json();
+        console.log('Info de Radio Paradise:', data);
 
-    if (!response.ok) {
-      // Si la respuesta no es 200 OK, lanza un error con el estado
-      throw new Error(`HTTP error! status: ${response.status}`);
+        // --- INICIO DE LA LÓGICA QUE FALTABA ---
+
+        // 1. Crea un objeto con la información de la canción, similar a como lo hace SomaFM
+        const newTrackInfo = {
+            title: data.song.title || 'Título desconocido',
+            artist: data.song.artist || 'Artista desconocido',
+            album: data.song.album || '',
+        };
+
+        // 2. Comprueba si la canción ha cambiado para no actualizar la UI innecesariamente
+        const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== newTrackInfo.title || currentTrackInfo.artist !== newTrackInfo.artist;
+
+        if (isNewTrack) {
+            console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
+            
+            // 3. Resea los contadores y la información anterior
+            resetCountdown();
+            resetReleaseInfo();
+            currentTrackInfo = newTrackInfo;
+
+            // 4. Actualiza la UI con la información básica (título, artista, álbum)
+            updateUIWithTrackInfo(newTrackInfo);
+            resetAlbumCover();
+            
+            // 5. Establece la hora de inicio para el contador
+            trackStartTime = Date.now();
+            
+            // 6. ¡La parte más importante! Llama a Spotify para obtener la portada y otros detalles
+            console.log('Buscando detalles en Spotify para Radio Paradise...');
+            await getSpotifyTrackDetails(newTrackInfo.artist, newTrackInfo.title);
+        }
+
+    } catch (error) {
+        console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
+        // Opcional: puedes resetear la UI si hay un error
+        // resetUI(); 
     }
-
-    const data = await response.json();
-    
-    // Ahora puedes procesar los datos de 'data'
-    console.log('Info de Radio Paradise:', data);
-    // ... tu lógica para actualizar la UI ...
-
-  } catch (error) {
-    console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-    // ... tu lógica para manejar el error ...
-  }
 }
             
 async function getSpotifyTrackDetails(artist, title) {
