@@ -4,8 +4,10 @@ compatibility_date = "2024-01-01"
 [vars]
 # Las variables secretas se configurarán en el dashboard de Cloudflare
 [observability]
+enabled = false
 [observability.logs]
 enabled = false
 head_sampling_rate = 1
 invocation_logs = true
 persist = true
+
