@@ -246,9 +246,9 @@
     },  
 {
   "id": "rp-main",
-  "name": "Radio Paradise - Rock Mix",
-  "description": "Muchos estilos y géneros diferentes con una energía rockera constante para mantenerte en movimiento.",
-  "url": "http://stream.radioparadise.com/rock-flacm",    
+  "name": "Radio Paradise - Mellow Mix",
+  "description": "Canciones reflexivas y suaves, perfectas como música de fondo en casa o en el trabajo.",
+  "url": "http://stream.radioparadise.com/mellow-flacm",    
   "service": "radioparadise",
   "channelId": 1
 }
