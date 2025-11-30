@@ -693,7 +693,7 @@
                 }
             }
         
-            // --- LÓGICA PARA SOMAFM (MODIFICADA) ---
+            // --- LÓGICA PARA SOMAFM (VERSIÓN CORREGIDA) ---
             async function updateSomaFmInfo() {
                 try {
                     console.log('Obteniendo info de SomaFM para:', currentStation.stationId);
@@ -727,8 +727,8 @@
                             } else {
                                 trackStartTime = Date.now();
                             }
-                            
-                            // 1. Intentar obtener la duración (y otros datos de lanzamiento)
+
+                            // 1. Buscar duración (esta función ya no se encarga de la portada)
                             await getSomaFmTrackDuration(newTrackInfo.artist, newTrackInfo.title);
 
                             // 2. SIEMPRE intentar obtener la portada, sin importar si se encontró la duración
