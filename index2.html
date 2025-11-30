@@ -881,61 +881,60 @@
             }
         }
 
-        // --- FUNCIÓN GENÉRICA PARA OBTENER PORTADAS ---
-        async function getAlbumCoverFromMusicBrainz(artist, title) {
-            if (!artist || !title) {
-                console.log('Artista o título no proporcionados para buscar portada.');
-                resetAlbumCover();
-                return;
-            }
-            try {
-                console.log(`🔍 Buscando portada en MusicBrainz/Cover Art Archive para: ${artist} - ${title}`);
-                const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)} AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-                const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
+// --- FUNCIÓN GENÉRICA PARA OBTENER PORTADAS ---
+async function getAlbumCoverFromMusicBrainz(artist, title) {
+    if (!artist || !title) {
+        console.log('Artista o título no proporcionados para buscar portada.');
+        resetAlbumCover();
+        return;
+    }
+    try {
+        console.log(`🔍 Buscando portada en MusicBrainz/Cover Art Archive para: ${artist} - ${title}`);
+        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)} AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+        const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
 
-                if (data.recordings && data.recordings.length > 0) {
-                    const recordingWithReleases = data.recordings.find(r => r.releases && r.releases.length > 0);
-                    if (recordingWithReleases) {
-                        const mainRelease = recordingWithReleases.releases[0];
-                        const releaseId = mainRelease.id;
-                        if (releaseId) {
-                            const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
-                            const coverResponse = await fetch(coverArtUrl);
-                            if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
-                            const coverData = await coverResponse.json();
-                            if (coverData.images && coverData.images.length > 0) {
-                                const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
-                                if (frontCover && frontCover.image) {
-                                    albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-                                    if (currentImageCache.has(frontCover.image)) {
-                                        displayAlbumCover(currentImageCache.get(frontCover.image));
-                                        return;
-                                    }
-                                    const img = new Image();
-                                    img.crossOrigin = 'anonymous';
-                                    img.onload = function() {
-                                        currentImageCache.set(frontCover.image, this);
-                                        displayAlbumCover(this);
-                                    };
-                                    img.onerror = resetAlbumCover;
-                                    img.src = frontCover.image;
-                                    return;
-                                }
-                                }
+        if (data.recordings && data.recordings.length > 0) {
+            const recordingWithReleases = data.recordings.find(r => r.releases && r.releases.length > 0);
+            if (recordingWithReleases) {
+                const mainRelease = recordingWithReleases.releases[0];
+                const releaseId = mainRelease.id;
+                if (releaseId) {
+                    const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
+                    const coverResponse = await fetch(coverArtUrl);
+                    if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
+                    const coverData = await coverResponse.json();
+                    if (coverData.images && coverData.images.length > 0) {
+                        const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
+                        if (frontCover && frontCover.image) {
+                            albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
+                            if (currentImageCache.has(frontCover.image)) {
+                                displayAlbumCover(currentImageCache.get(frontCover.image));
+                                return;
                             }
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.onload = function() {
+                                currentImageCache.set(frontCover.image, this);
+                                displayAlbumCover(this);
+                            };
+                            img.onerror = resetAlbumCover;
+                            img.src = frontCover.image;
+                            return;
                         }
                     }
                 }
-                console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                resetAlbumCover();
-            } catch (error) {
-                console.error('❌ Error al obtener portada desde MusicBrainz/Cover Art Archive:', error);
-                resetAlbumCover();
             }
         }
-
+        console.log('⚠️ No se encontró portada en Cover Art Archive.');
+        resetAlbumCover();
+    } catch (error) {
+        console.error('❌ Error al obtener portada desde MusicBrainz/Cover Art Archive:', error);
+        resetAlbumCover();
+    }
+}
+            
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
                 console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
