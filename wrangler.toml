@@ -1,0 +1,6 @@
+name = "spotifydeveloper-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Las variables secretas se configurarán en el dashboard de Cloudflare
