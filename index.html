@@ -701,44 +701,38 @@
                 } catch (error) { console.error('❌ Error al obtener duración desde MusicBrainz:', error); resetCountdown(); }
             }
             
-        async function updateRadioParadiseInfo() {
-            try {
-                console.log('Obteniendo info de Radio Paradise a través de un proxy...');
-                const channelId = currentStation.channelId || 1;
-                const proxyUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
-                const apiUrl = `https://api.radioparadise.com/api/now_playing?chan=${channelId}`;
-                const response = await fetch(proxyUrl + apiUrl);
-                if (!response.ok) {
-                    if (response.status === 429) throw new Error('El servicio de metadatos está sobrecargado. Los metadatos se actualizarán más tarde.');
-                    if (response.status === 403) throw new Error(`El proxy requiere activación. Visita https://cors-anywhere.herokuapp.com/corsdemo y haz clic en "Request temporary access" para tu dominio.`);
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                console.log('Datos recibidos de Radio Paradise (vía proxy):', data);
-                if (!data || !data.title) { console.error('La respuesta de Radio Paradise no contiene la información de la canción.'); resetUI(); return; }
-                const song = data;
-                const newTrackInfo = { title: song.title, artist: song.artist, album: song.album };
-                const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== newTrackInfo.title || currentTrackInfo.artist !== newTrackInfo.artist;
-                if (isNewTrack) {
-                    console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
-                    resetCountdown(); resetReleaseInfo(); currentTrackInfo = newTrackInfo;
-                    updateUIWithTrackInfo(newTrackInfo);
-                    trackDuration = song.duration;
-                    trackStartTime = Date.now() - (song.time * 1000);
-                    console.log(`Duración: ${trackDuration}s, Inicio calculado: ${new Date(trackStartTime).toLocaleString()}`);
-                    displayReleaseInfo(song.year, null);
-                    displayRpAlbumCover(song.cover_art);
-                    startCountdown();
-                    console.log('Buscando detalles en Spotify para Radio Paradise...');
-                    await getSpotifyTrackDetails(song.artist, song.title);
-                }
-            } catch (error) {
-                console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-                songTitle.textContent = 'Error al cargar metadatos'; songArtist.textContent = 'Revisa la consola para más detalles';
-                resetCountdown(); resetAlbumCover(); resetReleaseInfo();
-            }
-        }
+async function updateRadioParadiseInfo() {
+  try {
+    // URL base de tu Worker para Radio Paradise
+    const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
 
+    // Path específico de la API de Radio Paradise que quieres consultar
+    const apiPath = 'api/now_playing?chan=1'; // O el canal que necesites
+
+    // Construye la URL final para tu Worker
+    const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
+
+    console.log(`Consultando Radio Paradise vía proxy: ${finalUrl}`);
+
+    const response = await fetch(finalUrl);
+
+    if (!response.ok) {
+      // Si la respuesta no es 200 OK, lanza un error con el estado
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Ahora puedes procesar los datos de 'data'
+    console.log('Info de Radio Paradise:', data);
+    // ... tu lógica para actualizar la UI ...
+
+  } catch (error) {
+    console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
+    // ... tu lógica para manejar el error ...
+  }
+}
+            
 async function getSpotifyTrackDetails(artist, title) {
     if (!artist || !title) { 
         console.log('⚠️ Artista o título no proporcionados para buscar en Spotify.'); 
