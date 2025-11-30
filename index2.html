@@ -1016,17 +1016,46 @@ async function getAlbumCoverFromMusicBrainz(artist, title) {
             releaseCountryFlag.src = '';
         }
 
-        function startCountdown() {
-            if (countdownInterval) {
+function startCountdown() {
+    // First, clear any existing countdown to prevent multiple timers running
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+
+    // This function should only run if we have a valid track duration
+    if (trackDuration > 0 && trackStartTime > 0) {
+        countdownInterval = setInterval(() => {
+            const now = Date.now();
+            const elapsed = (now - trackStartTime) / 1000; // Elapsed time in seconds
+            const remaining = Math.max(0, trackDuration - elapsed);
+
+            // If the song has ended
+            if (remaining <= 0) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
+                countdownTimer.textContent = '00:00';
+                // Optional: Check for a new song immediately after the old one ends
+                updateSongInfo(); 
+                return;
             }
-            trackDuration = 0;
-            trackStartTime = 0;
-            countdownTimer.textContent = '--:--';
-            countdownTimer.classList.remove('ending');
-        }
 
+            const minutes = Math.floor(remaining / 60);
+            const seconds = Math.floor(remaining % 60);
+            const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            countdownTimer.textContent = formattedTime;
+
+            // Add a visual warning when the song is about to end
+            if (remaining < 10) {
+                countdownTimer.classList.add('ending');
+            } else {
+                countdownTimer.classList.remove('ending');
+            }
+        }, 1000); // Update the timer every second
+    }
+}
+            
         function resetCountdown() {
             if (countdownInterval) {
                 clearInterval(countdownInterval);
