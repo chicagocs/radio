@@ -209,7 +209,7 @@
             font-size: 16px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom:4px;
+            margin-bottom: 4px;
             line-height: 1.2;
         }
 
@@ -489,7 +489,7 @@
         const volumeValue = document.getElementById('volumeValue');
         const audioPlayer = document.getElementById('audioPlayer');
         const stationName = document.getElementById('stationName');
-        const stationDescription = document.getElementById('stationDescription');
+        const stationDescription = document.getElementById('streamDescription');
         const songTitle = document.getElementById('songTitle');
         const songArtist = document.getElementById('songArtist');
         const songAlbum = document.getElementById('songAlbum');
@@ -552,7 +552,6 @@
             }
         }
       
-        // --- FUNCIÓN MODIFICADA PARA MOSTRAR NOMBRES SIMPLIFICADOS ---
         function populateStationSelect(groupedStations) {
             // Limpiar opciones existentes, incluyendo optgroups
             while (stationSelect.firstChild) {
@@ -577,7 +576,7 @@
                     const value = `${station.url}|${station.name}|${station.description}|${station.id}|${station.service}|${station.channelId || ''}`;
                     option.value = value;
                     
-                    // *** CAMBIO CLAVE: Simplificar el nombre para Radio Paradise ***
+                    // *** CAMBIO CLAVE: Simplificar el nombre para el menú desplegable ***
                     let displayName = station.name;
                     if (station.service === 'radioparadise') {
                         // Para Radio Paradise, eliminar el prefijo "Radio Paradise - "
@@ -603,6 +602,7 @@
                 // *** CAMBIO CLAVE: Simplificar el nombre para el título principal ***
                 let displayName = name;
                 if (service === 'radioparadise') {
+                    // Para Radio Paradise, eliminar el prefijo "Radio Paradise - "
                     displayName = name.split(' - ')[1] || name;
                 }
                 // *** FIN DEL CAMBIO ***
@@ -761,6 +761,7 @@
                         }
                         displayReleaseInfo(releaseDate, releaseCountry);
                         
+                        // Buscar la portada usando la función genérica
                         await getAlbumCoverFromMusicBrainz(artist, title);
                         
                         startCountdown();
@@ -772,6 +773,43 @@
             } catch (error) {
                 console.error('❌ Error al obtener duración desde MusicBrainz:', error);
                 resetCountdown();
+            }
+        }
+
+        async function getSomaFmAlbumCover(releases) {
+            if (!releases || releases.length === 0) return;
+            const mainRelease = releases[0];
+            const releaseId = mainRelease.id;
+            if (!releaseId) return;
+            
+            try {
+                const coverArtUrl = `https://coverartarchive.org/release/${releaseId}`;
+                const coverResponse = await fetch(coverArtUrl);
+                if (!coverResponse.ok) throw new Error(`HTTP error! status: ${coverResponse.status}`);
+                const coverData = await coverResponse.json();
+                
+                if (coverData.images && coverData.images.length > 0) {
+                    const frontCover = coverData.images.find(img => img.front === true) || coverData.images[0];
+                    if (frontCover && frontCover.image) {
+                        albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
+                        if (currentImageCache.has(frontCover.image)) {
+                            displayAlbumCover(currentImageCache.get(frontCover.image));
+                            return;
+                        }
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = function() {
+                            currentImageCache.set(frontCover.image, this);
+                            displayAlbumCover(this);
+                        };
+                        img.onerror = resetAlbumCover;
+                        img.src = frontCover.image;
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error al obtener portada desde Cover Art Archive:', error);
+                resetAlbumCover();
             }
         }
 
@@ -884,8 +922,7 @@
                                     };
                                     img.onerror = () => {
                                         console.error('Error al cargar la imagen de portada desde Cover Art Archive.');
-                                        // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
-                                        getAlbumCoverFromAudioDb(artist, title);
+                                        resetAlbumCover();
                                     };
                                     img.src = frontCover.image;
                                     return;
@@ -895,54 +932,15 @@
                     }
                 }
                 console.log('⚠️ No se encontró portada en Cover Art Archive.');
-                // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
-                getAlbumCoverFromAudioDb(artist, title);
-            } catch (error) {
-                console.error('❌ Error al obtener portada desde MusicBrainz:', error);
-                // *** CAMBIO CLAVE: Añadir fallback a AudioDB ***
-                getAlbumCoverFromAudioDb(artist, title);
-            }
-        }
-
-        // *** NUEVA FUNCIÓN DE FALLBACK PARA AUDIO DB ***
-        async function getAlbumCoverFromAudioDb(artist, title) {
-            try {
-                console.log(`🔍 Buscando portada en AudioDB para: ${artist} - ${title}`);
-                // La API de AudioDB requiere una clave de API.
-                // Para este ejemplo, usaremos una clave de demostración.
-                // En un entorno de producción, deberías obtener tu propia clave en https://www.theaudiodb.com/api_key_registration.php
-                const apiKey = '1'; // Clave de demostración. ¡Reemplázala con la tuya!
-                const searchUrl = `https://theaudiodb.com/api/v1/search.php?s=${encodeURIComponent(`${artist} ${title}`)}&limit=5&apikey=${apiKey}`;
-                const response = await fetch(searchUrl);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-
-                if (data.albums && data.albums.length > 0) {
-                    const album = data.albums[0]; // Usar el primer resultado
-                    if (album.cover_art && album.cover_art_size) {
-                        const img = new Image();
-                        img.onload = function() {
-                            displayAlbumCover(this);
-                        };
-                        img.onerror = () => {
-                            console.error('Error al cargar la imagen de portada desde AudioDB.');
-                            resetAlbumCover();
-                        };
-                        img.src = album.cover_art;
-                        return;
-                    }
-                }
-                console.log('⚠️ No se encontró portada en AudioDB.');
                 resetAlbumCover();
             } catch (error) {
-                console.error('❌ Error al obtener portada desde AudioDB:', error);
+                console.error('❌ Error al obtener portada desde MusicBrainz:', error);
                 resetAlbumCover();
             }
         }
 
         function displayRpAlbumCover(imageUrl) {
             if (!imageUrl) {
-                // Si no hay URL de RP, buscar en MusicBrainz inmediatamente
                 console.log('URL de portada de Radio Paradise vacía, buscando en MusicBrainz...');
                 getAlbumCoverFromMusicBrainz(currentTrackInfo.artist, currentTrackInfo.title);
                 return;
