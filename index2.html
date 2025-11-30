@@ -516,6 +516,7 @@
 
         async function loadStations() {
             try {
+               // *** CAMBIO CLAVE: Cargar desde stations2.json ***
                const response = await fetch('stations2.json');
                if (!response.ok) {
                    throw new Error(`HTTP error! status: ${response.status}`);
@@ -734,7 +735,6 @@
                 const response = await fetch(proxyUrl + apiUrl);
 
                 if (!response.ok) {
-                    // Mejor manejo del error 429
                     if (response.status === 429) {
                         throw new Error('El servicio de metadatos está sobrecargado. Los metadatos se actualizarán más tarde.');
                     }
@@ -785,7 +785,6 @@
                 }
             } catch (error) {
                 console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
-                // Mostramos un mensaje de error más específico en la UI
                 songTitle.textContent = 'Error al cargar metadatos';
                 songArtist.textContent = error.message || 'Revisa la consola para más detalles';
                 resetCountdown();
