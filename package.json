@@ -1,9 +1,12 @@
 {
-  "name": "radiomax-backend",
+  "name": "spotify-worker",
   "version": "1.0.0",
-  "description": "Backend para obtener portadas de Spotify",
-  "main": "index.js",
-  "dependencies": {
-    "node-fetch": "^2.6.7"
+  "description": "Worker para obtener información de Spotify",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
   }
 }
