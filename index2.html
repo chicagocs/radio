@@ -285,7 +285,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center; /* *** MEJORA: Centrar elementos *** */
+            align-items: center;
         }
 
         .release-info-column {
@@ -315,7 +315,6 @@
             letter-spacing: 2px;
         }
 
-        /* *** MEJORA: Estilo para la duración total *** */
         .total-duration {
             font-size: 11px;
             color: #999999;
@@ -474,7 +473,6 @@
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
-                <!-- *** MEJORA: Nuevo elemento para la duración total *** -->
                 <div class="total-duration" id="totalDuration">/ --:--</div>
             </div>
             <div class="release-info-column">
@@ -525,7 +523,7 @@
             const songAlbum = document.getElementById('songAlbum');
             const volumeIcon = document.getElementById('volumeIcon');
             const countdownTimer = document.getElementById('countdownTimer');
-            const totalDuration = document.getElementById('totalDuration'); // *** MEJORA: Referencia al nuevo elemento ***
+            const totalDuration = document.getElementById('totalDuration');
             const albumCover = document.getElementById('albumCover');
             const loadingStations = document.getElementById('loadingStations');
             const releaseDate = document.getElementById('releaseDate');
@@ -694,7 +692,7 @@
                                 const mainRelease = bestRecording.releases[0]; releaseDate = mainRelease.date; releaseCountry = mainRelease.country;
                             }
                             displayReleaseInfo(releaseDate, releaseCountry);
-                            startCountdown(); // *** MEJORA: Muestra la duración total al encontrarla ***
+                            startCountdown();
                             return;
                         }
                     }
@@ -730,7 +728,7 @@
                     console.log(`Duración: ${trackDuration}s, Inicio calculado: ${new Date(trackStartTime).toLocaleString()}`);
                     displayReleaseInfo(song.year, null);
                     displayRpAlbumCover(song.cover_art);
-                    startCountdown(); // *** MEJORA: Muestra la duración total al encontrarla ***
+                    startCountdown();
                     console.log('Buscando detalles en Spotify para Radio Paradise...');
                     await getSpotifyTrackDetails(song.artist, song.title);
                 }
@@ -741,14 +739,27 @@
             }
         }
 
+        // Versión actualizada de la función con mejor manejo de errores
         async function getSpotifyTrackDetails(artist, title) {
-            if (!artist || !title) { console.log('Artista o título no proporcionados para buscar en Spotify.'); return; }
+            if (!artist || !title) { 
+                console.log('Artista o título no proporcionados para buscar en Spotify.'); 
+                return; 
+            }
+            
             const netlifyApiUrl = 'https://jazzy-kataifi-de9f7f.netlify.app/.netlify/functions/get-spotify-cover';
+            
             try {
                 console.log(`🎧 Buscando detalles en Spotify para: ${artist} - ${title}`);
+                
                 const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 const currentImg = albumCover.querySelector('img');
+                
                 if (!currentImg && data.imageUrl) {
                     albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
                     const img = new Image();
@@ -756,8 +767,14 @@
                     img.onerror = resetAlbumCover;
                     img.src = data.imageUrl;
                 }
+                
                 updateInfoWithSpotifyData(data);
-            } catch (error) { console.error('❌ Error al obtener detalles de Spotify:', error); }
+            } catch (error) {
+                console.error('❌ Error al obtener detalles de Spotify:', error);
+                // Comportamiento de fallback en caso de error
+                // Por ejemplo, intentar una fuente alternativa de metadatos
+                // o simplemente continuar sin la información de Spotify
+            }
         }
         
         function updateInfoWithSpotifyData(data) {
@@ -773,7 +790,7 @@
             if (data.label) { recordLabel.textContent = data.label; }
             if (data.genres && data.genres.length > 0) { trackGenre.textContent = data.genres[0]; }
             
-            // *** MEJORA: Usar la duración de Spotify como fallback y mostrarla ***
+            // Usar la duración de Spotify como fallback y mostrarla
             if (data.duration && trackDuration === 0) {
                 trackDuration = data.duration;
                 console.log(`✓ Duración obtenida desde Spotify: ${trackDuration}s`);
@@ -859,7 +876,7 @@
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
             if (trackDuration > 0 && trackStartTime > 0) {
-                // *** MEJORA: Mostrar la duración total ***
+                // Mostrar la duración total
                 const totalMinutes = Math.floor(trackDuration / 60);
                 const totalSeconds = Math.floor(trackDuration % 60);
                 const formattedTotalTime = `/${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
@@ -892,7 +909,7 @@
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             trackDuration = 0; trackStartTime = 0;
             countdownTimer.textContent = '--:--';
-            totalDuration.textContent = '/ --:--'; // *** MEJORA: Resetear duración total ***
+            totalDuration.textContent = '/ --:--';
             countdownTimer.classList.remove('ending');
         }
 
