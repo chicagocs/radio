@@ -246,11 +246,11 @@
     },
 {
   "id": "rp-main",
-  "name": "Radio Paradise - Main Mix",
-  "description": "Rock moderno y clásico, electrónica, música del mundo y más, todo mezclado por DJ. Una aventura musical ecléctica.",
-  "url": "http://stream.radioparadise.com/ogg-192m",
+  "name": "Radio Paradise - Mellow Mix",
+  "description": "Canciones reflexivas y suaves, perfectas como música de fondo en casa o en el trabajo.",
+  "url": "http://stream.radioparadise.com/mellow-flacm",
   "service": "radioparadise",
-  "channelId": 2
+  "channelId": 1
 },
 {
   "id": "rp-mellow",
@@ -259,101 +259,5 @@
   "url": "http://stream.radioparadise.com/mellow-192m",
   "service": "radioparadise",
   "channelId": 1
-},
-{
-  "id": "rp-rock",
-  "name": "Radio Paradise - Classic Rock",
-  "description": "Lo mejor del rock clásico, desde los 60 hasta los 90. Canciones que han definido generaciones.",
-  "url": "http://stream.radioparadise.com/rock-192m",
-  "service": "radioparadise",
-  "channelId": 3
-},
-{
-  "id": "rp-world",
-  "name": "Radio Paradise - World/Etc",
-  "description": "Un viaje musical por el mundo. Desde el folk tradicional hasta sonidos globales contemporáneos.",
-  "url": "http://stream.radioparadise.com/world-192m",
-  "service": "radioparadise",
-  "channelId": 4
-},
-{
-  "id": "rp-electronic",
-  "name": "Radio Paradise - Electronic",
-  "description": "Ambiente, downtempo, trip-hop y electrónica. El lado más relajado de la música electrónica.",
-  "url": "http://stream.radioparadise.com/electronic-192m",
-  "service": "radioparadise",
-  "channelId": 5
-},
-{
-  "id": "rp-americana",
-  "name": "Radio Paradise - Americana/Roots",
-  "description": "Las raíces de la música americana: country, folk, blues y alt-country en su máxima expresión.",
-  "url": "http://stream.radioparadise.com/americana-192m",
-  "service": "radioparadise",
-  "channelId": 6
-},
-{
-  "id": "rp-classical",
-  "name": "Radio Paradise - Classical",
-  "description": "Una selección accesible y bella de la música clásica, ideal tanto para conocedores como para nuevos oyentes.",
-  "url": "http://stream.radioparadise.com/classical-192m",
-  "service": "radioparadise",
-  "channelId": 7
-},
-{
-  "id": "rp-jazz",
-  "name": "Radio Paradise - Jazz",
-  "description": "Desde el clásico y el bebop hasta el jazz fusion y contemporáneo. Una exploración del género en todas sus formas.",
-  "url": "http://stream.radioparadise.com/jazz-192m",
-  "service": "radioparadise",
-  "channelId": 8
-},
-{
-  "id": "rp-folk",
-  "name": "Radio Paradise - Folk",
-  "description": "Folk acústico, canciones de autor y raíces celtas. Música con alma y historias que contar.",
-  "url": "http://stream.radioparadise.com/folk-192m",
-  "service": "radioparadise",
-  "channelId": 9
-},
-{
-  "id": "rp-metal",
-  "name": "Radio Paradise - Metal",
-  "description": "Más allá del estereotipo. Desde el metal progresivo hasta el doom, el thrash y el metal alternativo.",
-  "url": "http://stream.radioparadise.com/metal-192m",
-  "service": "radioparadise",
-  "channelId": 10
-},
-{
-  "id": "rp-piano",
-  "name": "Radio Paradise - Piano",
-  "description": "Música centrada en el piano. Desde la música clásica y new age hasta el jazz y composiciones modernas.",
-  "url": "http://stream.radioparadise.com/piano-192m",
-  "service": "radioparadise",
-  "channelId": 11
-},
-{
-  "id": "rp-80s",
-  "name": "Radio Paradise - 80s/90s Pop",
-  "description": "Los grandes éxitos y las joyas ocultas del pop y el rock de las décadas de 1980 y 1990.",
-  "url": "http://stream.radioparadise.com/80s-192m",
-  "service": "radioparadise",
-  "channelId": 13
-},
-{
-  "id": "rp-reggae",
-  "name": "Radio Paradise - Reggae",
-  "description": "El ritmo de la isla. Desde el roots y el dub hasta el dancehall y el reggae rock.",
-  "url": "http://stream.radioparadise.com/reggae-192m",
-  "service": "radioparadise",
-  "channelId": 14
-},
-{
-  "id": "rp-vintage",
-  "name": "Radio Paradise - Vintage",
-  "description": "Música de las décadas de 1920 a 1950. Jazz temprano, swing, blues y canciones populares de la época.",
-  "url": "http://stream.radioparadise.com/vintage-192m",
-  "service": "radioparadise",
-  "channelId": 16
 }
 ]
