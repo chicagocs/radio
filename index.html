@@ -296,12 +296,12 @@
             margin-top: 2px;
         }
 
-        /* NUEVO: Estilo para la posición del tema */
-        .track-position-info {
-            font-size: 11px;
-            color: #999999;
-            font-family: 'Courier New', monospace;
-            margin-top: 2px;
+        /* NUEVO: Estilo para la línea separadora */
+        .timer-separator {
+            width: 50px;
+            height: 1px;
+            background-color: #444;
+            margin: 5px 0;
         }
 
         .countdown-timer.ending {
@@ -443,6 +443,8 @@
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
+                <!-- NUEVA LÍNEA SEPARADORA -->
+                <div class="timer-separator"></div>
                 <!-- NUEVO ELEMENTO PARA LA POSICIÓN DEL TEMA -->
                 <div class="track-position-info" id="trackPosition">--/--</div>
             </div>
@@ -514,7 +516,7 @@
             const albumTrackCount = document.getElementById('albumTrackCount');
             const albumTotalDuration = document.getElementById('albumTotalDuration');
             const trackGenre = document.getElementById('trackGenre');
-            const trackPosition = document.getElementById('trackPosition'); // NUEVO
+            const trackPosition = document.getElementById('trackPosition');
 
             let currentStation = null;
             let updateInterval = null;
@@ -930,7 +932,7 @@ async function getSpotifyTrackDetails(artist, title) {
             trackDuration = 0; trackStartTime = 0;
             countdownTimer.textContent = '--:--';
             totalDuration.textContent = '(--:--)';
-            trackPosition.textContent = '[# / --]'; // NUEVO
+            trackPosition.textContent = '--/--';
             countdownTimer.classList.remove('ending');
         }
 
