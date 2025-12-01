@@ -822,7 +822,7 @@ async function getSpotifyTrackDetails(artist, title) {
     
     // NUEVO: Actualizar la posición del tema
     if (data.trackNumber && data.totalTracks) {
-        trackPosition.textContent = `Track #${data.trackNumber}/${data.totalTracks}`;
+        trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
     } else {
         trackPosition.textContent = '#--/--';
     }
@@ -881,7 +881,7 @@ async function getSpotifyTrackDetails(artist, title) {
             albumTrackCount.textContent = '--';
             albumTotalDuration.textContent = '--:--';
             trackGenre.textContent = '--';
-            trackPosition.textContent = '[# / --]'; // NUEVO
+            trackPosition.textContent = '--/--';
         }
 
         function displayReleaseInfo(date) {
