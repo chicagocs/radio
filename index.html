@@ -444,7 +444,7 @@
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
                 <!-- NUEVO ELEMENTO PARA LA POSICIÓN DEL TEMA -->
-                <div class="track-position-info" id="trackPosition">[# / --]</div>
+                <div class="track-position-info" id="trackPosition">#--/--</div>
             </div>
             <div class="album-details-column">
                 <!-- Renglón 1: Año y Sello -->
@@ -824,7 +824,7 @@ async function getSpotifyTrackDetails(artist, title) {
     if (data.trackNumber && data.totalTracks) {
         trackPosition.textContent = `Track #${data.trackNumber}/${data.totalTracks}`;
     } else {
-        trackPosition.textContent = '[# / --]';
+        trackPosition.textContent = '#--/--';
     }
     
     // Usar la duración de Spotify como fallback para la canción
