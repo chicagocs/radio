@@ -12,12 +12,13 @@ function handleOptions() {
   return new Response(null, { status: 200, headers: corsHeaders });
 }
 
-// Función que maneja la lógica del proxy para Spotify (Versión FINAL)
+// Función que maneja la lógica del proxy para Spotify (Versión CORREGIDA)
 async function handleSpotifyRequest(request, env) {
   try {
     const url = new URL(request.url);
     const artist = url.searchParams.get("artist");
     const title = url.searchParams.get("title");
+    const album = url.searchParams.get("album"); // <-- CAMBIO 1: Leemos el parámetro 'album'
 
     if (!artist || !title) {
       return new Response(JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }), {
@@ -44,44 +45,61 @@ async function handleSpotifyRequest(request, env) {
     const accessToken = tokenData.access_token;
 
     let searchData = null;
-    const searchQuery1 = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
-    let searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery1}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
-    if (searchResponse.ok) searchData = await searchResponse.json();
+    let searchQuery = '';
 
-    if (!searchData || searchData.tracks.items.length === 0) {
-      const searchQuery2 = `${encodeURIComponent(artist)} ${encodeURIComponent(title)}`;
-      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery2}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
-      if (searchResponse.ok) searchData = await searchResponse.json();
+    // --- CAMBIO 2: Lógica de búsqueda mejorada y más específica ---
+    // 1. Intenta la búsqueda más específica si tenemos el álbum
+    if (album) {
+      console.log(`Worker: Búsqueda específica con álbum para "${title}" de "${artist}" en "${album}"`);
+      searchQuery = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}" album:"${encodeURIComponent(album)}"`;
+    } else {
+      // 2. Si no hay álbum, usa la búsqueda por título y artista
+      console.log(`Worker: Búsqueda general para "${title}" de "${artist}"`);
+      searchQuery = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
     }
+
+    let searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+    if (searchResponse.ok) {
+      searchData = await searchResponse.json();
+    }
+
+    // 3. Si la búsqueda específica (o la general) no da resultados, intenta una búsqueda más simple como último recurso
+    if (!searchData || searchData.tracks.items.length === 0) {
+      console.log("Worker: Búsqueda anterior falló, intentando fallback más simple...");
+      const fallbackQuery = `${encodeURIComponent(artist)} ${encodeURIComponent(title)}`;
+      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${fallbackQuery}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+      if (searchResponse.ok) {
+        searchData = await searchResponse.json();
+      }
+    }
+    
     if (!searchResponse.ok) throw new Error("Error al buscar en Spotify.");
 
+    // El resto de la función para procesar el resultado se mantiene igual
     if (searchData && searchData.tracks.items.length > 0) {
       const track = searchData.tracks.items[0];
-      const album = track.album;
-      let imageUrl = album.images && album.images.length > 0 ? album.images[0].url : null;
-      const release_date = album.release_date || null;
+      const albumData = track.album;
+      let imageUrl = albumData.images && albumData.images.length > 0 ? albumData.images[0].url : null;
+      const release_date = albumData.release_date || null;
       const duration_ms = track.duration_ms;
-      let label = album.label || null;
+      let label = albumData.label || null;
       
-      // Variables para los detalles del álbum
-      let totalTracks = album.total_tracks || null;
+      let totalTracks = albumData.total_tracks || null;
       let totalAlbumDuration = 0;
-      let trackNumber = null; // NUEVO
+      let trackNumber = null;
 
-      if (album.id) {
+      if (albumData.id) {
         try {
-          const albumResponse = await fetch(`https://api.spotify.com/v1/albums/${album.id}`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+          const albumResponse = await fetch(`https://api.spotify.com/v1/albums/${albumData.id}`, { headers: { "Authorization": `Bearer ${accessToken}` } });
           if (albumResponse.ok) {
-            const albumData = await albumResponse.json();
-            label = albumData.label || label;
+            const fullAlbumData = await albumResponse.json();
+            label = fullAlbumData.label || label;
             
-            // Calcular la duración total del álbum
-            if (albumData.tracks && albumData.tracks.items) {
-              totalAlbumDuration = albumData.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0);
+            if (fullAlbumData.tracks && fullAlbumData.tracks.items) {
+              totalAlbumDuration = fullAlbumData.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0);
             }
 
-            // NUEVO: Encontrar la posición del tema
-            const trackIndex = albumData.tracks.items.findIndex(t => t.id === track.id);
+            const trackIndex = fullAlbumData.tracks.items.findIndex(t => t.id === track.id);
             if (trackIndex !== -1) {
               trackNumber = trackIndex + 1;
             }
@@ -101,29 +119,20 @@ async function handleSpotifyRequest(request, env) {
         genres = [...new Set((await Promise.all(artistPromises)).flat())];
       }
       
-      let country = null;
-      if (album.copyrights && album.copyrights.length > 0) {
-        const match = album.copyrights[0].text.match(/\(([A-Z]{2})\)/);
-        if (match) country = match[1];
-      }
-      if (!country && album.available_markets && album.available_markets.length > 0) country = album.available_markets[0];
-
-      // Añadir los nuevos campos a la respuesta
       const responseData = { 
         imageUrl, 
         release_date, 
         label, 
         genres, 
-        country, 
         duration: Math.floor(duration_ms / 1e3),
         totalTracks, 
         totalAlbumDuration: Math.floor(totalAlbumDuration / 1000),
-        trackNumber // NUEVO
+        trackNumber
       };
       return new Response(JSON.stringify(responseData), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], country: null, duration: 0, totalTracks: null, totalAlbumDuration: 0, trackNumber: null }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], duration: 0, totalTracks: null, totalAlbumDuration: 0, trackNumber: null }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
     console.error("Error en el worker de Spotify:", error);
@@ -205,7 +214,7 @@ export default {
       console.log("Worker: Enviando a handleSpotifyRequest");
       return handleSpotifyRequest(request, env);
     } else if (url.pathname.startsWith('/radioparadise')) {
-      console.log("Worker: Enviando a handleRadioParadiseRequest"); // Corregido
+      console.log("Worker: Enviando a handleRadioParadiseRequest");
       return handleRadioParadiseRequest(request);
     } else {
       return new Response(JSON.stringify({ error: "Ruta no encontrada. Usa /spotify o /radioparadise" }), {
