@@ -12,7 +12,7 @@ function handleOptions() {
   return new Response(null, { status: 200, headers: corsHeaders });
 }
 
-// Función que maneja la lógica del proxy para Spotify (Versión MEJORADA)
+// Función que maneja la lógica del proxy para Spotify (Versión FINAL)
 async function handleSpotifyRequest(request, env) {
   try {
     const url = new URL(request.url);
@@ -63,9 +63,10 @@ async function handleSpotifyRequest(request, env) {
       const duration_ms = track.duration_ms;
       let label = album.label || null;
       
-      // NUEVO: Variables para los detalles del álbum
+      // Variables para los detalles del álbum
       let totalTracks = album.total_tracks || null;
       let totalAlbumDuration = 0;
+      let trackNumber = null; // NUEVO
 
       if (album.id) {
         try {
@@ -74,9 +75,15 @@ async function handleSpotifyRequest(request, env) {
             const albumData = await albumResponse.json();
             label = albumData.label || label;
             
-            // NUEVO: Calcular la duración total del álbum
+            // Calcular la duración total del álbum
             if (albumData.tracks && albumData.tracks.items) {
-              totalAlbumDuration = albumData.tracks.items.reduce((sum, track) => sum + track.duration_ms, 0);
+              totalAlbumDuration = albumData.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0);
+            }
+
+            // NUEVO: Encontrar la posición del tema
+            const trackIndex = albumData.tracks.items.findIndex(t => t.id === track.id);
+            if (trackIndex !== -1) {
+              trackNumber = trackIndex + 1;
             }
           }
         } catch (error) { console.error("Error al obtener datos del álbum:", error); }
@@ -101,7 +108,7 @@ async function handleSpotifyRequest(request, env) {
       }
       if (!country && album.available_markets && album.available_markets.length > 0) country = album.available_markets[0];
 
-      // NUEVO: Añadir los nuevos campos a la respuesta
+      // Añadir los nuevos campos a la respuesta
       const responseData = { 
         imageUrl, 
         release_date, 
@@ -109,13 +116,14 @@ async function handleSpotifyRequest(request, env) {
         genres, 
         country, 
         duration: Math.floor(duration_ms / 1e3),
-        totalTracks, // NUEVO
-        totalAlbumDuration: Math.floor(totalAlbumDuration / 1000) // NUEVO
+        totalTracks, 
+        totalAlbumDuration: Math.floor(totalAlbumDuration / 1000),
+        trackNumber // NUEVO
       };
       return new Response(JSON.stringify(responseData), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], country: null, duration: 0, totalTracks: null, totalAlbumDuration: 0 }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], country: null, duration: 0, totalTracks: null, totalAlbumDuration: 0, trackNumber: null }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
     console.error("Error en el worker de Spotify:", error);
@@ -197,7 +205,7 @@ export default {
       console.log("Worker: Enviando a handleSpotifyRequest");
       return handleSpotifyRequest(request, env);
     } else if (url.pathname.startsWith('/radioparadise')) {
-      console.log("Worker: Enviando a handleRadioParadiseRequest");
+      console.log("Worker: Enviando a handleRadioParadiseRequest"); // Corregido
       return handleRadioParadiseRequest(request);
     } else {
       return new Response(JSON.stringify({ error: "Ruta no encontrada. Usa /spotify o /radioparadise" }), {
