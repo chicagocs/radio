@@ -672,8 +672,9 @@
                             updateUIWithTrackInfo(newTrackInfo); resetAlbumCover();
                             trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
                             
-                            // *** CAMBIO CLAVE: Llamada a la nueva función centralizada ***
-                            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title);
+                            // *** Llamada a función centralizada ***
+                            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                            
                         }
                     } else { resetUI(); }
                 } catch (error) { console.error('Error al obtener info de SomaFM:', error); resetUI(); }
@@ -722,56 +723,59 @@
                 }
             }
             
-            // *** NUEVA FUNCIÓN CENTRALIZADA ***
+            // *** FUNCIÓN CENTRALIZADA ***
             // 1. Intenta obtener datos de Spotify.
             // 2. Si falla, usa MusicBrainz como fallback.
-            async function fetchSongDetails(artist, title) {
-                if (!artist || !title) { 
-                    console.log('⚠️ Artista o título no proporcionados.'); 
-                    resetCountdown();
-                    return; 
-                }
-                
-                console.log(`🔍 Buscando detalles para: "${artist}" - "${title}"`);
-                resetCountdown(); // Resetear mientras buscamos
-                
-                // --- INTENTO 1: SPOTIFY ---
-                try {
-                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
-                    const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    
-                    // Verificar si Spotify devolvió datos útiles (como una imagen)
-                    if (data && data.imageUrl) {
-                        console.log('✅ Datos obtenidos desde Spotify.');
-                        displayAlbumCoverFromUrl(data.imageUrl);
-                        updateAlbumDetailsWithSpotifyData(data);
-                        
-                        // Usar la duración de Spotify si está disponible
-                        if (data.duration) {
-                            trackDuration = data.duration;
-                            trackStartTime = Date.now();
-                            startCountdown();
-                        } else {
-                             // Si no hay duración, intentamos obtenerla de MusicBrainz
-                             console.log('ℹ️ Spotify no proporcionó duración. Buscando en MusicBrainz...');
-                             await getMusicBrainzDuration(artist, title);
-                        }
-                        return; // Éxito, terminar la función.
-                    }
-                } catch (error) {
-                    console.error('❌ Falló la búsqueda en Spotify:', error);
-                }
-                
-                // --- FALLBACK: MUSICBRAINZ (si Spotify falla o no tiene datos) ---
-                console.log('ℹ️ Intentando con MusicBrainz como fallback...');
-                await getMusicBrainzDuration(artist, title);
+
+async function fetchSongDetails(artist, title, album) {
+    if (!artist || !title) { 
+        console.log('⚠️ Artista o título no proporcionados.'); 
+        resetCountdown();
+        return; 
+    }
+    
+    console.log(`🔍 Buscando detalles para: "${artist}" - "${title}" (del álbum "${album}")`);
+    resetCountdown(); // Resetear mientras buscamos
+    
+    // --- INTENTO 1: SPOTIFY ---
+    try {
+        const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
+        
+        // *** CAMBIO CLAVE: Añadimos el álbum a la consulta ***
+        const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&album=${encodeURIComponent(album)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Verificar si Spotify devolvió datos útiles (como una imagen)
+        if (data && data.imageUrl) {
+            console.log('✅ Datos obtenidos desde Spotify.');
+            displayAlbumCoverFromUrl(data.imageUrl);
+            updateAlbumDetailsWithSpotifyData(data);
+            
+            // Usar la duración de Spotify si está disponible
+            if (data.duration) {
+                trackDuration = data.duration;
+                trackStartTime = Date.now();
+                startCountdown();
+            } else {
+                 // Si no hay duración, intentamos obtenerla de MusicBrainz
+                 console.log('ℹ️ Spotify no proporcionó duración. Buscando en MusicBrainz...');
+                 await getMusicBrainzDuration(artist, title);
             }
+            return; // Éxito, terminar la función.
+        }
+    } catch (error) {
+        console.error('❌ Falló la búsqueda en Spotify:', error);
+    }
+    
+    // --- FALLBACK: MUSICBRAINZ (si Spotify falla o no tiene datos) ---
+    console.log('ℹ️ Intentando con MusicBrainz como fallback...');
+    await getMusicBrainzDuration(artist, title);
+}
 
             // *** NUEVA FUNCIÓN DE FALLBACK PARA MUSICBRAINZ ***
             // Se enfoca solo en obtener la duración, ya que otros detalles son más difíciles de extraer de forma fiable.
