@@ -308,42 +308,43 @@
             color: #ff3300;
             animation: blink 1s infinite;
         }
-        
-        /* --- NUEVO CSS PARA LA COLUMNA DE DETALLES DEL ÁLBUM --- */
+    
+        /* --- COLUMNA DE DETALLES DEL ÁLBUM --- */
         .album-details-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start; /* Justificar a la izquierda */
-            gap: 4px; /* Espacio entre renglones */
-            padding-left: 10px;
-            border-left: 1px solid #333;
-        }
+           flex: 1;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: flex-start;
+           gap: 4px;
+           padding-left: 10px;
+           border-left: 1px solid #333;
+         }
 
-        .details-row {
+         .details-row {
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* Justificar a la izquierda */
-            gap: 10px; /* Espacio entre elementos del mismo renglón */
+            justify-content: flex-start;
+            gap: 10px;
             width: 100%;
-        }
-        
-        .details-label {
-            font-size: 14px;
+         }
+
+         .details-label {
+            font-size: 11px;
             color: #888888;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            min-width: 60px; /* Para alinear los valores */
-        }
+            min-width: 60px;
+          }
 
-        .details-value {
-            font-size: 12px;
-            color: #cccccc;
-        }
-        .details-value.genre {
-            color: #ff6600;
-        }
+          .details-value {
+             font-size: 12px; /* Tamaño unificado para todos los detalles */
+             color: #cccccc;
+          }
+    
+          .details-value.genre {
+             color: #ff6600;
+          }
 
         /* --- NUEVAS REGLAS PARA TAMAÑOS ESPECÍFICOS --- */
         albumTrackCount {
