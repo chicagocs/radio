@@ -822,7 +822,7 @@ async function getSpotifyTrackDetails(artist, title) {
     
     // NUEVO: Actualizar la posición del tema
     if (data.trackNumber && data.totalTracks) {
-        trackPosition.textContent = `[Tema ${data.trackNumber} de ${data.totalTracks}]`;
+        trackPosition.textContent = `Track # ${data.trackNumber}/${data.totalTracks}]`;
     } else {
         trackPosition.textContent = '[# / --]';
     }
