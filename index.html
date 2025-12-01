@@ -190,7 +190,7 @@
             font-size: 16px;
             font-weight: bold;
             color: #ffffff;
-            margin-bottom: 4px;
+            margin-bottom:4px;
             line-height: 1.2;
         }
 
@@ -290,6 +290,14 @@
         }
 
         .total-duration {
+            font-size: 11px;
+            color: #999999;
+            font-family: 'Courier New', monospace;
+            margin-top: 2px;
+        }
+
+        /* NUEVO: Estilo para la posición del tema */
+        .track-position-info {
             font-size: 11px;
             color: #999999;
             font-family: 'Courier New', monospace;
@@ -429,12 +437,14 @@
             </div>
         </div>
 
-        <!-- NUEVA ESTRUCTURA HTML PARA LOS DETALLES -->
+        <!-- ESTRUCTURA HTML MODIFICADA -->
         <div class="countdown-container" id="countdownContainer">
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
+                <!-- NUEVO ELEMENTO PARA LA POSICIÓN DEL TEMA -->
+                <div class="track-position-info" id="trackPosition">[# / --]</div>
             </div>
             <div class="album-details-column">
                 <!-- Renglón 1: Año y Sello -->
@@ -504,6 +514,7 @@
             const albumTrackCount = document.getElementById('albumTrackCount');
             const albumTotalDuration = document.getElementById('albumTotalDuration');
             const trackGenre = document.getElementById('trackGenre');
+            const trackPosition = document.getElementById('trackPosition'); // NUEVO
 
             let currentStation = null;
             let updateInterval = null;
@@ -809,6 +820,13 @@ async function getSpotifyTrackDetails(artist, title) {
         trackGenre.textContent = '--';
     }
     
+    // NUEVO: Actualizar la posición del tema
+    if (data.trackNumber && data.totalTracks) {
+        trackPosition.textContent = `[Tema ${data.trackNumber} de ${data.totalTracks}]`;
+    } else {
+        trackPosition.textContent = '[# / --]';
+    }
+    
     // Usar la duración de Spotify como fallback para la canción
     if (data.duration && trackDuration === 0) {
         trackDuration = data.duration;
@@ -863,6 +881,7 @@ async function getSpotifyTrackDetails(artist, title) {
             albumTrackCount.textContent = '--';
             albumTotalDuration.textContent = '--:--';
             trackGenre.textContent = '--';
+            trackPosition.textContent = '[# / --]'; // NUEVO
         }
 
         function displayReleaseInfo(date) {
@@ -911,6 +930,7 @@ async function getSpotifyTrackDetails(artist, title) {
             trackDuration = 0; trackStartTime = 0;
             countdownTimer.textContent = '--:--';
             totalDuration.textContent = '(--:--)';
+            trackPosition.textContent = '[# / --]'; // NUEVO
             countdownTimer.classList.remove('ending');
         }
 
