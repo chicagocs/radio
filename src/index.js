@@ -20,6 +20,32 @@ function cleanSearchTerm(term) {
   return term.replace(/[()\\[\\]{}]/g, ' ').replace(/\\s+/g, ' ').trim();
 }
 
+// *** NUEVO: Función para determinar el tipo de álbum ***
+function getAlbumTypeDescription(album) {
+  const name = album.name.toLowerCase();
+  const type = album.album_type;
+
+  // Palabras clave que sugieren una reedición o versión especial
+  const reissueKeywords = ['remastered', 'deluxe', 'expanded', 'anniversary', 'edition', 'reissue', 'legacy'];
+
+  if (type === 'compilation') {
+    return 'Compilación';
+  }
+
+  if (type === 'single') {
+    return 'Sencillo';
+  }
+
+  // Si el nombre contiene una palabra clave de reedición, lo clasificamos como tal
+  if (reissueKeywords.some(keyword => name.includes(keyword))) {
+    return 'Reedición';
+  }
+
+  // Si no es nada de lo anterior, asumimos que es el álbum original estándar.
+  // Podemos devolver 'Álbum' o null para no mostrar nada.
+  return 'Álbum';
+}
+
 // Función que maneja la lógica del proxy para Spotify (Versión FINAL Y ROBUSTA)
 async function handleSpotifyRequest(request, env) {
   try {
@@ -132,6 +158,9 @@ async function handleSpotifyRequest(request, env) {
         genres = [...new Set((await Promise.all(artistPromises)).flat())];
       }
       
+      // *** CAMBIO CLAVE: Añadimos la descripción del tipo de álbum ***
+      const albumTypeDescription = getAlbumTypeDescription(albumData);
+
       const responseData = { 
         imageUrl, 
         release_date, 
@@ -140,12 +169,14 @@ async function handleSpotifyRequest(request, env) {
         duration: Math.floor(duration_ms / 1e3),
         totalTracks, 
         totalAlbumDuration: Math.floor(totalAlbumDuration / 1000),
-        trackNumber
+        trackNumber,
+        albumTypeDescription // <-- NUEVO CAMPO
       };
       return new Response(JSON.stringify(responseData), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], duration: 0, totalTracks: null, totalAlbumDuration: 0, trackNumber: null }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // También añadimos el campo nulo en la respuesta de error para consistencia
+    return new Response(JSON.stringify({ imageUrl: null, release_date: null, label: null, genres: [], duration: 0, totalTracks: null, totalAlbumDuration: 0, trackNumber: null, albumTypeDescription: null }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
     console.error("Error en el worker de Spotify:", error);
