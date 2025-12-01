@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/radiomax/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/radiomax/favicon-16x16.png">
     <link rel="manifest" href="/radiomax/site.webmanifest">
-    <style>
+<style>
         * {
             margin: 0;
             padding: 0;
@@ -345,6 +345,15 @@
             color: #ff6600;
         }
 
+        /* --- NUEVAS REGLAS PARA TAMAÑOS ESPECÍFICOS --- */
+        #albumTrackCount {
+            font-size: 10px; /* Disminuir tamaño de fuente para "Tracks" */
+        }
+
+        #albumTotalDuration {
+            font-size: 14px; /* Aumentar tamaño de fuente para "Duración" */
+        }
+
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0.5; }
@@ -409,7 +418,7 @@
         audio {
             display: none;
         }
-    </style>
+</style>    
 </head>
 <body>
     <div class="player-container">
