@@ -750,6 +750,9 @@ async function fetchSongDetails(artist, title, album) {
         
         const data = await response.json();
         
+        // *** AÑADE ESTA LÍNEA PARA DEPURAR ***
+        console.log('📦 Respuesta completa de Spotify (recibida en frontend):', data);
+        
         // Verificar si Spotify devolvió datos útiles (como una imagen)
         if (data && data.imageUrl) {
             console.log('✅ Datos obtenidos desde Spotify.');
