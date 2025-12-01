@@ -55,25 +55,6 @@
             margin-top: 5px;
         }
 
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: #666;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
-        }
-
-        .status-indicator.playing {
-            background-color: #ff6600;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
         .station-selector {
             margin-bottom: 20px;
         }
@@ -222,7 +203,7 @@
         .song-album {
             font-size: 12px;
             color: #999999;
-            font-style: normal;
+            font-style: italic;
         }
 
         .controls {
@@ -320,49 +301,39 @@
             animation: blink 1s infinite;
         }
         
-        /* --- NUEVO CSS PARA LAS COLUMNAS COMBINADAS --- */
-        .details-column {
+        /* --- NUEVO CSS PARA LA COLUMNA DE DETALLES DEL ÁLBUM --- */
+        .album-details-column {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            gap: 4px;
+            align-items: flex-start; /* Justificar a la izquierda */
+            gap: 4px; /* Espacio entre renglones */
+            padding-left: 10px;
+            border-left: 1px solid #333;
         }
 
         .details-row {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
+            justify-content: flex-start; /* Justificar a la izquierda */
+            gap: 10px; /* Espacio entre elementos del mismo renglón */
+            width: 100%;
         }
         
-        .release-info-date, .release-info-country {
-            font-size: 13px;
-            color: #cccccc;
+        .details-label {
+            font-size: 11px;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 60px; /* Para alinear los valores */
         }
 
-        .release-info-country {
-            color: #ff6600;
-        }
-
-        .release-info-flag {
-            vertical-align: middle;
-            width: 21px;
-            height: 12.5px;
-            border-radius: 2px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-        }
-        
-        .label-info-text {
+        .details-value {
             font-size: 12px;
             color: #cccccc;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 100%;
         }
-        .label-info-text.genre {
+        .details-value.genre {
             color: #ff6600;
         }
 
@@ -458,23 +429,36 @@
             </div>
         </div>
 
-        <!-- ESTRUCTURA HTML MODIFICADA -->
+        <!-- NUEVA ESTRUCTURA HTML PARA LOS DETALLES -->
         <div class="countdown-container" id="countdownContainer">
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
             </div>
-            <div class="details-column">
-                <!-- Primera fila: Año, Bandera, Sello -->
+            <div class="album-details-column">
+                <!-- Renglón 1: Año y Sello -->
                 <div class="details-row">
-                    <span class="release-info-date" id="releaseDate">----</span>
-                    <img id="releaseCountryFlag" class="release-info-flag" src="" alt="" style="display: none;">
-                    <span id="recordLabel" class="label-info-text"></span>
+                    <span class="details-label">Año:</span>
+                    <span class="details-value" id="releaseDate">----</span>
                 </div>
-                <!-- Segunda fila: Género -->
                 <div class="details-row">
-                    <span id="trackGenre" class="label-info-text genre"></span>
+                    <span class="details-label">Sello:</span>
+                    <span class="details-value" id="recordLabel">----</span>
+                </div>
+                <!-- Renglón 2: Tracks y Duración Total -->
+                <div class="details-row">
+                    <span class="details-label">Tracks:</span>
+                    <span class="details-value" id="albumTrackCount">--</span>
+                </div>
+                <div class="details-row">
+                    <span class="details-label">Duración:</span>
+                    <span class="details-value" id="albumTotalDuration">--:--</span>
+                </div>
+                <!-- Renglón 3: Género -->
+                <div class="details-row">
+                    <span class="details-label">Género:</span>
+                    <span class="details-value genre" id="trackGenre">--</span>
                 </div>
             </div>
         </div>
@@ -513,10 +497,12 @@
             const totalDuration = document.getElementById('totalDuration');
             const albumCover = document.getElementById('albumCover');
             const loadingStations = document.getElementById('loadingStations');
+            
+            // NUEVOS SELECTORES
             const releaseDate = document.getElementById('releaseDate');
-            // const releaseCountry = document.getElementById('releaseCountry'); // Ya no se necesita
-            const releaseCountryFlag = document.getElementById('releaseCountryFlag');
             const recordLabel = document.getElementById('recordLabel');
+            const albumTrackCount = document.getElementById('albumTrackCount');
+            const albumTotalDuration = document.getElementById('albumTotalDuration');
             const trackGenre = document.getElementById('trackGenre');
 
             let currentStation = null;
@@ -615,7 +601,7 @@
                     currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
                     resetCountdown();
                     resetAlbumCover();
-                    resetReleaseInfo();
+                    resetAlbumDetails();
                     audioPlayer.src = currentStation.url;
                     songTitle.textContent = 'Conectando...';
                     songArtist.textContent = ''; songAlbum.textContent = '';
@@ -625,7 +611,7 @@
                             console.error('Error al reproducir:', error); isPlaying = false; updateStatus(false);
                             errorTimeout = setTimeout(() => {
                                 alert('Error al reproducir el stream. Intenta de nuevo.');
-                                songTitle.textContent = 'Seleccionar estación'; resetAlbumCover(); resetReleaseInfo();
+                                songTitle.textContent = 'Seleccionar estación'; resetAlbumCover(); resetAlbumDetails();
                             }, 30000);
                         });
                 } else {
@@ -651,7 +637,7 @@
                         const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== newTrackInfo.title || currentTrackInfo.artist !== newTrackInfo.artist;
                         if (isNewTrack) {
                             console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (SomaFM)');
-                            resetCountdown(); resetReleaseInfo(); currentTrackInfo = newTrackInfo;
+                            resetCountdown(); resetAlbumDetails(); currentTrackInfo = newTrackInfo;
                             updateUIWithTrackInfo(newTrackInfo); resetAlbumCover();
                             trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
                             await getSomaFmTrackDuration(newTrackInfo.artist, newTrackInfo.title);
@@ -674,11 +660,11 @@
                         if (bestRecording && bestRecording.length) {
                             trackDuration = Math.floor(bestRecording.length / 1000);
                             console.log('✓ Duración encontrada:', trackDuration, 'segundos');
-                            let releaseDate = null, releaseCountry = null;
+                            let releaseDate = null;
                             if (bestRecording.releases && bestRecording.releases.length > 0) {
-                                const mainRelease = bestRecording.releases[0]; releaseDate = mainRelease.date; releaseCountry = mainRelease.country;
+                                const mainRelease = bestRecording.releases[0]; releaseDate = mainRelease.date;
                             }
-                            displayReleaseInfo(releaseDate, releaseCountry);
+                            displayReleaseInfo(releaseDate);
                             startCountdown();
                             return;
                         }
@@ -716,7 +702,7 @@ async function updateRadioParadiseInfo() {
         if (isNewTrack) {
             console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (Radio Paradise)');
             resetCountdown();
-            resetReleaseInfo();
+            resetAlbumDetails();
             currentTrackInfo = newTrackInfo;
             updateUIWithTrackInfo(newTrackInfo);
             resetAlbumCover();
@@ -767,7 +753,7 @@ async function getSpotifyTrackDetails(artist, title) {
             img.src = data.imageUrl;
         }
         
-        updateInfoWithSpotifyData(data);
+        updateAlbumDetailsWithSpotifyData(data);
         
     } catch (error) {
         console.error('❌ Error al obtener detalles de Spotify:', error);
@@ -775,43 +761,55 @@ async function getSpotifyTrackDetails(artist, title) {
     }
     }
             
-    function updateInfoWithSpotifyData(data) {
+    // NUEVA FUNCIÓN PARA ACTUALIZAR LOS DETALLES DEL ÁLBUM
+    function updateAlbumDetailsWithSpotifyData(data) {
     console.log('📊 Datos recibidos de Spotify:', data);
     
-    if (data.release_date && releaseDate.textContent === '----') {
+    // Actualizar fecha de lanzamiento
+    if (data.release_date) {
         const year = data.release_date.substring(0, 4);
         releaseDate.textContent = year;
         console.log('✓ Fecha de lanzamiento:', year);
+    } else {
+        releaseDate.textContent = '----';
     }
     
-    if (data.country && releaseCountryFlag.style.display === 'none') {
-        const countryCode = data.country.toLowerCase();
-        const nonStandardCodes = ['xw', 'xe'];
-        if (!nonStandardCodes.includes(countryCode)) {
-            releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
-            releaseCountryFlag.alt = `Bandera de ${data.country}`;
-            releaseCountryFlag.style.display = 'inline-block';
-            console.log('✓ País:', data.country);
-        }
-    }
-    
+    // Actualizar sello discográfico
     if (data.label && data.label.trim() !== '') {
         recordLabel.textContent = data.label;
         console.log('✓ Sello discográfico:', data.label);
     } else {
-        recordLabel.textContent = '';
-        console.log('⚠️ Sin sello discográfico disponible');
+        recordLabel.textContent = '----';
+    }
+
+    // Actualizar total de tracks
+    if (data.totalTracks) {
+        albumTrackCount.textContent = data.totalTracks;
+        console.log('✓ Total de tracks:', data.totalTracks);
+    } else {
+        albumTrackCount.textContent = '--';
+    }
+
+    // Actualizar duración total del álbum
+    if (data.totalAlbumDuration) {
+        const totalMinutes = Math.floor(data.totalAlbumDuration / 60);
+        const totalSeconds = Math.floor(data.totalAlbumDuration % 60);
+        albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+        console.log('✓ Duración total del álbum:', albumTotalDuration.textContent);
+    } else {
+        albumTotalDuration.textContent = '--:--';
     }
     
+    // Actualizar géneros
     if (data.genres && data.genres.length > 0) {
         const displayGenres = data.genres.slice(0, 2).join(', ');
         trackGenre.textContent = displayGenres;
         console.log('✓ Géneros:', displayGenres);
     } else {
-        trackGenre.textContent = '';
-        console.log('⚠️ Sin géneros disponibles');
+        trackGenre.textContent = '--';
     }
     
+    // Usar la duración de Spotify como fallback para la canción
     if (data.duration && trackDuration === 0) {
         trackDuration = data.duration;
         trackStartTime = Date.now();
@@ -828,6 +826,7 @@ async function getSpotifyTrackDetails(artist, title) {
             img.src = imageUrl;
         }
 
+        // --- FUNCIONES COMUNES DE UI ---
         function updateUIWithTrackInfo(trackInfo) {
             songTitle.textContent = trackInfo.title;
             songArtist.textContent = trackInfo.artist;
@@ -840,7 +839,7 @@ async function getSpotifyTrackDetails(artist, title) {
             songAlbum.textContent = '';
             resetCountdown();
             resetAlbumCover();
-            resetReleaseInfo();
+            resetAlbumDetails();
         }
         
         function displayAlbumCover(img) {
@@ -856,37 +855,23 @@ async function getSpotifyTrackDetails(artist, title) {
         function resetAlbumCover() {
             albumCover.innerHTML = '<div class="album-cover-placeholder">Portada</div>';
         }
+        
+        // NUEVA FUNCIÓN PARA RESETEAR LOS DETALLES DEL ÁLBUM
+        function resetAlbumDetails() {
+            releaseDate.textContent = '----';
+            recordLabel.textContent = '----';
+            albumTrackCount.textContent = '--';
+            albumTotalDuration.textContent = '--:--';
+            trackGenre.textContent = '--';
+        }
 
-        function displayReleaseInfo(date, country) {
+        function displayReleaseInfo(date) {
             if (date) {
                 const year = date.substring(0, 4);
                 releaseDate.textContent = year;
             } else {
                 releaseDate.textContent = '----';
             }
-            if (country) {
-                const countryCode = country.toLowerCase();
-                const nonStandardCodes = ['xw', 'xe'];
-                if (!nonStandardCodes.includes(countryCode)) {
-                    releaseCountryFlag.src = `https://flagcdn.com/w20/${countryCode}.png`;
-                    releaseCountryFlag.alt = `Bandera de ${country}`;
-                    releaseCountryFlag.style.display = 'inline-block';
-                } else {
-                    releaseCountryFlag.style.display = 'none';
-                    releaseCountryFlag.src = '';
-                }
-            } else {
-                releaseCountryFlag.style.display = 'none';
-                releaseCountryFlag.src = '';
-            }
-        }
-
-        function resetReleaseInfo() {
-            releaseDate.textContent = '----';
-            releaseCountryFlag.style.display = 'none';
-            releaseCountryFlag.src = '';
-            recordLabel.textContent = '';
-            trackGenre.textContent = '';
         }
 
         function startCountdown() {
@@ -939,7 +924,7 @@ async function getSpotifyTrackDetails(artist, title) {
             if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
             resetCountdown();
             resetAlbumCover();
-            resetReleaseInfo();
+            resetAlbumDetails();
             currentTrackInfo = null;
             songTitle.textContent = 'Seleccionar estación';
             songArtist.textContent = '';
