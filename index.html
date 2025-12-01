@@ -715,7 +715,7 @@
                         trackStartTime = Date.now();
                         
                         // *** CAMBIO CLAVE: Llamada a la nueva función centralizada ***
-                        await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title);
+                        await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                     }
 
                 } catch (error) {
@@ -814,12 +814,23 @@ async function fetchSongDetails(artist, title, album) {
                 img.src = imageUrl;
             }
             
+            // *** FUNCIÓN MODIFICADA ***
             function updateAlbumDetailsWithSpotifyData(data) {
                 console.log('📊 Datos recibidos de Spotify:', data);
+                
+                // *** CAMBIO CLAVE: Actualizar la fecha de lanzamiento con el nuevo descriptor ***
+                const releaseDateElement = document.getElementById('releaseDate');
                 if (data.release_date) {
                     const year = data.release_date.substring(0, 4);
-                    releaseDate.textContent = year;
-                } else { releaseDate.textContent = '----'; }
+                    // Si hay una descripción, la añadimos entre paréntesis
+                    if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
+                        releaseDateElement.textContent = `${year} (${data.albumTypeDescription})`;
+                    } else {
+                        releaseDateElement.textContent = year;
+                    }
+                } else {
+                    releaseDateElement.textContent = '----';
+                }
                 
                 if (data.label && data.label.trim() !== '') {
                     recordLabel.textContent = data.label;
