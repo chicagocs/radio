@@ -12,13 +12,21 @@ function handleOptions() {
   return new Response(null, { status: 200, headers: corsHeaders });
 }
 
-// Función que maneja la lógica del proxy para Spotify (Versión CORREGIDA)
+// *** NUEVO: Función para limpiar cadenas de texto para la búsqueda ***
+function cleanSearchTerm(term) {
+  if (!term) return '';
+  // Elimina caracteres especiales como ()[]{} y los reemplaza por un espacio.
+  // Luego, reemplaza múltiples espacios por uno solo y elimina espacios al inicio/final.
+  return term.replace(/[()\\[\\]{}]/g, ' ').replace(/\\s+/g, ' ').trim();
+}
+
+// Función que maneja la lógica del proxy para Spotify (Versión FINAL Y ROBUSTA)
 async function handleSpotifyRequest(request, env) {
   try {
     const url = new URL(request.url);
     const artist = url.searchParams.get("artist");
     const title = url.searchParams.get("title");
-    const album = url.searchParams.get("album"); // <-- CAMBIO 1: Leemos el parámetro 'album'
+    const album = url.searchParams.get("album");
 
     if (!artist || !title) {
       return new Response(JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }), {
@@ -36,6 +44,11 @@ async function handleSpotifyRequest(request, env) {
       });
     }
 
+    // *** CAMBIO CLAVE: Limpiamos los términos de búsqueda antes de usarlos ***
+    const cleanArtist = cleanSearchTerm(artist);
+    const cleanTitle = cleanSearchTerm(title);
+    const cleanAlbum = cleanSearchTerm(album);
+
     const authString = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST", headers: { "Authorization": `Basic ${authString}`, "Content-Type": "application/x-www-form-urlencoded" }, body: "grant_type=client_credentials"
@@ -45,32 +58,32 @@ async function handleSpotifyRequest(request, env) {
     const accessToken = tokenData.access_token;
 
     let searchData = null;
-    let searchQuery = '';
+    let searchResponse = null; // Se inicializa aquí para poder reasignarlo
 
-    // --- CAMBIO 2: Lógica de búsqueda mejorada y más específica ---
-    // 1. Intenta la búsqueda más específica si tenemos el álbum
-    if (album) {
-      console.log(`Worker: Búsqueda específica con álbum para "${title}" de "${artist}" en "${album}"`);
-      searchQuery = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}" album:"${encodeURIComponent(album)}"`;
-    } else {
-      // 2. Si no hay álbum, usa la búsqueda por título y artista
-      console.log(`Worker: Búsqueda general para "${title}" de "${artist}"`);
-      searchQuery = `track:"${encodeURIComponent(title)}" artist:"${encodeURIComponent(artist)}"`;
+    // *** CAMBIO CLAVE: Lógica de búsqueda por fases con términos limpios ***
+    
+    // Fase 1: La más específica (track, artist, album)
+    if (cleanAlbum) {
+      console.log(`Worker: Búsqueda 1 (Específica) para "${cleanTitle}" de "${cleanArtist}" en "${cleanAlbum}"`);
+      const specificQuery = `track:"${cleanTitle}" artist:"${cleanArtist}" album:"${cleanAlbum}"`;
+      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(specificQuery)}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+      if (searchResponse.ok) searchData = await searchResponse.json();
     }
 
-    let searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${searchQuery}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
-    if (searchResponse.ok) {
-      searchData = await searchResponse.json();
-    }
-
-    // 3. Si la búsqueda específica (o la general) no da resultados, intenta una búsqueda más simple como último recurso
+    // Fase 2: Menos específica (track, artist)
     if (!searchData || searchData.tracks.items.length === 0) {
-      console.log("Worker: Búsqueda anterior falló, intentando fallback más simple...");
-      const fallbackQuery = `${encodeURIComponent(artist)} ${encodeURIComponent(title)}`;
-      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${fallbackQuery}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
-      if (searchResponse.ok) {
-        searchData = await searchResponse.json();
-      }
+      console.log(`Worker: Búsqueda 2 (General) para "${cleanTitle}" de "${cleanArtist}"`);
+      const generalQuery = `track:"${cleanTitle}" artist:"${cleanArtist}"`;
+      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(generalQuery)}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+      if (searchResponse.ok) searchData = await searchResponse.json();
+    }
+    
+    // Fase 3: Fallback simple (título y artista como texto plano)
+    if (!searchData || searchData.tracks.items.length === 0) {
+      console.log(`Worker: Búsqueda 3 (Fallback) para "${cleanTitle}" de "${cleanArtist}"`);
+      const fallbackQuery = `${cleanArtist} ${cleanTitle}`;
+      searchResponse = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(fallbackQuery)}&type=track&limit=5`, { headers: { "Authorization": `Bearer ${accessToken}` } });
+      if (searchResponse.ok) searchData = await searchResponse.json();
     }
     
     if (!searchResponse.ok) throw new Error("Error al buscar en Spotify.");
