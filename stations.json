@@ -265,11 +265,9 @@
         "id": "rp-rock",
         "name": "Radio Paradise - Rock Mix",
         "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
-        "url": "http://stream.radioparadise.com/rock-flacm",
+        "url": "https://stream.radioparadise.com/rock-flacm",
         "service": "radioparadise",
         "channelId": 3
-    }  
+    }
 ]
-
-
 
