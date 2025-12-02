@@ -276,8 +276,17 @@
         "url": "https://stream.radioparadise.com/beyond-flacm",
         "service": "radioparadise",
         "channelId": 4
+    },
+    {
+        "id": "global",
+        "name": "Radio Paradise - Global Mix",
+        "description": "Estilos musicales de todo el mundo, mezclados con otros sabores eclécticos.",
+        "url": "http://stream.radioparadise.com/global-flacm",
+        "service": "radioparadise",
+        "channelId": 5
     }
 ]
+
 
 
 
