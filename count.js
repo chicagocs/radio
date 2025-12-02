@@ -1,3 +1,4 @@
+<script data-goatcounter="https://stats.tramax.com.ar/count">
 // GoatCounter: https://www.goatcounter.com
 // This file is released under the ISC license: https://opensource.org/licenses/ISC
 ;(function() {
@@ -265,3 +266,4 @@
 				goatcounter.bind_events()
 		})
 })();
+</script>
