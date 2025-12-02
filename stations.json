@@ -246,7 +246,7 @@
         "service": "somafm"
     },  
     {
-        "id": "rp-mellow",
+        "id": "mellow",
         "name": "Radio Paradise - Mellow Mix",
         "description": "Canciones reflexivas y suaves, perfectas como música de fondo en casa o en el trabajo.",
         "url": "https://stream.radioparadise.com/mellow-flacm",    
@@ -254,23 +254,23 @@
         "channelId": 1
     },
     {
-        "id": "rp-main",
-        "name": "Radio Paradise - Main Mix",
-        "description": "Rock moderno y clásico, electrónica, música del mundo y más, todo mezclado por DJ. Una aventura musical ecléctica.",
+        "id": "main",
+        "name": "Radio Paradise - Rock Mix",
+        "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
         "url": "https://stream.radioparadise.com/flacm",
         "service": "radioparadise",
         "channelId": 2
     },
     {
-        "id": "rp-rock",
-        "name": "Radio Paradise - Rock Mix",
-        "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
+        "id": "rock",
+        "name": "Radio Paradise - Main Mix",
+        "description": "Rock moderno y clásico, electrónica, música del mundo y más, todo mezclado por DJ. Una aventura musical ecléctica.",
         "url": "https://stream.radioparadise.com/rock-flacm",
         "service": "radioparadise",
         "channelId": 3
     },
     {
-        "id": "rp-beyond",
+        "id": "beyond",
         "name": "Radio Paradise - Beyond",
         "description": "Explorando las fronteras de la música por improvisación.",
         "url": "https://stream.radioparadise.com/beyond-flacm",
@@ -278,5 +278,6 @@
         "channelId": 4
     }
 ]
+
 
 
