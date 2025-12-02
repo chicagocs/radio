@@ -254,18 +254,18 @@
         "channelId": 1
     },
     {
-        "id": "main",
+        "id": "rock",
         "name": "Radio Paradise - Rock Mix",
         "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
-        "url": "https://stream.radioparadise.com/flacm",
+        "url": "https://stream.radioparadise.com/rock-flacm",
         "service": "radioparadise",
         "channelId": 2
     },
     {
-        "id": "rock",
+        "id": "main",
         "name": "Radio Paradise - Main Mix",
         "description": "Rock moderno y clásico, electrónica, música del mundo y más, todo mezclado por DJ. Una aventura musical ecléctica.",
-        "url": "https://stream.radioparadise.com/rock-flacm",
+        "url": "https://stream.radioparadise.com/flacm",
         "service": "radioparadise",
         "channelId": 3
     },
@@ -278,6 +278,7 @@
         "channelId": 4
     }
 ]
+
 
 
 
