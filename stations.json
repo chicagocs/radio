@@ -1,4 +1,3 @@
-
 [
     {
         "id": "spacestation",
@@ -244,12 +243,12 @@
         "description": "De black a doom, prog a sludge, thrash a post, stoner a crossover, punk a industrial",
         "url": "https://ice5.somafm.com/metal-128-mp3",
         "service": "somafm"
-    },  
+    },
     {
         "id": "mellow",
         "name": "Radio Paradise - Mellow Mix",
         "description": "Canciones reflexivas y suaves, perfectas como música de fondo en casa o en el trabajo.",
-        "url": "https://stream.radioparadise.com/mellow-flacm",    
+        "url": "http://stream.radioparadise.com/mellow-flacm",
         "service": "radioparadise",
         "channelId": 1
     },
@@ -257,7 +256,7 @@
         "id": "rock",
         "name": "Radio Paradise - Rock Mix",
         "description": "Muchos estilos y géneros diferentes con una energía rockera constante que te mantendrá en movimiento.",
-        "url": "https://stream.radioparadise.com/rock-flacm",
+        "url": "http://stream.radioparadise.com/rock-flacm",
         "service": "radioparadise",
         "channelId": 2
     },
@@ -265,17 +264,9 @@
         "id": "main",
         "name": "Radio Paradise - Main Mix",
         "description": "Rock moderno y clásico, electrónica, música del mundo y más, todo mezclado por DJ. Una aventura musical ecléctica.",
-        "url": "https://stream.radioparadise.com/flacm",
+        "url": "http://stream.radioparadise.com/flacm",
         "service": "radioparadise",
-        "channelId": 3
-    },
-    {
-        "id": "beyond",
-        "name": "Radio Paradise - Beyond",
-        "description": "Explorando las fronteras de la música por improvisación.",
-        "url": "https://stream.radioparadise.com/beyond-flacm",
-        "service": "radioparadise",
-        "channelId": 4
+        "channelId": 0
     },
     {
         "id": "global",
@@ -283,11 +274,6 @@
         "description": "Estilos musicales de todo el mundo, mezclados con otros sabores eclécticos.",
         "url": "http://stream.radioparadise.com/global-flacm",
         "service": "radioparadise",
-        "channelId": 5
+        "channelId": 3
     }
 ]
-
-
-
-
-
