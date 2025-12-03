@@ -580,7 +580,7 @@
             </div>
             <div class="now-playing" id="nowPlaying">
                 <div class="now-playing-label">Ahora</div>
-                <div class="song-title" id="songTitle">Seleccionar estación</div>
+                <div class="song-title" id="songTitle">sintoniza tu camino</div>
                 <div class="song-artist" id="songArtist"></div>
                 <div class="song-album" id="songAlbum"></div>
             </div>
@@ -794,7 +794,7 @@
                         }
                     }
 
-                    this.customSelectTrigger.textContent = text || "-- Seleccionar Estación --";
+                    this.customSelectTrigger.textContent = text || " Seleccionar Estación ";
                 }
             }
 
@@ -833,7 +833,7 @@
                 
                 const defaultOption = document.createElement('option');
                 defaultOption.value = ""; 
-                defaultOption.textContent = "-- Seleccionar Estación --";
+                defaultOption.textContent = " Seleccionar Estación ";
                 defaultOption.disabled = true; 
                 defaultOption.selected = true;
                 stationSelect.appendChild(defaultOption);
