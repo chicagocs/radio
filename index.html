@@ -564,7 +564,8 @@
         <div class="station-info">
             <!-- This is a comment -->
             <h1 class="station-name" id="stationName"> </h1>
-            <p class="station-description" id="stationDescription"> </p>
+            <p class="station-description" id="stationDescription"></p>
+            <p>000</p>
         </div>
 
         <div class="station-selector">
@@ -870,8 +871,7 @@
                             displayName = station.name.split(' - ')[1] || station.name;
                         }
                         stationName.textContent = displayName;
-                        // stationDescription.textContent = station.description;
-                        stationDescription.textContent = '000';
+                        stationDescription.textContent = station.description;
                         playStation();
                     } else {
                         console.error('Error: No se encontró la estación con ID:', selectedStationId);
