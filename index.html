@@ -58,10 +58,9 @@
 
         .station-selector {
             margin-bottom: 20px;
-            position: relative; /* Necesario para el posicionamiento del menú */
+            position: relative;
         }
         
-        /* El select original está oculto */
         .station-selector select {
             display: none;
         }
@@ -159,7 +158,7 @@
         }
 
         .custom-option-description {
-            font-size: 11px; /* Tamaño de fuente solicitado */
+            font-size: 10px; /* Tamaño de fuente solicitado */
             color: #aaaaaa;
             display: block;
             margin-top: 2px;
@@ -380,7 +379,6 @@
             margin-top: 2px;
         }
 
-        /* NUEVO: Estilo para la línea separadora */
         .timer-separator {
             width: 60px;
             height: 1px;
@@ -393,7 +391,6 @@
             animation: blink 1s infinite;
         }
     
-        /* --- COLUMNA DE DETALLES DEL ÁLBUM --- */
         .album-details-column {
            flex: 1;
            display: flex;
@@ -422,21 +419,20 @@
           }
 
           .details-value {
-             font-size: 12px; /* Tamaño unificado para todos los detalles */
+             font-size: 12px;
              color: #cccccc;
           }
     
           .details-value.genre {
-             color: #cccccc;  /* ff6600; */
+             color: #cccccc;
           }
 
-        /* --- NUEVAS REGLAS PARA TAMAÑOS ESPECÍFICOS --- */
         albumTrackCount {
-            font-size: 14px; /* Disminuir tamaño de fuente para "Tracks" */
+            font-size: 14px;
         }
 
         albumTotalDuration {
-            font-size: 14px; /* Aumentar tamaño de fuente para "Duración" */
+            font-size: 14px;
         }
 
         @keyframes blink {
@@ -511,7 +507,6 @@
             margin-top: 2px;
         }
     
-        /* Estilos para el tooltip del año de lanzamiento */
         .release-date-tooltip {
             position: relative;
             display: inline-block;
@@ -574,12 +569,9 @@
         <div class="station-selector">
             <div class="loading-stations" id="loadingStations">Cargando de estaciones de radio</div>
             
-            <!-- El select original, ahora oculto, es la fuente de datos -->
             <select id="stationSelect" style="display: none;">
                 <option value="">Seleccionar estación</option>
             </select>
-
-            <!-- La estructura del selector personalizado será insertada aquí por JavaScript -->
         </div>
 
         <div class="now-playing-container">
@@ -594,19 +586,15 @@
             </div>
         </div>
 
-        <!-- ESTRUCTURA HTML MODIFICADA -->
         <div class="countdown-container" id="countdownContainer">
             <div class="countdown-timer-column">
                 <div class="countdown-label">Restan</div>
                 <div class="countdown-timer" id="countdownTimer">--:--</div>
                 <div class="total-duration" id="totalDuration">--:--</div>
-                <!-- NUEVA LÍNEA SEPARADORA -->
                 <div class="timer-separator"></div>
-                <!-- NUEVO ELEMENTO PARA LA POSICIÓN DEL TEMA -->
                 <div class="track-position-info" id="trackPosition">--/--</div>
             </div>
             <div class="album-details-column">
-                <!-- Renglón 1: Año y Sello -->
                 <div class="details-row">
                     <span class="details-label">Año:</span>
                     <span class="details-value" id="releaseDate">----</span>
@@ -615,7 +603,6 @@
                     <span class="details-label">Sello:</span>
                     <span class="details-value" id="recordLabel">----</span>
                 </div>
-                <!-- Renglón 2: Tracks y Duración Total -->
                 <div class="details-row">
                     <span class="details-label">Tracks:</span>
                     <span class="details-value" id="albumTrackCount">--</span>
@@ -624,7 +611,6 @@
                     <span class="details-label">Duración:</span>
                     <span class="details-value" id="albumTotalDuration">--:--</span>
                 </div>
-                <!-- Renglón 3: Género -->
                 <div class="details-row">
                     <span class="details-label">Género:</span>
                     <span class="details-value genre" id="trackGenre">--</span>
@@ -667,7 +653,6 @@
             const albumCover = document.getElementById('albumCover');
             const loadingStations = document.getElementById('loadingStations');
             
-            // NUEVOS SELECTORES
             const releaseDate = document.getElementById('releaseDate');
             const recordLabel = document.getElementById('recordLabel');
             const albumTrackCount = document.getElementById('albumTrackCount');
@@ -675,7 +660,6 @@
             const trackGenre = document.getElementById('trackGenre');
             const trackPosition = document.getElementById('trackPosition');
 
-            // *** CAMBIO CLAVE: Declarar un mapa global para almacenar las estaciones por su ID ***
             let stationsById = {};
 
             let currentStation = null;
@@ -691,7 +675,6 @@
 
             audioPlayer.volume = 0.5;
 
-            // --- CLASE PARA EL SELECTOR PERSONALIZADO ---
             class CustomSelect {
                 constructor(originalSelect) {
                     this.originalSelect = originalSelect;
@@ -773,8 +756,6 @@
                             this.originalSelect.value = value;
                             this.updateTriggerText();
                             this.close();
-
-                            // Disparar el evento 'change' en el select original
                             this.originalSelect.dispatchEvent(new Event('change'));
                         });
                     });
@@ -829,12 +810,11 @@
                         groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
                     }
                     loadingStations.style.display = 'none';
-                    stationSelect.style.display = 'block'; // Lo mostramos para que la clase lo lea
+                    stationSelect.style.display = 'block';
                     stationName.textContent = 'RadioMax';
                     stationDescription.textContent = 'Sintoniza tu camino';
                     populateStationSelect(groupedStations);
                     
-                    // Inicializar el selector personalizado DESPUÉS de poblar el original
                     new CustomSelect(stationSelect);
                     
                     return groupedStations;
@@ -845,7 +825,6 @@
                 }
             }
       
-            // *** FUNCIÓN MODIFICADA (ya no necesita construir el texto) ***
             function populateStationSelect(groupedStations) {
                 while (stationSelect.firstChild) stationSelect.removeChild(stationSelect.firstChild);
                 
@@ -865,7 +844,6 @@
                         const option = document.createElement('option');
                         option.value = station.id;
                         stationsById[station.id] = station;
-                        // El texto ya no es necesario aquí, la clase CustomSelect lo maneja
                         optgroup.appendChild(option);
                     });
                     stationSelect.appendChild(optgroup);
@@ -874,7 +852,6 @@
 
             loadStations();
 
-            // *** EVENT LISTENER MODIFICADO (Sigue funcionando igual) ***
             stationSelect.addEventListener('change', function() {
                 if (this.value) {
                     const selectedStationId = this.value;
@@ -957,7 +934,6 @@
                             updateUIWithTrackInfo(newTrackInfo); resetAlbumCover();
                             trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
                             
-                            // *** Llamada a función centralizada ***
                             await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                             
                         }
@@ -999,7 +975,6 @@
                         resetAlbumCover();
                         trackStartTime = Date.now();
                         
-                        // *** CAMBIO CLAVE: Llamada a la nueva función centralizada ***
                         await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                     }
 
@@ -1008,65 +983,52 @@
                 }
             }
             
-            // *** FUNCIÓN CENTRALIZADA ***
-            // 1. Intenta obtener datos de Spotify.
-            // 2. Si falla, usa MusicBrainz como fallback.
-
-async function fetchSongDetails(artist, title, album) {
-    if (!artist || !title) { 
-        console.log(⚠️ Artista o título no proporcionados.'); 
-        resetCountdown();
-        return; 
-    }
-    
-    console.log(`🔍 Buscando detalles para: "${artist}" - "${title}" (del álbum "${album}")`);
-    resetCountdown(); // Resetear mientras buscamos
-    
-    // --- INTENTO 1: SPOTIFY ---
-    try {
-        const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
-        
-        // *** CAMBIO CLAVE: Añadimos el álbum a la consulta ***
-        const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&album=${encodeURIComponent(album)}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // *** AÑADE ESTA LÍNEA PARA DEPURAR ***
-        console.log('📦 Respuesta completa de Spotify (recibida en frontend):', data);
-        
-        // Verificar si Spotify devolvió datos útiles (como una imagen)
-        if (data && data.imageUrl) {
-            console.log('✅ Datos obtenidos desde Spotify.');
-            displayAlbumCoverFromUrl(data.imageUrl);
-            updateAlbumDetailsWithSpotifyData(data);
-            
-            // Usar la duración de Spotify si está disponible
-            if (data.duration) {
-                trackDuration = data.duration;
-                trackStartTime = Date.now();
-                startCountdown();
-            } else {
-                 // Si no hay duración, intentamos obtenerla de MusicBrainz
-                 console.log('ℹ️ Spotify no proporcionó duración. Buscando en MusicBrainz...');
-                 await getMusicBrainzDuration(artist, title);
+            async function fetchSongDetails(artist, title, album) {
+                if (!artist || !title) { 
+                    console.log('⚠️ Artista o título no proporcionados.'); 
+                    resetCountdown();
+                    return; 
+                }
+                
+                console.log(`🔍 Buscando detalles para: "${artist}" - "${title}" (del álbum "${album}")`);
+                resetCountdown();
+                
+                try {
+                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
+                    
+                    const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}&album=${encodeURIComponent(album)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    console.log('📦 Respuesta completa de Spotify (recibida en frontend):', data);
+                    
+                    if (data && data.imageUrl) {
+                        console.log('✅ Datos obtenidos desde Spotify.');
+                        displayAlbumCoverFromUrl(data.imageUrl);
+                        updateAlbumDetailsWithSpotifyData(data);
+                        
+                        if (data.duration) {
+                            trackDuration = data.duration;
+                            trackStartTime = Date.now();
+                            startCountdown();
+                        } else {
+                             console.log('ℹ️ Spotify no proporcionó duración. Buscando en MusicBrainz...');
+                             await getMusicBrainzDuration(artist, title);
+                        }
+                        return;
+                    }
+                } catch (error) {
+                    console.error('❌ Falló la búsqueda en Spotify:', error);
+                }
+                
+                console.log('ℹ️ Intentando con MusicBrainz como fallback...');
+                await getMusicBrainzDuration(artist, title);
             }
-            return; // Éxito, terminar la función.
-        }
-    } catch (error) {
-        console.error('❌ Falló la búsqueda en Spotify:', error);
-    }
-    
-    // --- FALLBACK: MUSICBRAINZ (si Spotify falla o no tiene datos) ---
-    console.log('ℹ️ Intentando con MusicBrainz como fallback...');
-    await getMusicBrainzDuration(artist, title);
-}
 
-            // *** NUEVA FUNCIÓN DE FALLBACK PARA MUSICBRAINZ ***
-            // Se enfoca solo en obtener la duración, ya que otros detalles son más difíciles de extraer de forma fiable.
             async function getMusicBrainzDuration(artist, title) {
                 try {
                     const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
@@ -1084,15 +1046,13 @@ async function fetchSongDetails(artist, title, album) {
                         }
                     }
                     console.log('⚠️ No se encontró duración en MusicBrainz.');
-                    resetCountdown(); // Asegurarse de que el contador esté reseteado si no se encuentra nada.
+                    resetCountdown();
                 } catch (error) { 
                     console.error('❌ Error al obtener duración desde MusicBrainz:', error); 
                     resetCountdown();
                 }
             }
             
-            // --- FUNCIONES AUXILIARES (SIN CAMBIOS O CON CAMBIOS MENORES) ---
-
             function displayAlbumCoverFromUrl(imageUrl) {
                 if (!imageUrl) return;
                 albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
@@ -1102,43 +1062,34 @@ async function fetchSongDetails(artist, title, album) {
                 img.src = imageUrl;
             }
             
-            // *** FUNCIÓN MODIFICADA ***
             function updateAlbumDetailsWithSpotifyData(data) {
                 console.log('📊 Datos recibidos de Spotify:', data);
                 
-                // *** CAMBIO CLAVE: Actualizar la fecha de lanzamiento con el nuevo descriptor ***
                 const releaseDateElement = document.getElementById('releaseDate');
                 
-                // Limpiar contenido anterior
                 releaseDateElement.innerHTML = '';
                 
                 if (data.release_date) {
                     const year = data.release_date.substring(0, 4);
                     
-                    // Crear contenedor para el año y el tooltip
                     const releaseDateContainer = document.createElement('div');
                     releaseDateContainer.className = 'release-date-tooltip';
                     
-                    // Crear span para el año
                     const yearSpan = document.createElement('span');
                     yearSpan.textContent = year;
                     
-                    // Agregar descripción del álbum si existe
                     if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
                         yearSpan.textContent += ` (${data.albumTypeDescription})`;
                     }
                     
-                    // Crear icono de información
                     const infoIcon = document.createElement('span');
                     infoIcon.className = 'tooltip-icon';
                     infoIcon.textContent = 'ⓘ';
                     
-                    // Crear tooltip
                     const tooltip = document.createElement('span');
                     tooltip.className = 'tooltip-text';
                     tooltip.textContent = 'Spotify considera este lanzamiento más relevante basándose principalmente en popularidad actual.';
                     
-                    // Ensamblar todo
                     releaseDateContainer.appendChild(yearSpan);
                     releaseDateContainer.appendChild(infoIcon);
                     releaseDateContainer.appendChild(tooltip);
@@ -1192,7 +1143,7 @@ async function fetchSongDetails(artist, title, album) {
                 displayImg.src = img.src;
                 displayImg.alt = 'Portada del álbum';
                 albumCover.appendChild(displayImg);
-                displayImg.offsetHeight; // Reflow
+                displayImg.offsetHeight;
                 displayImg.classList.add('loaded');
             }
 
