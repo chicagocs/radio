@@ -20,8 +20,8 @@ Un reproductor de radio web elegante y moderno, construido únicamente con HTML,
 ### ✨ Características Principales
 
 -   **🎨 Diseño Moderno y Elegante:** Interfaz de usuario oscura con acentos en naranja, animaciones sutiles y un diseño totalmente responsive que se adapta a cualquier dispositivo.
--   **📻 Selección de Estaciones:** Elige entre una lista curada de más de 30 estaciones de SomaFM, desde ambient y electrónica hasta rock y reggae.
--   **🎵 Información en Tiempo Real:** Muestra la canción, artista y álbum que se está reproduciendo actualmente gracias a la API pública de SomaFM.
+-   **📻 Selección de Estaciones:** Elige entre una lista curada de más de 40 selecciones estaciones de radio, desde ambient y electrónica hasta rock y reggae.
+-   **🎵 Información en Tiempo Real:** Muestra la canción, artista y álbum que se está reproduciendo actualmente gracias a APIs públicas.
 -   **▶️ Controles Completos:** Reproduce, pausa y detén la transmisión con controles claros y accesibles.
 -   **🔊 Control de Volumen:** Deslizador para ajustar el volumen y un botón para silenciar (mute) de un solo clic.
 -   **⚡ Liviano y Rápido:** No requiere dependencias externas ni frameworks pesados. Carga instantáneamente.
