@@ -870,7 +870,8 @@
                             displayName = station.name.split(' - ')[1] || station.name;
                         }
                         stationName.textContent = displayName;
-                        stationDescription.textContent = station.description;
+                        // stationDescription.textContent = station.description;
+                        stationDescription.textContent = '000';
                         playStation();
                     } else {
                         console.error('Error: No se encontró la estación con ID:', selectedStationId);
