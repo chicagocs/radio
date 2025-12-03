@@ -681,6 +681,9 @@
                     this.originalSelect.parentNode.insertBefore(this.customSelectWrapper, this.originalSelect.nextSibling);
                     this.originalSelect.style.display = 'none';
 
+                    // NUEVO: Bandera para controlar el scroll centrado
+                    this.hasScrolledToSelection = false;
+
                     this.init();
                 }
 
@@ -741,6 +744,18 @@
                         this.toggle();
                         // MODIFICADO: Actualizar la opción seleccionada cada vez que se abre el selector
                         this.updateSelectedOption();
+
+                        // NUEVO: Centrar la vista en la opción seleccionada la primera vez que se abre
+                        if (!this.hasScrolledToSelection) {
+                            const selectedOption = this.customOptions.querySelector('.custom-option.selected');
+                            if (selectedOption) {
+                                // Usamos un pequeño timeout para asegurar que el dropdown es visible antes de hacer scroll
+                                setTimeout(() => {
+                                    selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                                }, 50);
+                            }
+                            this.hasScrolledToSelection = true;
+                        }
                     });
 
                     const customOptions = this.customOptions.querySelectorAll('.custom-option');
@@ -851,7 +866,7 @@
                         audioPlayer.src = currentStation.url;
                         
                         // Actualizar la UI para mostrar que la estación está lista pero en pausa.
-                        songTitle.textContent = 'Preparado para sonar';
+                        songTitle.textContent = 'Listo para reproducir';
                         songArtist.textContent = '';
                         songAlbum.textContent = '';
                         
