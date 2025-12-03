@@ -845,9 +845,18 @@
                         }
                     }
                     
-                    // NUEVO: Auto-reproducir la última estación seleccionada
+                    // CORREGIDO: Preparar la última estación para reproducir, pero no iniciarla automáticamente.
                     if (currentStation) {
-                        playStation();
+                        // Pre-cargar la URL del stream para una reproducción instantánea al hacer clic.
+                        audioPlayer.src = currentStation.url;
+                        
+                        // Actualizar la UI para mostrar que la estación está lista pero en pausa.
+                        songTitle.textContent = 'Listo para reproducir';
+                        songArtist.textContent = '';
+                        songAlbum.textContent = '';
+                        
+                        // Asegurarse de que el botón muestre "SONAR" y no "PAUSAR".
+                        updateStatus(false);
                     }
                     
                     return groupedStations;
