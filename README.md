@@ -1,11 +1,11 @@
-# 🎧 RadioMax Streaming Player
+# 🎧 RadioMax
 
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
 [![Live Demo](https://img.shields.io/badge/Demo-Live-orange?style=for-the-badge&logo=github-pages)](https://chicagocs.github.io/radiomax/)
 [![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-blue?style=for-the-badge&logo=github)](https://pages.github.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
-Un reproductor de radio web elegante y moderno, construido únicamente con HTML, CSS y JavaScript vanilla. Ofrece una experiencia de usuario inmersiva con una interfaz oscura, controles intuitivos y la capacidad de sintonizar una variedad de estaciones de SomaFM.
+Un reproductor de radio web elegante y moderno, construido únicamente con HTML, CSS y JavaScript vanilla. Ofrece una experiencia de usuario inmersiva con una interfaz oscura, controles intuitivos y la capacidad de sintonizar selectas estaciones de radio.
 
 ---
 
