@@ -58,9 +58,26 @@
 
         .station-selector {
             margin-bottom: 20px;
+            position: relative; /* Necesario para el posicionamiento del menú */
+        }
+        
+        /* El select original está oculto */
+        .station-selector select {
+            display: none;
         }
 
-        .station-selector select {
+        /* --- ESTILOS DEL SELECTOR PERSONALIZADO --- */
+        .custom-select-wrapper {
+            position: relative;
+            user-select: none;
+            width: 100%;
+        }
+
+        .custom-select-trigger {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             width: 100%;
             padding: 12px;
             background-color: #1a1a1a;
@@ -72,14 +89,80 @@
             transition: all 0.3s ease;
         }
 
-        .station-selector select:hover {
+        .custom-select-trigger:hover {
             background-color: #222222;
             border-color: #ff8833;
         }
 
-        .station-selector select:focus {
-            outline: none;
-            box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+        .custom-select-trigger::after {
+            content: '▼';
+            font-size: 12px;
+            color: #ff6600;
+            transition: transform 0.3s ease;
+        }
+
+        .custom-select-wrapper.open .custom-select-trigger::after {
+            transform: rotate(180deg);
+        }
+        
+        .custom-options {
+            position: absolute;
+            display: none;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 5px;
+            background-color: #1a1a1a;
+            border: 2px solid #ff6600;
+            border-radius: 10px;
+            z-index: 10;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .custom-select-wrapper.open .custom-options {
+            display: block;
+        }
+
+        .custom-option, .custom-optgroup-label {
+            padding: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .custom-optgroup-label {
+            font-weight: bold;
+            color: #ff6600;
+            font-size: 13px;
+            background-color: #0f0f0f;
+            border-bottom: 1px solid #333;
+            cursor: default;
+        }
+
+        .custom-option:hover {
+            background-color: #333333;
+        }
+        
+        .custom-option.selected {
+            background-color: #ff6600;
+            color: #000000;
+        }
+        
+        .custom-option.selected .custom-option-description {
+            color: #000000;
+        }
+
+        .custom-option-name {
+            font-size: 15px;
+            font-weight: normal;
+        }
+
+        .custom-option-description {
+            font-size: 10px; /* Tamaño de fuente solicitado */
+            color: #aaaaaa;
+            display: block;
+            margin-top: 2px;
         }
 
         .loading-stations {
@@ -490,9 +573,13 @@
 
         <div class="station-selector">
             <div class="loading-stations" id="loadingStations">Cargando de estaciones de radio</div>
+            
+            <!-- El select original, ahora oculto, es la fuente de datos -->
             <select id="stationSelect" style="display: none;">
                 <option value="">Seleccionar estación</option>
             </select>
+
+            <!-- La estructura del selector personalizado será insertada aquí por JavaScript -->
         </div>
 
         <div class="now-playing-container">
@@ -604,6 +691,129 @@
 
             audioPlayer.volume = 0.5;
 
+            // --- CLASE PARA EL SELECTOR PERSONALIZADO ---
+            class CustomSelect {
+                constructor(originalSelect) {
+                    this.originalSelect = originalSelect;
+                    this.customSelectWrapper = document.createElement('div');
+                    this.customSelectWrapper.className = 'custom-select-wrapper';
+                    this.customSelectTrigger = document.createElement('div');
+                    this.customSelectTrigger.className = 'custom-select-trigger';
+                    this.customOptions = document.createElement('div');
+                    this.customOptions.className = 'custom-options';
+                    
+                    this.customSelectWrapper.appendChild(this.customSelectTrigger);
+                    this.customSelectWrapper.appendChild(this.customOptions);
+                    this.originalSelect.parentNode.insertBefore(this.customSelectWrapper, this.originalSelect.nextSibling);
+                    this.originalSelect.style.display = 'none';
+
+                    this.init();
+                }
+
+                init() {
+                    this.populateOptions();
+                    this.initEvents();
+                    this.updateTriggerText();
+                }
+
+                populateOptions() {
+                    this.customOptions.innerHTML = '';
+                    const options = this.originalSelect.querySelectorAll('option, optgroup');
+                    
+                    options.forEach(option => {
+                        if (option.tagName === 'OPTGROUP') {
+                            const optgroupLabel = document.createElement('div');
+                            optgroupLabel.className = 'custom-optgroup-label';
+                            optgroupLabel.textContent = option.label;
+                            this.customOptions.appendChild(optgroupLabel);
+
+                            const groupOptions = option.querySelectorAll('option');
+                            groupOptions.forEach(opt => this.createCustomOption(opt));
+                        } else if (option.value) {
+                             this.createCustomOption(option);
+                        }
+                    });
+                }
+                
+                createCustomOption(option) {
+                    const customOption = document.createElement('div');
+                    customOption.className = 'custom-option';
+                    customOption.dataset.value = option.value;
+
+                    const station = stationsById[option.value];
+                    let name = option.textContent;
+                    let description = '';
+
+                    if (station) {
+                        name = station.name;
+                        if (station.service === 'radioparadise') {
+                            name = station.name.split(' - ')[1] || station.name;
+                        }
+                        description = station.description || '';
+                    }
+                    
+                    customOption.innerHTML = `
+                        <span class="custom-option-name">${name}</span>
+                        ${description ? `<span class="custom-option-description">${description}</span>` : ''}
+                    `;
+                    
+                    this.customOptions.appendChild(customOption);
+                }
+
+                initEvents() {
+                    this.customSelectTrigger.addEventListener('click', () => {
+                        this.toggle();
+                    });
+
+                    const customOptions = this.customOptions.querySelectorAll('.custom-option');
+                    customOptions.forEach(option => {
+                        option.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const value = option.dataset.value;
+                            this.originalSelect.value = value;
+                            this.updateTriggerText();
+                            this.close();
+
+                            // Disparar el evento 'change' en el select original
+                            this.originalSelect.dispatchEvent(new Event('change'));
+                        });
+                    });
+
+                    document.addEventListener('click', (e) => {
+                        if (!this.customSelectWrapper.contains(e.target)) {
+                            this.close();
+                        }
+                    });
+                }
+
+                toggle() {
+                    this.customSelectWrapper.classList.toggle('open');
+                }
+
+                open() {
+                    this.customSelectWrapper.classList.add('open');
+                }
+
+                close() {
+                    this.customSelectWrapper.classList.remove('open');
+                }
+
+                updateTriggerText() {
+                    const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
+                    const station = stationsById[selectedOption.value];
+                    let text = selectedOption.textContent;
+
+                    if (station) {
+                        text = station.name;
+                        if (station.service === 'radioparadise') {
+                            text = station.name.split(' - ')[1] || station.name;
+                        }
+                    }
+
+                    this.customSelectTrigger.textContent = text || "-- Seleccionar Estación --";
+                }
+            }
+
             async function loadStations() {
                 try {
                     const response = await fetch('stations.json');
@@ -619,10 +829,14 @@
                         groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
                     }
                     loadingStations.style.display = 'none';
-                    stationSelect.style.display = 'block';
+                    stationSelect.style.display = 'block'; // Lo mostramos para que la clase lo lea
                     stationName.textContent = 'RadioMax';
                     stationDescription.textContent = 'Sintoniza tu camino';
                     populateStationSelect(groupedStations);
+                    
+                    // Inicializar el selector personalizado DESPUÉS de poblar el original
+                    new CustomSelect(stationSelect);
+                    
                     return groupedStations;
                 } catch (error) {
                     console.error('Error al cargar las estaciones:', error);
@@ -631,12 +845,10 @@
                 }
             }
       
-            // *** FUNCIÓN MODIFICADA ***
+            // *** FUNCIÓN MODIFICADA (ya no necesita construir el texto) ***
             function populateStationSelect(groupedStations) {
-                // Limpiar el selector de estaciones
                 while (stationSelect.firstChild) stationSelect.removeChild(stationSelect.firstChild);
                 
-                // Opción por defecto
                 const defaultOption = document.createElement('option');
                 defaultOption.value = ""; 
                 defaultOption.textContent = "-- Seleccionar Estación --";
@@ -644,34 +856,16 @@
                 defaultOption.selected = true;
                 stationSelect.appendChild(defaultOption);
                 
-                // Reiniciar el mapa de estaciones
                 stationsById = {};
 
-                // Poblar el selector y el mapa de estaciones
                 for (const serviceName in groupedStations) {
                     const optgroup = document.createElement('optgroup'); 
                     optgroup.label = serviceName;
                     groupedStations[serviceName].forEach(station => {
                         const option = document.createElement('option');
-                        
-                        // Usar el ID único de la estación como valor
                         option.value = station.id;
-                        
-                        // Guardar el objeto completo de la estación en nuestro mapa
                         stationsById[station.id] = station;
-                        
-                        let displayName = station.name;
-                        if (station.service === 'radioparadise') {
-                            displayName = station.name.split(' - ')[1] || station.name;
-                        }
-                        
-                        // Agregar la descripción de la estación si está disponible
-                        if (station.description) {
-                            option.textContent = displayName + "  " + station.description;
-                        } else {
-                            option.textContent = displayName;
-                        }
-                        
+                        // El texto ya no es necesario aquí, la clase CustomSelect lo maneja
                         optgroup.appendChild(option);
                     });
                     stationSelect.appendChild(optgroup);
@@ -680,17 +874,13 @@
 
             loadStations();
 
-            // *** EVENT LISTENER MODIFICADO ***
+            // *** EVENT LISTENER MODIFICADO (Sigue funcionando igual) ***
             stationSelect.addEventListener('change', function() {
                 if (this.value) {
-                    // Obtener el ID de la estación seleccionada
                     const selectedStationId = this.value;
-                    
-                    // Recuperar el objeto completo de la estación desde nuestro mapa
                     const station = stationsById[selectedStationId];
 
                     if (station) {
-                        // Asignar el objeto completo a currentStation
                         currentStation = station;
 
                         let displayName = station.name;
