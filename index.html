@@ -256,7 +256,7 @@
 
         .now-playing-header {
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
         }
@@ -305,6 +305,7 @@
 
         .share-button-text {
             margin-left: 5px;
+            /* CAMBIO SOLICITADO: Reducir el tamaño de la fuente de "COMPARTIR" */
             font-size: 10px;
         }
 
@@ -1589,7 +1590,7 @@
             audioPlayer.addEventListener('pause', () => { isPlaying = false; updateStatus(false); });
             audioPlayer.addEventListener('ended', () => { isPlaying = false; updateStatus(false); });
 
-            // INICIO: NUEVO CÓDIGO PARA NAVEGACIÓN POR TECLADO
+            // INICIO: CÓDIGO CORREGIDO PARA NAVEGACIÓN POR TECLADO
             let lastKeyPressed = null;
             let lastMatchIndex = -1;
 
@@ -1599,6 +1600,9 @@
                     !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) &&
                     /^[a-zA-Z0-9]$/.test(event.key)) {
                     
+                    // Prevenir la acción por defecto del navegador (ej. buscar en la página)
+                    event.preventDefault();
+
                     const key = event.key.toLowerCase();
                     const customOptions = document.querySelectorAll('.custom-option');
                     const matches = [];
@@ -1627,37 +1631,32 @@
                         // Actualizar el select original
                         stationSelect.value = stationId;
                         
-                        // Actualizar el select personalizado
+                        // Despachar el evento 'change' para reutilizar la lógica existente
+                        stationSelect.dispatchEvent(new Event('change'));
+                        
+                        // Actualizar manualmente la UI del selector personalizado
                         const customSelect = document.querySelector('.custom-select-wrapper');
                         const trigger = customSelect.querySelector('.custom-select-trigger');
-                        trigger.textContent = selectedOption.querySelector('.custom-option-name').textContent;
                         
+                        const station = stationsById[stationId];
+                        let displayName = station.name;
+                        if (station.service === 'radioparadise') {
+                            displayName = station.name.split(' - ')[1] || station.name;
+                        }
+                        trigger.textContent = displayName;
+
                         // Actualizar la opción seleccionada visualmente
                         customOptions.forEach(option => {
                             option.classList.remove('selected');
                         });
                         selectedOption.classList.add('selected');
                         
-                        // Cargar la estación seleccionada
-                        const station = stationsById[stationId];
-                        if (station) {
-                            currentStation = station;
-                            let displayName = station.name;
-                            if (station.service === 'radioparadise') {
-                                displayName = station.name.split(' - ')[1] || station.name;
-                            }
-                            stationName.textContent = displayName;
-                            
-                            // Guardar la selección en localStorage
-                            localStorage.setItem('lastSelectedStation', stationId);
-                            
-                            // Reproducir la estación
-                            playStation();
-                        }
+                        // Hacer scroll a la opción seleccionada para que sea visible
+                        selectedOption.scrollIntoView({ block: 'nearest' });
                     }
                 }
             });
-            // FIN: NUEVO CÓDIGO PARA NAVEGACIÓN POR TECLADO
+            // FIN: CÓDIGO CORREGIDO PARA NAVEGACIÓN POR TECLADO
         });
     </script>
     
