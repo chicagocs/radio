@@ -279,6 +279,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            /* CORREGIDO: Permitir que este contenedor también se encoja */
+            min-width: 0;
         }
 
         .now-playing-label {
@@ -306,6 +308,8 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
+            /* CORREGIDO: Permitir que el botón de compartir se encoja si es necesario */
+            min-width: 0;
         }
 
         .share-button.visible {
@@ -321,11 +325,16 @@
             width: 14px;
             height: 14px;
             fill: currentColor;
+            flex-shrink: 0; /* Evita que el SVG se encoja */
         }
 
         .share-button-text {
             margin-left: 5px;
             font-size: 9px;
+            /* Evitar que el texto del botón de compartir desborde */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .share-options {
@@ -381,9 +390,9 @@
             margin-bottom:4px;
             line-height: 1.2;
             /* Evitar que el texto largo se desborde */
-            white-space: nowrap;      /* Evita que el texto se divida en varias líneas */
-            overflow: hidden;         /* Oculta el texto que sobresale */
-            text-overflow: ellipsis;  /* Añade "..." al final si el texto es muy largo */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             /* CORREGIDO: Forzar a los elementos flex a encoger para que ellipsis funcione en Android */
             min-width: 0;
         }
@@ -763,7 +772,7 @@
                         </div>
                     </button>
                 </div>
-                <div class="song-title" id="songTitle">A sonar</div>
+                <div class="song-title" id="songTitle">sintoniza tu camino</div>
                 <div class="song-artist" id="songArtist"></div>
                 <div class="song-album" id="songAlbum"></div>
             </div>
@@ -877,7 +886,7 @@
                 const artist = songArtist.textContent;
                 
                 if (title && artist && 
-                    title !== 'a sonar' && 
+                    title !== 'sintoniza tu camino' && 
                     title !== 'Conectando...' && 
                     title !== 'Seleccionar estación' &&
                     title !== 'A sonar' &&
@@ -905,7 +914,7 @@
                 const title = songTitle.textContent;
                 const artist = songArtist.textContent;
                 
-                if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
+                if (title && artist && title !== 'sintoniza tu camino' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
                     const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en megaradio!`;
                     
                     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
