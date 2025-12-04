@@ -825,7 +825,7 @@
                 const artist = songArtist.textContent;
                 
                 if (title && artist && title !== 'sintoniza tu camino' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-                    const message = `Escuche ${title} de ${artist} en <b>RadioMax</b> https://radiomax.tramax.com.ar`;
+                    const message = `Escuche ${title} de ${artist} en <a href=" https://radiomax.tramax.com.ar" target="_blank"><b>RadioMax</b></a><br>¡Muy recomendable!`;
                     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
                     window.open(whatsappUrl, '_blank');
                     shareOptions.classList.remove('active');
