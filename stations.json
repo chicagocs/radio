@@ -275,5 +275,21 @@
         "url": "https://stream.radioparadise.com/global-flacm",
         "service": "radioparadise",
         "channelId": 3
+    },
+    {
+        "id": "beyond",
+        "name": "Radio Paradise - Beyond Mix",
+        "description": "Rock progresivo y alternativo, mezclado por nuestros DJs.",
+        "url": "https://stream.radioparadise.com/beyond-aac",
+        "service": "radioparadise",
+        "channelId": 4
+    },
+    {
+        "id": "serenity",
+        "name": "Radio Paradise - Serenity Mix",
+        "description": "Música ambiental y chillout, mezclado por nuestros DJs.",
+        "url": "https://stream.radioparadise.com/serenity-aac",
+        "service": "radioparadise",
+        "channelId": 5
     }
 ]
