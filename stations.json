@@ -280,7 +280,7 @@
         "id": "beyond",
         "name": "Radio Paradise - Beyond Mix",
         "description": "Rock progresivo y alternativo, mezclado por nuestros DJs.",
-        "url": "https://stream.radioparadise.com/beyond-aac",
+        "url": "https://stream.radioparadise.com/beyond-flac",
         "service": "radioparadise",
         "channelId": 4
     },
@@ -288,8 +288,9 @@
         "id": "serenity",
         "name": "Radio Paradise - Serenity Mix",
         "description": "Música ambiental y chillout, mezclado por nuestros DJs.",
-        "url": "https://stream.radioparadise.com/serenity-aac",
+        "url": "https://stream.radioparadise.com/serenity-flac",
         "service": "radioparadise",
         "channelId": 5
     }
 ]
+
