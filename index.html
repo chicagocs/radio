@@ -12,7 +12,7 @@
     
     <!-- INICIO: Metaetiquetas para Redes Sociales (Open Graph / Facebook) -->
     <meta property="og:title" content="RadioMax: sintoniza tu camino">
-    <meta property="og:description" content="Una experiencia inmersiva con selectas estaciones de radio.">
+    <meta property="og:description" content="Sintoniza las mejores estaciones de radio online. Disfruta de música 24/7 con información de canciones, portadas de álbumes y más. ¡Tu experiencia de radio personalizada!">
     <!-- IMPORTANTE: Reemplaza la URL de la imagen de ejemplo con tu propia imagen (1200x630 píxeles recomendado) -->
     <meta property="og:image" content="https://placehold.co/1200x630/000000/FF6600?text=RadioMax">
     <meta property="og:image:width" content="1200">
@@ -24,7 +24,7 @@
     <!-- Metaetiquetas para Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="RadioMax: sintoniza tu camino">
-    <meta name="twitter:description" content="Una experiencia inmersiva con selectas estaciones de radio.">
+    <meta name="twitter:description" content="Sintoniza las mejores estaciones de radio online. Disfruta de música 24/7 con información de canciones, portadas de álbumes y más.">
     <!-- IMPORTANTE: Reemplaza también aquí la URL de la imagen -->
     <meta name="twitter:image" content="https://placehold.co/1200x630/000000/FF6600?text=RadioMax">
     <!-- FIN: Metaetiquetas para Redes Sociales -->
@@ -380,18 +380,30 @@
             color: #ffffff;
             margin-bottom:4px;
             line-height: 1.2;
+            /* NUEVO: Evitar que el texto largo se desborde */
+            white-space: nowrap;      /* Evita que el texto se divida en varias líneas */
+            overflow: hidden;         /* Oculta el texto que sobresale */
+            text-overflow: ellipsis;  /* Añade "..." al final si el texto es muy largo */
         }
 
         .song-artist {
             font-size: 14px;
             color: #ff6600;
             margin-bottom: 2px;
+            /* NUEVO: Evitar que el texto largo se desborde */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .song-album {
             font-size: 12px;
             color: #999999;
             font-style: normal;
+            /* NUEVO: Evitar que el texto largo se desborde */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .controls {
