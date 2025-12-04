@@ -547,52 +547,38 @@
 
         .volume-control {
             margin-bottom: 0;
-            /* MODIFICADO: Se añade posición relativa para contener el ícono absoluto */
             position: relative;
-            padding-top: 15px; /* Espacio para el ícono */
+            /* AÑADIDO: Margen superior para separar de los botones y dar espacio al círculo */
+            margin-top: 15px;
         }
 
-        /* ELIMINADO: .volume-label */
-        /*
-        .volume-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: #ff6600;
-        }
-        */
-
-        /* MODIFICADO: Estilos del ícono de volumen */
+        /* MODIFICADO: Estilos del círculo del volumen */
         .volume-icon {
-            /* NUEVO: Posicionamiento absoluto sobre el slider */
             position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            /* MODIFICADO: Alineación vertical con la barra del slider */
+            /* La barra mide 8px, el círculo 20px. Para centrarlos: (8/2) - (20/2) = -6px */
+            top: -6px;
+            transform: translateX(-50%); /* MODIFICADO: Solo centramos horizontalmente */
             left: 50%; /* Se actualizará con JavaScript */
             
-            /* NUEVO: Apariencia para que parezca el pulgar del slider */
-            font-size: 12px;
-            color: #000000; /* Icono negro para contraste */
-            background-color: #ff6600; /* Fondo naranja */
-            border-radius: 50%;
+            /* MODIFICADO: Apariencia del círculo */
             width: 20px;
             height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background-color: #ff6600; /* Fondo naranja por defecto (sólido) */
+            border-radius: 50%;
             cursor: pointer;
             z-index: 2;
-            transition: left 0.1s ease-out, background-color 0.3s ease, color 0.3s ease;
+            transition: left 0.1s ease-out, background-color 0.3s ease, border 0.3s ease;
         }
 
         .volume-icon:hover {
             background-color: #ff8833;
         }
 
+        /* MODIFICADO: Estado de silencio (círculo hueco) */
         .volume-icon.muted {
-            opacity: 0.7;
-            background-color: #555;
+            background-color: transparent; /* Fondo transparente */
+            border: 2px solid #ff6600; /* Borde naranja */
         }
         
         .volume-slider {
@@ -609,26 +595,17 @@
             appearance: none;
             width: 20px;
             height: 20px;
-            background: #ff6600; /* Mismo color que el ícono */
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 0 5px rgba(255, 102, 0, 0.5);
-            /* MODIFICADO: Hacemos el pulgar transparente para que solo se vea el ícono */
-            background: transparent;
+            background: transparent; /* Pulgar invisible para que solo se vea el círculo */
             border: none;
+            cursor: pointer;
         }
 
         .volume-slider::-moz-range-thumb {
             width: 20px;
             height: 20px;
-            background: #ff6600;
-            border-radius: 50%;
+            background: transparent; /* Pulgar invisible para que solo se vea el círculo */
+            border: none;
             cursor: pointer;
-            border: none;
-            box-shadow: 0 0 5px rgba(255, 102, 0, 0.5);
-            /* MODIFICADO: Hacemos el pulgar transparente para que solo se vea el ícono */
-            background: transparent;
-            border: none;
         }
 
         audio {
@@ -804,10 +781,10 @@
             <button class="btn btn-stop" id="stopBtn">■ DETENER</button>
         </div>
 
-        <!-- MODIFICADO: Estructura del control de volumen -->
+        <!-- MODIFICADO: Estructura del control de volumen (sin emoji) -->
         <div class="volume-control">
             <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
-            <span class="volume-icon" id="volumeIcon">🔊</span>
+            <span class="volume-icon" id="volumeIcon"></span>
         </div>
 
         <audio id="audioPlayer"></audio>
@@ -821,7 +798,6 @@
             const playBtn = document.getElementById('playBtn');
             const stopBtn = document.getElementById('stopBtn');
             const volumeSlider = document.getElementById('volumeSlider');
-            // ELIMINADO: const volumeValue = document.getElementById('volumeValue');
             const audioPlayer = document.getElementById('audioPlayer');
             const stationName = document.getElementById('stationName');
             const songTitle = document.getElementById('songTitle');
@@ -1604,17 +1580,14 @@
             volumeSlider.addEventListener('input', function() {
                 const volume = this.value / 100;
                 audioPlayer.volume = volume;
-                // ELIMINADO: volumeValue.textContent = this.value + '%';
                 
                 // NUEVO: Actualizar la posición del ícono
                 updateVolumeIconPosition();
 
                 if (this.value == 0) {
-                    volumeIcon.textContent = '🔇';
                     volumeIcon.classList.add('muted');
                     isMuted = true;
                 } else {
-                    volumeIcon.textContent = '🔊';
                     volumeIcon.classList.remove('muted');
                     isMuted = false;
                     previousVolume = this.value; // Guardar el volumen actual como el "anterior"
@@ -1627,7 +1600,6 @@
                     // Unmutear: restaurar el volumen anterior
                     volumeSlider.value = previousVolume;
                     audioPlayer.volume = previousVolume / 100;
-                    volumeIcon.textContent = '🔊';
                     volumeIcon.classList.remove('muted');
                     isMuted = false;
                 } else {
@@ -1635,7 +1607,6 @@
                     previousVolume = volumeSlider.value;
                     volumeSlider.value = 0;
                     audioPlayer.volume = 0;
-                    volumeIcon.textContent = '🔇';
                     volumeIcon.classList.add('muted');
                     isMuted = true;
                 }
@@ -1728,7 +1699,7 @@
         });
     </script>
     
-    <script data-goatcounter="https://stats.max.com/count"
+    <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
 </body>
 </html>
