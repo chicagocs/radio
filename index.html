@@ -279,6 +279,14 @@
             align-items: center;
             transition: color 0.3s ease;
             position: relative;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .share-button.visible {
+            opacity: 1;
+            visibility: visible;
         }
 
         .share-button:hover {
@@ -807,6 +815,27 @@
 
             audioPlayer.volume = 0.5;
 
+            // Función para controlar la visibilidad del botón de compartir
+            function updateShareButtonVisibility() {
+                const title = songTitle.textContent;
+                const artist = songArtist.textContent;
+                
+                // Mostrar el botón solo si hay una canción reproduciéndose
+                if (title && artist && 
+                    title !== 'sintoniza tu camino' && 
+                    title !== 'Conectando...' && 
+                    title !== 'Seleccionar estación' &&
+                    title !== 'Preparado para sonar' &&
+                    title !== 'Reproduciendo...' &&
+                    artist !== '') {
+                    shareButton.classList.add('visible');
+                } else {
+                    shareButton.classList.remove('visible');
+                    // Cerrar las opciones de compartir si están abiertas
+                    shareOptions.classList.remove('active');
+                }
+            }
+
             // Funcionalidad de compartir
             shareButton.addEventListener('click', () => {
                 shareOptions.classList.toggle('active');
@@ -825,9 +854,30 @@
                 const artist = songArtist.textContent;
                 
                 if (title && artist && title !== 'sintoniza tu camino' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-                    const message = `Escuche ${title} de ${artist} en <a href=" https://radiomax.tramax.com.ar" target="_blank"><b>RadioMax</b></a><br>¡Muy recomendable!`;
-                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                    window.open(whatsappUrl, '_blank');
+                    const message = `Escuche ${title} de ${artist} en RadioMax https://radiomax.tramax.com.ar`;
+                    
+                    // Detectar si es un dispositivo móvil y usar la URI de WhatsApp nativa
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    
+                    let whatsappUrl;
+                    if (isMobile) {
+                        // Usar la URI de WhatsApp para abrir la aplicación nativa
+                        whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+                        
+                        // Intentar abrir la aplicación nativa
+                        window.location.href = whatsappUrl;
+                        
+                        // Dar tiempo para que intente abrir la aplicación
+                        setTimeout(() => {
+                            // Si la aplicación no se abre, redirigir a WhatsApp Web
+                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                        }, 500);
+                    } else {
+                        // Para escritorio, usar WhatsApp Web
+                        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                        window.open(whatsappUrl, '_blank');
+                    }
+                    
                     shareOptions.classList.remove('active');
                 } else {
                     showNotification('Por favor, espera a que comience una canción para compartir');
@@ -840,22 +890,55 @@
                 const artist = songArtist.textContent;
                 
                 if (title && artist && title !== 'sintoniza tu camino' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-                    const message = `Escuche ${title} de ${artist} en <b>RadioMax</b> https://radiomax.tramax.com.ar`;
+                    const message = `Escuche ${title} de ${artist} en RadioMax https://radiomax.tramax.com.ar`;
                     
-                    // Copiar al portapapeles
-                    navigator.clipboard.writeText(message)
-                        .then(() => {
-                            showNotification('Mensaje copiado al portapapeles. Pégalo en tu historia de Instagram');
-                            shareOptions.classList.remove('active');
-                        })
-                        .catch(err => {
-                            console.error('Error al copiar al portapapeles:', err);
-                            showNotification('Error al copiar el mensaje');
-                        });
+                    // Verificar si navigator.clipboard está disponible
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        // Usar la API moderna del portapapeles
+                        navigator.clipboard.writeText(message)
+                            .then(() => {
+                                showNotification('Mensaje copiado al portapapeles. Pégalo en tu historia de Instagram');
+                                shareOptions.classList.remove('active');
+                            })
+                            .catch(err => {
+                                console.error('Error al copiar al portapapeles:', err);
+                                fallbackCopyToClipboard(message);
+                            });
+                    } else {
+                        // Usar método alternativo para navegadores antiguos
+                        fallbackCopyToClipboard(message);
+                    }
                 } else {
                     showNotification('Por favor, espera a que comience una canción para compartir');
                 }
             });
+
+            // Función alternativa para copiar al portapapeles
+            function fallbackCopyToClipboard(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showNotification('Mensaje copiado al portapapeles. Pégalo en tu historia de Instagram');
+                        shareOptions.classList.remove('active');
+                    } else {
+                        showNotification('No se pudo copiar el texto. Por favor, cópialo manualmente.');
+                    }
+                } catch (err) {
+                    console.error('Error al copiar al portapapeles:', err);
+                    showNotification('No se pudo copiar el texto. Por favor, cópialo manualmente.');
+                }
+                
+                document.body.removeChild(textArea);
+            }
 
             // Función para mostrar notificaciones
             function showNotification(message) {
@@ -1071,6 +1154,9 @@
                         songArtist.textContent = '';
                         songAlbum.textContent = '';
                         
+                        // Actualizar la visibilidad del botón de compartir
+                        updateShareButtonVisibility();
+                        
                         // Asegurarse de que el botón muestre "SONAR" y no "PAUSAR".
                         updateStatus(false);
                     }
@@ -1158,6 +1244,10 @@
                     audioPlayer.src = currentStation.url;
                     songTitle.textContent = 'Conectando...';
                     songArtist.textContent = ''; songAlbum.textContent = '';
+                    
+                    // Actualizar la visibilidad del botón de compartir
+                    updateShareButtonVisibility();
+                    
                     audioPlayer.play()
                         .then(() => { isPlaying = true; updateStatus(true); setTimeout(() => startSongInfoUpdates(), 5000); })
                         .catch(error => {
@@ -1165,6 +1255,7 @@
                             errorTimeout = setTimeout(() => {
                                 alert('Error al reproducir el stream. Intenta de nuevo.');
                                 songTitle.textContent = 'Seleccionar estación'; resetAlbumCover(); resetAlbumDetails();
+                                updateShareButtonVisibility();
                             }, 30000);
                         });
                 } else {
@@ -1386,6 +1477,9 @@
                 songTitle.textContent = trackInfo.title;
                 songArtist.textContent = trackInfo.artist;
                 songAlbum.textContent = trackInfo.album ? `(${trackInfo.album})` : '';
+                
+                // Actualizar la visibilidad del botón de compartir
+                updateShareButtonVisibility();
             }
 
             function resetUI() {
@@ -1395,6 +1489,9 @@
                 resetCountdown();
                 resetAlbumCover();
                 resetAlbumDetails();
+                
+                // Actualizar la visibilidad del botón de compartir
+                updateShareButtonVisibility();
             }
             
             function displayAlbumCover(img) {
@@ -1476,6 +1573,9 @@
                 songTitle.textContent = 'Seleccionar estación';
                 songArtist.textContent = '';
                 songAlbum.textContent = '';
+                
+                // Actualizar la visibilidad del botón de compartir
+                updateShareButtonVisibility();
             }
 
             stopBtn.addEventListener('click', function() {
