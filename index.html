@@ -847,28 +847,43 @@
                 const artist = songArtist.textContent;
                 
                 if (title && artist && title !== 'sintoniza tu camino' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-                    const message = `Escuche ${title} de ${artist} en https://kutt.it/radiomax  ¡Muy recomendable!`;
+                    const message = `Escuche ${title} de ${artist} en https://kutt.it/radiomax ¡Muy recomendable!`;
                     
-                    // Detectar si es un dispositivo móvil y usar la URI de WhatsApp nativa
+                    // Detectar si es un dispositivo móvil
                     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
                     
-                    let whatsappUrl;
-                    if (isMobile) {
-                        // Usar la URI de WhatsApp para abrir la aplicación nativa
-                        whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+                    // Detectar específicamente Brave en Android
+                    const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
+                    
+                    if (isBraveAndroid) {
+                        // Para Brave en Android, mostrar mensaje y abrir WhatsApp Web directamente
+                        showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
+                        setTimeout(() => {
+                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                        }, 1000);
+                    } else if (isMobile) {
+                        // Para otros navegadores móviles, intentar la URI de WhatsApp
+                        const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
                         
-                        // Intentar abrir la aplicación nativa
-                        window.location.href = whatsappUrl;
+                        // Crear un enlace temporal para hacer clic
+                        const link = document.createElement('a');
+                        link.href = whatsappUri;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        
+                        // Intentar abrir la aplicación
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                         
                         // Dar tiempo para que intente abrir la aplicación
                         setTimeout(() => {
                             // Si la aplicación no se abre, redirigir a WhatsApp Web
                             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                        }, 500);
+                        }, 1500);
                     } else {
                         // Para escritorio, usar WhatsApp Web
-                        whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                        window.open(whatsappUrl, '_blank');
+                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                     }
                     
                     shareOptions.classList.remove('active');
