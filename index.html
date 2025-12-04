@@ -843,7 +843,7 @@
                     title !== 'sintoniza tu camino' && 
                     title !== 'Conectando...' && 
                     title !== 'Seleccionar estación' &&
-                    title !== 'Preparado para sonar' &&
+                    title !== 'A sonar' &&
                     title !== 'Reproduciendo...' &&
                     artist !== '') {
                     shareButton.classList.add('visible');
@@ -1127,7 +1127,7 @@
                         audioPlayer.src = currentStation.url;
                         
                         // Actualizar la UI para mostrar que la estación está lista pero en pausa.
-                        songTitle.textContent = 'Preparado para sonar';
+                        songTitle.textContent = 'A sonar';
                         songArtist.textContent = '';
                         songAlbum.textContent = '';
                         
