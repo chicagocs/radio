@@ -288,9 +288,10 @@
         "id": "serenity",
         "name": "Radio Paradise - Serenity Mix",
         "description": "Música ambiental y chillout, mezclado por nuestros DJs.",
-        "url": "https://stream.radioparadise.com/serenity-flac",
+        "url": "http://stream.radioparadise.com/serenity-ogg",
         "service": "radioparadise",
         "channelId": 5
     }
 ]
+
 
