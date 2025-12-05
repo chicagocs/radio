@@ -446,8 +446,22 @@
             box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
             flex: 1;
             text-align: center;
+            /* Espacio entre el icono y el texto */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
+        .btn-stop {
+            background-color: #333333;
+            color: #ffffff;
+        }
+
+        .btn-stop:hover {
+            background-color: #555555;
+        }
+    
         .btn:hover {
             background-color: #ff8833;
             transform: translateY(-2px);
