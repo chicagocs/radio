@@ -293,14 +293,15 @@
         "channelId": 5
     },
     {
-        "id": "radioswissclassic",
-        "name": "Radio Swiss Classic",
-        "description": "Música clásica sin interrupciones, con repertorio que abarca desde el Barroco hasta el Romanticismo y el siglo XX.",
-        "url": "https://rschi-rr.ice.infomaniak.ch/rschi-rr.aac",
-        "service": "radioswissclassic",
+        "id": "veniceclassical",
+        "name": "Venice Classical Radio",
+        "description": "Música clásica perfecta para la concentración y gozo de música pura.",
+        "url": "http://stream.veniceclassical.com:8000/stream",
+        "service": "veniceclassical",
         "channelId": null
     }
 ]
+
 
 
 
