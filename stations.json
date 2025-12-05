@@ -291,17 +291,5 @@
         "url": "https://stream.radioparadise.com/serenity",
         "service": "radioparadise",
         "channelId": 5
-    },
-    {
-        "id": "veniceclassical",
-        "name": "Venice Classical Radio",
-        "description": "Música clásica perfecta para la concentración y gozo de música pura.",
-        "url": "http://stream.veniceclassical.com:8000/stream",
-        "service": "veniceclassical",
-        "channelId": null
     }
 ]
-
-
-
-
