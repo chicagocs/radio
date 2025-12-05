@@ -296,8 +296,9 @@
         "id": "classical",
         "name": "Radio Paradise - Classical Mix",
         "description": "Música clásica curada, desde obras maestras hasta joyas ocultas, perfecta para la escucha activa.",
-        "url": "http://stream.radioparadise.com/classical-aac-256",
+        "url": "https://stream.radioparadise.com/classical-mp3-320",
         "service": "radioparadise",
         "channelId": 6
     }
 ]
+
