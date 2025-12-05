@@ -907,7 +907,7 @@
                 if (title && artist && 
                     title !== 'a sonar' && 
                     title !== 'Conectando...' && 
-                    title !== 'música clásica de todos los tiempos' && 
+                    title !== 'música clásica' && 
                     title !== 'Seleccionar estación' &&
                     title !== 'A sonar' &&
                     title !== 'Reproduciendo...' &&
@@ -935,7 +935,7 @@
                 const title = songTitle.textContent;
                 const artist = songArtist.textContent;
                 
-                if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'música clásica de todos los tiempos' && title !== 'Seleccionar estación') {
+                if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'música clásica' && title !== 'Seleccionar estación') {
                     const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en megaradio!`;
                     
                     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1310,7 +1310,7 @@
                 
                 // Verificar si es Radio Swiss Classic para mostrar mensaje y portada personalizados
                 if (currentStation.id && currentStation.id.includes('classic')) {
-                    songTitle.textContent = 'música clásica de todos los tiempos';
+                    songTitle.textContent = 'música clásica';
                     songArtist.textContent = '';
                     songAlbum.textContent = '';
                     displayClassicalMusicCover();
