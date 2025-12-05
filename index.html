@@ -985,6 +985,14 @@
                     this.initEvents();
                     this.updateTriggerText();
                     this.updateSelectedOption();
+                    
+                    // CORRECCIÓN: Hacer scroll a la opción seleccionada al inicializar
+                    setTimeout(() => {
+                        const selectedOption = this.customOptions.querySelector('.custom-option.selected');
+                        if (selectedOption) {
+                            selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }
+                    }, 100);
                 }
 
                 populateOptions() {
@@ -1134,6 +1142,14 @@
                         stationSelect.value = lastSelectedStation;
                         customSelect.updateTriggerText();
                         customSelect.updateSelectedOption();
+                        
+                        // CORRECCIÓN: Asegurarse de que la opción seleccionada sea visible
+                        setTimeout(() => {
+                            const selectedOption = customSelect.customOptions.querySelector('.custom-option.selected');
+                            if (selectedOption) {
+                                selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                            }
+                        }, 100);
                         
                         const station = stationsById[lastSelectedStation];
                         if (station) {
