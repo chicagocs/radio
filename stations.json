@@ -297,7 +297,8 @@
         "name": "Radio Swiss - Classic",
         "description": "Selección de la mejor música clásica en períodos barroco, clásico y romanticismo.",
         "url": "https://stream.srg-ssr.ch/m/rsc_de/mp3_128",
-        "service": "radioswiss",
+        "service": "radioswiss"
     }    
 ]
+
 
