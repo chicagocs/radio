@@ -243,7 +243,7 @@
         "description": "De black a doom, prog a sludge, thrash a post, stoner a crossover, punk a industrial",
         "url": "https://ice5.somafm.com/metal-128-mp3",
         "service": "somafm"
-    },
+    },   
     {
         "id": "mellow",
         "name": "Radio Paradise - Mellow Mix",
@@ -291,8 +291,13 @@
         "url": "https://stream.radioparadise.com/serenity",
         "service": "radioparadise",
         "channelId": 5
+    },
+    {
+        "id": "classical",
+        "name": "Radio Paradise - Classical Mix",
+        "description": "Música clásica curada, desde obras maestras hasta joyas ocultas, perfecta para la escucha activa.",
+        "url": "http://stream.radioparadise.com/classical-aac-256",
+        "service": "radioparadise",
+        "channelId": 6
     }
 ]
-
-
-
