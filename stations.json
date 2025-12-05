@@ -293,13 +293,14 @@
         "channelId": 5
     },
     {
-        "id": "classical",
-        "name": "Radio Paradise - Classical Mix",
-        "description": "Música clásica curada, desde obras maestras hasta joyas ocultas, perfecta para la escucha activa.",
-        "url": "https://stream.radioparadise.com/classical-aac",
-        "service": "radioparadise",
-        "channelId": 6
+        "id": "radioswissclassic",
+        "name": "Radio Swiss Classic",
+        "description": "Música clásica sin interrupciones, con repertorio que abarca desde el Barroco hasta el Romanticismo y el siglo XX.",
+        "url": "https://rschi-rr.ice.infomaniak.ch/rschi-rr.aac",
+        "service": "radioswissclassic",
+        "channelId": null
     }
 ]
+
 
 
