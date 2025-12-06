@@ -722,6 +722,25 @@
             from { opacity: 1; }
             to { opacity: 0; }
         }
+
+footer {
+    position: fixed;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 12px;
+    color: #999999;
+    text-align: center;
+    z-index: 10;
+}
+
+footer strong {
+    color: #ffffff;
+    font-weight: bold;
+}
+    
 </style>    
 </head>
 <body>
@@ -1855,5 +1874,10 @@
 
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
+
+    <footer>
+        <strong>RadioMax</strong> | Una experiencia inmersiva
+    </footer>
+    
 </body>
 </html>
