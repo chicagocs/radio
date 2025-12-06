@@ -291,13 +291,6 @@
         "url": "https://stream.radioparadise.com/serenity",
         "service": "radioparadise",
         "channelId": 5
-    },
-    {
-        "id": "klassisk-natt",
-        "name": "Noche clasica",
-        "description": "Música clásica durante la noche.",
-        "url": "https://nrk-od-no.nrk.no/od/audiomp3/nrk_radio_klassisk_natt_20240615_0103_15_LRC.mp3",
-        "service": "nrk",
-        "tags": ["clásica", "noruega", "noche", "relajante", "nrk"]
     }
 ]
+
