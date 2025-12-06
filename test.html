@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SRG SSR Metadata</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    .track-info { margin-top: 1em; }
+    .track-info span { display: block; margin-bottom: 0.3em; }
+  </style>
+</head>
+<body>
+  <h1>SRG SSR Metadata</h1>
+
+  <div class="track-info" id="trackInfo">
+    <span id="title">Título: —</span>
+    <span id="artist">Artista: —</span>
+    <span id="album">Álbum: —</span>
+  </div>
+
+  <script>
+    const currentTrackInfo = { title: null, artist: null, album: null };
+    const workerUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de';
+
+    async function updateSrgssrInfo() {
+      try {
+        const response = await fetch(workerUrl);
+
+        if (!response.ok) {
+          console.error(`Error HTTP: ${response.status}`);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Metadata recibida:", data);
+
+        // Si hay información válida
+        if (data.title || data.artist) {
+          const title = data.title || 'Título desconocido';
+          const artist = data.artist || 'Artista desconocido';
+          const album = data.album || '—';
+
+          // Evitar actualizar si no hay cambio
+          if (currentTrackInfo.title !== title || currentTrackInfo.artist !== artist) {
+            currentTrackInfo.title = title;
+            currentTrackInfo.artist = artist;
+            currentTrackInfo.album = album;
+
+            document.getElementById('title').textContent = `Título: ${title}`;
+            document.getElementById('artist').textContent = `Artista: ${artist}`;
+            document.getElementById('album').textContent = `Álbum: ${album}`;
+
+            console.log('🔄 Nueva canción detectada y UI actualizada');
+          }
+        } else {
+          console.warn('No se recibió metadata válida del Worker');
+        }
+
+      } catch (error) {
+        console.error('Error al obtener metadata de SRG SSR:', error);
+      }
+    }
+
+    // Actualizar cada 10 segundos
+    setInterval(updateSrgssrInfo, 10000);
+    // Primera actualización inmediata
+    updateSrgssrInfo();
+  </script>
+</body>
+</html>
