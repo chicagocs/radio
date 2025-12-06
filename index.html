@@ -4,15 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev https://kutt.it;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://tu-worker.tramax.com.ar https://kutt.it;">    
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">   
     <!-- PWA: Vincular el Manifest -->
-    <link rel="manifest" href="site.webmanifest">
-    
+    <link rel="manifest" href="site.webmanifest">    
     <!-- INICIO: Metaetiquetas para Redes Sociales (Open Graph / Facebook) -->
     <meta property="og:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
     <meta property="og:description" content="Una experiencia inmersiva en selectas radios">
@@ -22,7 +20,6 @@
     <meta property="og:url" content="https://radiomax.tramax.com.ar/index.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RadioMax">
-
     <!-- Metaetiquetas para Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
@@ -858,7 +855,6 @@
 
             audioPlayer.volume = 0.5;
 
-            // MEJORA DE SEGURIDAD: Implementación de rate limiting para llamadas a APIs
             const apiCallTracker = {
                 somaFM: { lastCall: 0, minInterval: 5000 },
                 radioParadise: { lastCall: 0, minInterval: 5000 },
@@ -1396,8 +1392,7 @@
                 }
                 
                 try {
-                    // PWA: Usar la URL del Cloudflare Worker
-                    const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
+                    const workerUrl = 'https://tu-worker.tramax.com.ar/radioparadise'; // <-- REEMPLAZA ESTA URL
                     const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
                     const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
 
@@ -1457,8 +1452,7 @@
                 resetCountdown();
                 
                 try {
-                    // PWA: Usar la URL del Cloudflare Worker
-                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
+                    const netlifyApiUrl = 'https://tu-worker.tramax.com.ar/spotify'; // <-- REEMPLAZA ESTA URL
                     
                     const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
                     
@@ -1718,26 +1712,28 @@
                 stopSongInfoUpdates();
             });
 
+            // CORREGIDO: Event listener para errores del reproductor de audio
             audioPlayer.addEventListener('error', (e) => {
-              const error = audioPlayer.error;
-              if (error) {
-                 console.error(`Audio Error Code: ${error.code}, Message: ${error.message}`);
-        
-                 // Si el error es una cancelación (código 1), no lo tratamos como un error de reproducción.
-                 // Esto evita que se muestre el mensaje de error al presionar "DETENER".
-                 if (error.code === 1) { // 1 = MEDIA_ERR_ABORTED
-                    console.log('Reproducción detenida por el usuario o el sistema.');
-                    return; // Salir de la función sin mostrar el error.
-                 }
+                const error = audioPlayer.error;
+                if (error) {
+                    console.error(`Audio Error Code: ${error.code}, Message: ${error.message}`);
+                    
+                    // Ignorar errores que no son de red o formato real.
+                    // Code 1 (MEDIA_ERR_ABORTED): Ocurre al detener la reproducción.
+                    // Code 4 (MEDIA_ERR_SRC_NOT_SUPPORTED): Ocurre al limpiar el src ('').
+                    if (error.code === 1 || error.code === 4) {
+                        console.log('Reproducción detenida o src limpiado. No es un error crítico.');
+                        return; // Salir de la función sin mostrar el error.
+                    }
 
-                     logErrorForAnalysis('Audio element error', {
-                     errorCode: error.code,
-                     errorMessage: error.message,
-                     station: currentStation ? currentStation.id : 'unknown',
-                     timestamp: new Date().toISOString()
-                     });
-                  }
-                 handlePlaybackError();
+                    logErrorForAnalysis('Audio element error', {
+                        errorCode: error.code,
+                        errorMessage: error.message,
+                        station: currentStation ? currentStation.id : 'unknown',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                handlePlaybackError();
             });
 
             volumeSlider.addEventListener('input', function() {
