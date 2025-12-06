@@ -4,16 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev https://kutt.it;">    
+    
+    <!-- MEJORA DE SEGURIDAD: Content Security Policy (CSP) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev https://kutt.it;">
+    
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="manifest" href="site.webmanifest">  
+    
+    <!-- PWA: Vincular el Manifest -->
+    <link rel="manifest" href="site.webmanifest">
+    
     <!-- INICIO: Metaetiquetas para Redes Sociales (Open Graph / Facebook) -->
     <meta property="og:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
     <meta property="og:description" content="Una experiencia inmersiva en selectas radios">
-    <!-- IMPORTANTE: Reemplaza la URL de la imagen de ejemplo con tu propia imagen (1200x630 píxeles recomendado) -->
     <meta property="og:image" content="https://placehold.co/1200x630/000000/FF6600?text=RadioMax">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -25,7 +30,6 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
     <meta name="twitter:description" content="Una experiencia inmersiva en selectas radios.">
-    <!-- IMPORTANTE: Reemplaza también aquí la URL de la imagen -->
     <meta name="twitter:image" content="https://placehold.co/1200x630/000000/FF6600?text=RadioMax">
     <!-- FIN: Metaetiquetas para Redes Sociales -->
 
@@ -193,7 +197,6 @@
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
-            /* Add this to ensure both children have the same height */
             align-items: stretch;
          }
     
@@ -271,7 +274,6 @@
             border-radius: 15px;
             padding: 15px;
             flex: 1;
-            /* Change from min-height to fixed height */
             height: 120px;
             display: flex;
             flex-direction: column;
@@ -284,7 +286,6 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
-            /* Permitir que este contenedor también se encoja */
             min-width: 0;
         }
 
@@ -313,7 +314,6 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
-            /* Permitir que el botón de compartir se encoja si es necesario */
             min-width: 0;
         }
 
@@ -330,13 +330,12 @@
             width: 14px;
             height: 14px;
             fill: currentColor;
-            flex-shrink: 0; /* Evita que el SVG se encoja */
+            flex-shrink: 0;
         }
 
         .share-button-text {
             margin-left: 5px;
             font-size: 9px;
-            /* Evitar que el texto del botón de compartir desborde */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -394,11 +393,9 @@
             color: #ffffff;
             margin-bottom:4px;
             line-height: 1.2;
-            /* Evitar que el texto largo se desborde */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* Forzar a los elementos flex a encoger para que ellipsis funcione en Android */
             min-width: 0;
         }
 
@@ -406,11 +403,9 @@
             font-size: 14px;
             color: #ff6600;
             margin-bottom: 2px;
-            /* Evitar que el texto largo se desborde */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* Forzar a los elementos flex a encoger para que ellipsis funcione en Android */
             min-width: 0;
         }
 
@@ -418,11 +413,9 @@
             font-size: 12px;
             color: #999999;
             font-style: normal;
-            /* Evitar que el texto largo se desborde */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            /* Forzar a los elementos flex a encoger para que ellipsis funcione en Android */
             min-width: 0;
         }
 
@@ -581,42 +574,36 @@
             51%, 100% { opacity: 0.5; }
         }
 
-        /* CORREGIDO: Estilos del control de volumen para alineación y drag */
         .volume-control {
             margin-bottom: 0;
             position: relative;
-            /* Margen superior para separar de los botones */
             margin-top: 15px;
-            /* NUEVO: Altura fija para centrar correctamente usando Flexbox */
-            height: 20px; /* Altura del círculo */
+            height: 20px;
             display: flex;
-            align-items: center; /* Centra la barra verticalmente */
+            align-items: center;
         }
 
         .volume-slider {
             width: 100%;
-            height: 8px; /* Altura original de la barra */
+            height: 8px;
             background: #1a1a1a;
             border-radius: 5px;
             outline: none;
             -webkit-appearance: none;
-            /* NUEVO: Ocupa todo el ancho del contenedor */
             flex: 1;
         }
 
-        /* CORREGIDO: Estilos del círculo del volumen */
         .volume-icon {
             position: absolute;
-            /* CORREGIDO: Centrado vertical robusto con Flexbox */
             top: 50%;
             transform: translate(-50%, -50%);
-            left: 50%; /* Se actualizará con JavaScript */
+            left: 50%;
             
             width: 20px;
             height: 20px;
-            background-color: #ff6600; /* Fondo naranja por defecto (sólido) */
+            background-color: #ff6600;
             border-radius: 50%;
-            cursor: grab; /* NUEVO: Cursor de 'agarre' para indicar que se puede arrastrar */
+            cursor: grab;
             z-index: 2;
             transition: left 0.1s ease-out, background-color 0.3s ease, border 0.3s ease, cursor 0.1s ease;
         }
@@ -625,30 +612,28 @@
             background-color: #ff8833;
         }
 
-        /* CORREGIDO: Estado de silencio (círculo hueco) */
         .volume-icon.muted {
-            background-color: transparent; /* Fondo transparente */
-            border: 2px solid #ff6600; /* Borde naranja */
-            cursor: grab; /* Mantiene cursor de agarre */
+            background-color: transparent;
+            border: 2px solid #ff6600;
+            cursor: grab;
         }
         
-        /* El pulgar del slider es invisible pero es el que realmente maneja el 'drag' */
         .volume-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 20px; /* Mismo tamaño que el ícono */
+            width: 20px;
             height: 20px;
-            background: transparent; /* Pulgar invisible */
+            background: transparent;
             border: none;
-            cursor: grab; /* Cursor de agarre */
+            cursor: grab;
         }
 
         .volume-slider::-moz-range-thumb {
-            width: 20px; /* Mismo tamaño que el ícono */
+            width: 20px;
             height: 20px;
-            background: transparent; /* Pulgar invisible */
+            background: transparent;
             border: none;
-            cursor: grab; /* Cursor de agarre */
+            cursor: grab;
         }
 
         audio {
@@ -824,7 +809,6 @@
             <button class="btn btn-stop" id="stopBtn">■ DETENER</button>
         </div>
 
-        <!-- Estructura del control de volumen -->
         <div class="volume-control">
             <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="50">
             <span class="volume-icon" id="volumeIcon"></span>
@@ -859,14 +843,12 @@
             const trackGenre = document.getElementById('trackGenre');
             const trackPosition = document.getElementById('trackPosition');
 
-            // Elementos para compartir.
             const shareButton = document.getElementById('shareButton');
             const shareOptions = document.getElementById('shareOptions');
             const shareWhatsApp = document.getElementById('shareWhatsApp');
             const notification = document.getElementById('notification');
 
             let stationsById = {};
-
             let currentStation = null;
             let updateInterval = null;
             let countdownInterval = null;
@@ -876,15 +858,14 @@
             let trackDuration = 0;
             let trackStartTime = 0;
             let currentTrackInfo = null;
-            let currentImageCache = new Map();
 
             audioPlayer.volume = 0.5;
 
             // MEJORA DE SEGURIDAD: Implementación de rate limiting para llamadas a APIs
             const apiCallTracker = {
-                somaFM: { lastCall: 0, minInterval: 5000 }, // 5 segundos
+                somaFM: { lastCall: 0, minInterval: 5000 },
                 radioParadise: { lastCall: 0, minInterval: 5000 },
-                musicBrainz: { lastCall: 0, minInterval: 1000 } // 1 segundo
+                musicBrainz: { lastCall: 0, minInterval: 1000 }
             };
 
             function canMakeApiCall(service) {
@@ -896,23 +877,10 @@
                 return false;
             }
 
-            // MEJORA DE SEGURIDAD: Función para registrar errores para análisis posterior
             function logErrorForAnalysis(type, details) {
-                // En un entorno de producción, esto podría enviar la información a un servicio de logging
-                // Por ahora, solo lo registramos en la consola
                 console.error(`Error logged: ${type}`, details);
-                
-                // Opcionalmente, se podría enviar a un servicio de análisis de errores
-                /*
-                fetch('/api/log-error', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, details })
-                }).catch(e => console.error('Failed to log error', e));
-                */
             }
 
-            // Función para actualizar la posición del ícono de volumen
             function updateVolumeIconPosition() {
                 const sliderWidth = volumeSlider.offsetWidth;
                 const percent = volumeSlider.value / volumeSlider.max;
@@ -921,7 +889,6 @@
                 volumeIcon.style.left = `${newPosition}px`;
             }
 
-            // Función para controlar la visibilidad del botón de compartir
             function updateShareButtonVisibility() {
                 const title = songTitle.textContent;
                 const artist = songArtist.textContent;
@@ -932,7 +899,7 @@
                     title !== 'Seleccionar estación' &&
                     title !== 'A sonar' &&
                     title !== 'Reproduciendo...' &&
-                    title !== 'Error de reproducción' && // <-- Añadido para no mostrar en error
+                    title !== 'Error de reproducción' &&
                     artist !== '') {
                     shareButton.classList.add('visible');
                 } else {
@@ -941,7 +908,6 @@
                 }
             }
 
-            // Funcionalidad de compartir
             shareButton.addEventListener('click', () => {
                 shareOptions.classList.toggle('active');
             });
@@ -1023,7 +989,6 @@
                     this.updateTriggerText();
                     this.updateSelectedOption();
                     
-                    // CORRECCIÓN: Hacer scroll a la opción seleccionada al inicializar
                     setTimeout(() => {
                         const selectedOption = this.customOptions.querySelector('.custom-option.selected');
                         if (selectedOption) {
@@ -1159,7 +1124,6 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const allStations = await response.json();
                     const groupedStations = allStations.reduce((acc, station) => {
-                        // CAMBIO: Reemplazado 'srgssr' por 'nrk'
                         const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
                         if (!acc[serviceName]) acc[serviceName] = [];
                         acc[serviceName].push(station);
@@ -1181,7 +1145,6 @@
                         customSelect.updateTriggerText();
                         customSelect.updateSelectedOption();
                         
-                        // CORRECCIÓN: Asegurarse de que la opción seleccionada sea visible
                         setTimeout(() => {
                             const selectedOption = customSelect.customOptions.querySelector('.custom-option.selected');
                             if (selectedOption) {
@@ -1285,38 +1248,31 @@
                 }
             });
 
-            // NUEVA FUNCIÓN: Maneja los errores de reproducción de forma centralizada
             function handlePlaybackError() {
                 console.error('Playback error occurred.');
                 isPlaying = false;
                 updateStatus(false);
 
-                // Crucial: Detener el elemento de audio por completo
                 audioPlayer.pause();
-                audioPlayer.src = ''; // Evita que intente reconectar
+                audioPlayer.src = '';
 
-                // Limpiar todos los intervalos y timeouts
                 if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
                 if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
                 
-                // Resetear variables de estado de la canción
                 currentTrackInfo = null; 
                 trackDuration = 0; 
                 trackStartTime = 0;
 
-                // Resetear componentes visuales
                 resetCountdown();
                 resetAlbumCover();
                 resetAlbumDetails();
 
-                // Mostrar mensaje de error en la UI
                 songTitle.textContent = 'Error de reproducción';
                 songArtist.textContent = 'Inténtalo de nuevo más tarde';
                 songAlbum.textContent = '';
                 
                 updateShareButtonVisibility();
                 
-                // Registrar el error para análisis posterior sin exponerlo al usuario
                 logErrorForAnalysis('Playback error', {
                     station: currentStation ? currentStation.id : 'unknown',
                     timestamp: new Date().toISOString(),
@@ -1324,25 +1280,21 @@
                 });
             }
 
-            // MODIFICADA: Función playStation
             function playStation() {
                 if (!currentStation) {
                     alert('Por favor selecciona una estación primero');
                     return;
                 }
 
-                // Limpiar timeouts e intervalos existentes por si acaso
                 if (updateInterval) clearInterval(updateInterval);
                 if (countdownInterval) clearInterval(countdownInterval);
                 
-                // Resetear estado de la canción anterior
                 currentTrackInfo = null; 
                 trackDuration = 0; 
                 trackStartTime = 0;
                 resetCountdown();
                 resetAlbumDetails();
                 
-                // Configurar nueva fuente y UI de conexión
                 audioPlayer.src = currentStation.url;
                 songTitle.textContent = 'Conectando...';
                 songArtist.textContent = ''; 
@@ -1351,9 +1303,7 @@
                 
                 updateShareButtonVisibility();
                 
-                // NUEVA LÓGICA PARA NRK
                 if (currentStation.service === 'nrk') {
-                    // Añadir un listener que se ejecute una vez cuando los metadatos del audio estén listos
                     audioPlayer.addEventListener('loadedmetadata', () => {
                         trackDuration = audioPlayer.duration;
                         trackStartTime = Date.now();
@@ -1371,15 +1321,13 @@
                         startCountdown();
                         updateShareButtonVisibility();
 
-                    }, { once: true }); // { once: true } asegura que el listener se elimine después de ejecutarse
+                    }, { once: true });
                 }
 
-                // Intentar reproducir
                 audioPlayer.play()
                     .then(() => { 
                         isPlaying = true; 
                         updateStatus(true); 
-                        // Dar un pequeño margen antes de empezar a pedir datos para streams que no son NRK
                         if (currentStation.service !== 'nrk') {
                             setTimeout(() => startSongInfoUpdates(), 5000);
                         }
@@ -1390,7 +1338,6 @@
                     });
             }
 
-            // NUEVA FUNCIÓN AUXILIAR
             function extractDateFromUrl(url) {
                 const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
                 if (match) {
@@ -1405,14 +1352,11 @@
 
             async function updateSongInfo() {
                 if (!currentStation || !currentStation.service) return;
-                // CAMBIO: Eliminada la llamada a updateSrgssrInfo
                 if (currentStation.service === 'somafm') await updateSomaFmInfo();
                 else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo();
-                // NRK no necesita actualizaciones periódicas, se maneja en playStation
             }
         
             async function updateSomaFmInfo() {
-                // MEJORA DE SEGURIDAD: Implementar rate limiting
                 if (!canMakeApiCall('somaFM')) {
                     console.log('Rate limiting: Demasiadas llamadas a SomaFM');
                     return;
@@ -1449,13 +1393,13 @@
             }
         
             async function updateRadioParadiseInfo() {
-                // MEJORA DE SEGURIDAD: Implementar rate limiting
                 if (!canMakeApiCall('radioParadise')) {
                     console.log('Rate limiting: Demasiadas llamadas a Radio Paradise');
                     return;
                 }
                 
                 try {
+                    // PWA: Usar la URL del Cloudflare Worker
                     const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
                     const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
                     const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
@@ -1501,16 +1445,13 @@
                 }
             }
             
-            // MEJORA DE SEGURIDAD: Modificar la función fetchSongDetails para validar entradas
             async function fetchSongDetails(artist, title, album) {
-                // Validación de entrada
                 if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { 
                     console.log('⚠️ Artista o título no proporcionados o inválidos.'); 
                     resetCountdown();
                     return; 
                 }
                 
-                // Sanitizar las entradas para prevenir XSS
                 const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
                 const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
                 const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
@@ -1519,7 +1460,8 @@
                 resetCountdown();
                 
                 try {
-                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
+                    // PWA: Usar la URL del Cloudflare Worker
+                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev';
                     
                     const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
                     
@@ -1562,7 +1504,6 @@
             }
 
             async function getMusicBrainzDuration(artist, title) {
-                // MEJORA DE SEGURIDAD: Implementar rate limiting
                 if (!canMakeApiCall('musicBrainz')) {
                     console.log('Rate limiting: Demasiadas llamadas a MusicBrainz');
                     return;
@@ -1570,7 +1511,7 @@
                 
                 try {
                     const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-                    const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://example.com)' } });
+                    const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
                     if (data.recordings && data.recordings.length > 0) {
@@ -1725,7 +1666,6 @@
                         if (remaining <= 0) {
                             clearInterval(countdownInterval); countdownInterval = null;
                             countdownTimer.textContent = '00:00';
-                            // Para NRK, no se busca una nueva canción, simplemente se detiene.
                             if(currentStation && currentStation.service === 'nrk') {
                                 stopBtn.click();
                             } else {
@@ -1773,7 +1713,6 @@
                 updateShareButtonVisibility();
             }
 
-            // MODIFICADO: Event listener del botón Detener para una limpieza completa
             stopBtn.addEventListener('click', function() {
                 audioPlayer.pause();
                 audioPlayer.src = '';
@@ -1782,7 +1721,6 @@
                 stopSongInfoUpdates();
             });
 
-            // NUEVO: Event listener para errores generales del elemento de audio
             audioPlayer.addEventListener('error', (e) => {
                 const error = audioPlayer.error;
                 if (error) {
@@ -1797,7 +1735,6 @@
                 handlePlaybackError();
             });
 
-            // Event listener del slider (para clics y arrastre nativo)
             volumeSlider.addEventListener('input', function() {
                 const volume = this.value / 100;
                 audioPlayer.volume = volume;
@@ -1813,7 +1750,6 @@
                 }
             });
 
-            // Event listener del ícono (para clics de mute/unmute)
             volumeIcon.addEventListener('click', function() {
                 if (isMuted) {
                     volumeSlider.value = previousVolume;
@@ -1842,7 +1778,6 @@
             audioPlayer.addEventListener('pause', () => { isPlaying = false; updateStatus(false); });
             audioPlayer.addEventListener('ended', () => { isPlaying = false; updateStatus(false); });
 
-            // INICIO: CÓDIGO CORREGIDO PARA NAVEGACIÓN POR TECLADO
             let lastKeyPressed = null;
             let lastMatchIndex = -1;
 
@@ -1897,13 +1832,26 @@
                     }
                 }
             });
-            // FIN: CÓDIGO CORREGIDO PARA NAVEGACIÓN POR TECLADO
 
-            // Inicializar la posición del ícono de volumen al cargar la página
             updateVolumeIconPosition();
         });
     </script>
     
+    <!-- PWA: Script para registrar el Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker registrado con éxito:', registration.scope);
+            })
+            .catch(error => {
+              console.log('Error al registrar el ServiceWorker:', error);
+            });
+        });
+      }
+    </script>
+
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
 </body>
