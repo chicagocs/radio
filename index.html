@@ -1393,7 +1393,7 @@
             async function updateSrgssrInfo() {
                 try {
                     // IMPORTANTE: Reemplaza esta URL con la de tu Worker de Cloudflare
-                    const proxyUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=' + encodeURIComponent(currentStation.url);                    
+                    const proxyUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de'; 
                     console.log(`Consultando metadata para SRG SSR vía Cloudflare Worker: ${proxyUrl}`);
 
                     const response = await fetch(proxyUrl);
