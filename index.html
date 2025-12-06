@@ -1404,6 +1404,7 @@
 
                     const data = await response.json();
                     console.log('Info de SRG SSR:', data);
+                    console.log("RAW metadata response:", data);
 
                     if (data.title || data.artist) {
                         const newTrackInfo = {
