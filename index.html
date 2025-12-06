@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://tu-worker.tramax.com.ar https://kutt.it;">    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev/ https://kutt.it;">    
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -1392,7 +1392,7 @@
                 }
                 
                 try {
-                    const workerUrl = 'https://tu-worker.tramax.com.ar/radioparadise'; // <-- REEMPLAZA ESTA URL
+                    const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
                     const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
                     const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
 
@@ -1452,7 +1452,7 @@
                 resetCountdown();
                 
                 try {
-                    const netlifyApiUrl = 'https://tu-worker.tramax.com.ar/spotify'; // <-- REEMPLAZA ESTA URL
+                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
                     
                     const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
                     
