@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev/ https://kutt.it;">    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.tramax.com.ar; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev
+    https://kutt.it;">  
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">   
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    
     <!-- PWA: Vincular el Manifest -->
-    <link rel="manifest" href="site.webmanifest">    
+    <link rel="manifest" href="site.webmanifest">
+    
     <!-- INICIO: Metaetiquetas para Redes Sociales (Open Graph / Facebook) -->
     <meta property="og:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
     <meta property="og:description" content="Una experiencia inmersiva en selectas radios">
@@ -20,6 +23,7 @@
     <meta property="og:url" content="https://radiomax.tramax.com.ar/index.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RadioMax">
+
     <!-- Metaetiquetas para Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="RadioMax | Una experiencia inmersiva en selectas radios">
@@ -723,56 +727,54 @@
             to { opacity: 0; }
         }
 
-footer {
-    position: fixed;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 10px;
-    color: #999999;
-    text-align: center;
-    z-index: 10;
-}
+        /* --- ESTILOS DEL PIE DE PÁGINA --- */
+        footer {
+            position: fixed;
+            bottom: 19px; /* Se bajó 4px desde 15px */
+            left: 50%;
+            transform: translateX(-50%);
+            
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 12px;
+            color: #999999;
+            text-align: center;
+            z-index: 10;
+        }
 
-footer strong {
-    color: #ffffff;
-    font-weight: bold;
-}
+        footer strong {
+            color: #ffffff;
+            font-weight: bold;
+        }
+        
+        /* Estilos para la notificación de actualización */
+        #update-notification {
+            position: fixed;
+            bottom: 60px; /* Se posiciona justo encima del pie de página */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ff6600;
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 1001;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
 
-#update-notification {
-    position: fixed;
-    bottom: 60px; 
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #ff6600;
-    color: #000000;
-    padding: 10px 20px;
-    border-radius: 10px;
-    z-index: 1001;
-    text-align: center;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-}
-
-#update-reload-btn {
-    background: #000000;
-    color: #ff6600;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 5px;
-    margin-left: 10px;
-    cursor: pointer;
-    font-weight: bold;
-}
-    
+        #update-reload-btn {
+            background: #000000;
+            color: #ff6600;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
 </style>    
 </head>
 <body>
-    <div id="update-notification" style="display: none;">
-    Nueva versión disponible. <button id="update-reload-btn">Actualizar</button>
-    </div>
     <div class="player-container">
         <div class="station-info">
             <h1 class="station-name" id="stationName"></h1>
@@ -857,6 +859,17 @@ footer strong {
         </div>
 
         <audio id="audioPlayer"></audio>
+    </div>
+
+    <!-- INICIO: Pie de página -->
+    <footer>
+        <strong>RadioMax</strong> | una experiencia inmersiva
+    </footer>
+    <!-- FIN: Pie de página -->
+
+    <!-- Notificación de actualización de PWA -->
+    <div id="update-notification" style="display: none;">
+        Nueva versión disponible. <button id="update-reload-btn">Actualizar</button>
     </div>
 
     <div class="notification" id="notification"></div>
@@ -1760,7 +1773,6 @@ footer strong {
                 stopSongInfoUpdates();
             });
 
-            // CORREGIDO: Event listener para errores del reproductor de audio
             audioPlayer.addEventListener('error', (e) => {
                 const error = audioPlayer.error;
                 if (error) {
@@ -1886,63 +1898,58 @@ footer strong {
         });
     </script>
     
-<script>
-  if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-          let refreshing = false;
-          const updateNotification = document.getElementById('update-notification');
-          const updateReloadBtn = document.getElementById('update-reload-btn');
+    <!-- PWA: Script para registrar el Service Worker con detección de actualizaciones -->
+    <script>
+      if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+              let refreshing = false;
+              const updateNotification = document.getElementById('update-notification');
+              const updateReloadBtn = document.getElementById('update-reload-btn');
 
-          navigator.serviceWorker.register('/sw.js')
-              .then(registration => {
-                  console.log('ServiceWorker registrado con éxito:', registration.scope);
+              navigator.serviceWorker.register('/sw.js')
+                  .then(registration => {
+                      console.log('ServiceWorker registrado con éxito:', registration.scope);
 
-                  // Comprobar si hay una nueva versión esperando
-                  if (registration.waiting) {
-                      updateNotification.style.display = 'block';
-                  }
+                      // Comprobar si hay una nueva versión esperando
+                      if (registration.waiting) {
+                          updateNotification.style.display = 'block';
+                      }
 
-                  // Detectar cuando se instala una nueva versión del Service Worker
-                  registration.addEventListener('updatefound', () => {
-                      const newWorker = registration.installing;
-                      newWorker.addEventListener('statechange', () => {
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                              // Una nueva versión está disponible, mostrar la notificación
-                              updateNotification.style.display = 'block';
-                          }
+                      // Detectar cuando se instala una nueva versión del Service Worker
+                      registration.addEventListener('updatefound', () => {
+                          const newWorker = registration.installing;
+                          newWorker.addEventListener('statechange', () => {
+                              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                  // Una nueva versión está disponible, mostrar la notificación
+                                  updateNotification.style.display = 'block';
+                              }
+                          });
                       });
+                  })
+                  .catch(error => {
+                      console.log('Error al registrar el ServiceWorker:', error);
                   });
-              })
-              .catch(error => {
-                  console.log('Error al registrar el ServiceWorker:', error);
+
+              // Escuchar cambios de controlador para recargar la página
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  console.log('Controller changed, reloading page...');
+                  if (refreshing) return;
+                  refreshing = true;
+                  window.location.reload();
               });
 
-          // Escuchar cambios de controlador para recargar la página
-          navigator.serviceWorker.addEventListener('controllerchange', () => {
-              console.log('Controller changed, reloading page...');
-              if (refreshing) return;
-              refreshing = true;
-              window.location.reload();
+              // Manejar el clic en el botón de actualizar
+              updateReloadBtn.addEventListener('click', () => {
+                  updateNotification.style.display = 'none';
+                  if (navigator.serviceWorker.controller) {
+                      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                  }
+              });
           });
-
-          // Manejar el clic en el botón de actualizar
-          updateReloadBtn.addEventListener('click', () => {
-              updateNotification.style.display = 'none';
-              if (navigator.serviceWorker.controller) {
-                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-              }
-          });
-      });
-  }
-</script>
-    
+      }
+    </script>
 
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
-
-    <footer>
-        <strong>RadioMax</strong> | Una experiencia inmersiva
-    </footer>
-    
 </body>
 </html>
