@@ -293,13 +293,11 @@
         "channelId": 5
     },
     {
-        "id": "classic",
-        "name": "Radio Swiss - Classic",
-        "description": "Selección de la mejor música clásica en períodos barroco, clásico y romanticismo.",
-        "url": "https://livestreaming-node-4.srg-ssr.ch/srgssr/rsc_de/mp3/128",
-        "service": "srgssr",
-        "tags": ["barroco", "clásico", "romanticismo", "sinfonías", "sin anuncios", "relajante"]
+        "id": "klassisk-natt",
+        "name": "Noche clasica",
+        "description": "Música clásica durante la noche.",
+        "url": "https://nrk-od-no.nrk.no/od/audiomp3/nrk_radio_klassisk_natt_20240615_0103_15_LRC.mp3",
+        "service": "nrk",
+        "tags": ["clásica", "noruega", "noche", "relajante", "nrk"]
     }
 ]
-
-
