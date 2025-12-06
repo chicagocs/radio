@@ -1719,17 +1719,25 @@
             });
 
             audioPlayer.addEventListener('error', (e) => {
-                const error = audioPlayer.error;
-                if (error) {
-                    console.error(`Audio Error Code: ${error.code}, Message: ${error.message}`);
-                    logErrorForAnalysis('Audio element error', {
-                        errorCode: error.code,
-                        errorMessage: error.message,
-                        station: currentStation ? currentStation.id : 'unknown',
-                        timestamp: new Date().toISOString()
-                    });
-                }
-                handlePlaybackError();
+              const error = audioPlayer.error;
+              if (error) {
+                 console.error(`Audio Error Code: ${error.code}, Message: ${error.message}`);
+        
+                 // Si el error es una cancelación (código 1), no lo tratamos como un error de reproducción.
+                 // Esto evita que se muestre el mensaje de error al presionar "DETENER".
+                 if (error.code === 1) { // 1 = MEDIA_ERR_ABORTED
+                    console.log('Reproducción detenida por el usuario o el sistema.');
+                    return; // Salir de la función sin mostrar el error.
+                 }
+
+                     logErrorForAnalysis('Audio element error', {
+                     errorCode: error.code,
+                     errorMessage: error.message,
+                     station: currentStation ? currentStation.id : 'unknown',
+                     timestamp: new Date().toISOString()
+                     });
+                  }
+                 handlePlaybackError();
             });
 
             volumeSlider.addEventListener('input', function() {
