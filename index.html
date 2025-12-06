@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    
-    <!-- MEJORA DE SEGURIDAD: Content Security Policy (CSP) -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.max.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev https://kutt.it;">
-    
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -1461,7 +1458,7 @@
                 
                 try {
                     // PWA: Usar la URL del Cloudflare Worker
-                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev';
+                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
                     
                     const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
                     
