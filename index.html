@@ -1389,51 +1389,60 @@
                 }
             }
 
-            // NUEVA FUNCIÓN: Para obtener metadata de streams con ICY (como SRG SSR)
-            async function updateSrgssrInfo() {
-                try {
-                    // IMPORTANTE: Reemplaza esta URL con la de tu Worker de Cloudflare
-                    const proxyUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de'; 
-                    console.log(`Consultando metadata para SRG SSR vía Cloudflare Worker: ${proxyUrl}`);
+// NUEVA FUNCIÓN: Para obtener metadata de streams SRG SSR vía Worker
+async function updateSrgssrInfo() {
+    try {
+        // IMPORTANTE: Reemplaza esta URL con la de tu Worker de Cloudflare
+        const proxyUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de'; 
+        console.log(`Consultando metadata para SRG SSR vía Cloudflare Worker: ${proxyUrl}`);
 
-                    const response = await fetch(proxyUrl);
+        const response = await fetch(proxyUrl);
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-                    const data = await response.json();
-                    console.log('Info de SRG SSR:', data);
-                    console.log("RAW metadata response:", data);
+        const data = await response.json();
+        console.log('RAW metadata response:', data);
 
-                    if (data.title || data.artist) {
-                        const newTrackInfo = {
-                            title: data.title || 'Título desconocido',
-                            artist: data.artist || 'Artista desconocido',
-                            album: data.album || '', 
-                        };
+        // Validamos que haya al menos título o artista
+        if (data.title || data.artist) {
+            const newTrackInfo = {
+                title: data.title || 'Título desconocido',
+                artist: data.artist || 'Artista desconocido',
+                album: data.album || '', 
+            };
 
-                        const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== newTrackInfo.title || currentTrackInfo.artist !== newTrackInfo.artist;
+            // Detectar si la canción cambió
+            const isNewTrack = !currentTrackInfo ||
+                               currentTrackInfo.title !== newTrackInfo.title ||
+                               currentTrackInfo.artist !== newTrackInfo.artist;
 
-                        if (isNewTrack) {
-                            console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (SRG SSR)');
-                            resetCountdown();
-                            resetAlbumDetails();
-                            currentTrackInfo = newTrackInfo;
-                            updateUIWithTrackInfo(newTrackInfo);
-                            resetAlbumCover();
-                            trackStartTime = Date.now();
-                            
-                            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                        }
-                    } else {
-                        console.log('No se recibió metadata válida del proxy.');
-                    }
+            if (isNewTrack) {
+                console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (SRG SSR)');
+                
+                // Reseteos para la nueva canción
+                resetCountdown();
+                resetAlbumDetails();
+                resetAlbumCover();
+                trackStartTime = Date.now();
 
-                } catch (error) {
-                    console.error('Error al obtener info de SRG SSR (vía Cloudflare Worker):', error);
-                }
+                currentTrackInfo = newTrackInfo;
+
+                // Actualizar la UI
+                updateUIWithTrackInfo(newTrackInfo);
+
+                // Obtener información extra (Spotify fallback)
+                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
             }
+        } else {
+            console.log('No se recibió metadata válida del proxy.');
+        }
+
+    } catch (error) {
+        console.error('Error al obtener info de SRG SSR (vía Cloudflare Worker):', error);
+    }
+}
             
             async function fetchSongDetails(artist, title, album) {
                 if (!artist || !title) { 
