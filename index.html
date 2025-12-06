@@ -740,6 +740,32 @@ footer strong {
     color: #ffffff;
     font-weight: bold;
 }
+
+#update-notification {
+    position: fixed;
+    bottom: 60px; 
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff6600;
+    color: #000000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 1001;
+    text-align: center;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+#update-reload-btn {
+    background: #000000;
+    color: #ff6600;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
     
 </style>    
 </head>
@@ -1857,20 +1883,56 @@ footer strong {
         });
     </script>
     
-    <!-- PWA: Script para registrar el Service Worker -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+<script>
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+          let refreshing = false;
+          const updateNotification = document.getElementById('update-notification');
+          const updateReloadBtn = document.getElementById('update-reload-btn');
+
           navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('ServiceWorker registrado con éxito:', registration.scope);
-            })
-            .catch(error => {
-              console.log('Error al registrar el ServiceWorker:', error);
-            });
-        });
-      }
-    </script>
+              .then(registration => {
+                  console.log('ServiceWorker registrado con éxito:', registration.scope);
+
+                  // Comprobar si hay una nueva versión esperando
+                  if (registration.waiting) {
+                      updateNotification.style.display = 'block';
+                  }
+
+                  // Detectar cuando se instala una nueva versión del Service Worker
+                  registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing;
+                      newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // Una nueva versión está disponible, mostrar la notificación
+                              updateNotification.style.display = 'block';
+                          }
+                      });
+                  });
+              })
+              .catch(error => {
+                  console.log('Error al registrar el ServiceWorker:', error);
+              });
+
+          // Escuchar cambios de controlador para recargar la página
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+              console.log('Controller changed, reloading page...');
+              if (refreshing) return;
+              refreshing = true;
+              window.location.reload();
+          });
+
+          // Manejar el clic en el botón de actualizar
+          updateReloadBtn.addEventListener('click', () => {
+              updateNotification.style.display = 'none';
+              if (navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+              }
+          });
+      });
+  }
+</script>
+    
 
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
