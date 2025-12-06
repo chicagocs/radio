@@ -4,100 +4,68 @@
   <meta charset="UTF-8">
   <title>SRG SSR + Spotify Metadata</title>
   <style>
-    body { font-family: sans-serif; margin: 2em; }
-    .track-info { margin-top: 1em; }
-    .track-info span { display: block; margin-bottom: 0.3em; }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #trackInfo { margin-top: 20px; }
+    .label { font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>SRG SSR + Spotify Metadata</h1>
-
-  <div class="track-info" id="trackInfo">
-    <span id="title">Título: —</span>
-    <span id="artist">Artista: —</span>
-    <span id="album">Álbum: —</span>
-    <span id="duration">Duración: —</span>
-    <span id="genres">Géneros: —</span>
+  <h1>Now Playing</h1>
+  <div id="trackInfo">
+    <p><span class="label">Título:</span> <span id="title">Cargando...</span></p>
+    <p><span class="label">Artista:</span> <span id="artist">Cargando...</span></p>
+    <p><span class="label">Álbum:</span> <span id="album">Cargando...</span></p>
   </div>
 
   <script>
-    const currentTrackInfo = { title: null, artist: null, album: null };
-    const srgWorkerUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de';
-    const spotifyWorkerUrl = 'https://weathered-mode-71a3.chcs.workers.dev/spotify'; // Ajusta según tu worker de Spotify
+    let currentTrackInfo = null;
 
-    async function fetchSpotifyMetadata(artist, title, album = '') {
+    async function fetchMetadata() {
       try {
-        const url = new URL(spotifyWorkerUrl);
-        url.searchParams.set('artist', artist);
-        url.searchParams.set('title', title);
-        if (album) url.searchParams.set('album', album);
+        // 1️⃣ Intentar SRG SSR
+        const srgUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de';
+        const srgResp = await fetch(srgUrl);
+        const srgData = await srgResp.json();
 
-        const response = await fetch(url);
-        if (!response.ok) return null;
-
-        return await response.json();
-      } catch (error) {
-        console.error('Error al obtener metadata de Spotify:', error);
-        return null;
-      }
-    }
-
-    async function updateTrackInfo() {
-      try {
-        // 1️⃣ Intentar obtener metadata de SRG SSR
-        const srgResponse = await fetch(srgWorkerUrl);
-        if (!srgResponse.ok) throw new Error(`SRG SSR HTTP error: ${srgResponse.status}`);
-
-        const srgData = await srgResponse.json();
-        console.log('SRG SSR metadata:', srgData);
-
-        let title = srgData.title || null;
-        let artist = srgData.artist || null;
+        let title = srgData.title;
+        let artist = srgData.artist;
         let album = srgData.album || '';
 
-        // 2️⃣ Si SRG SSR no tiene info, usar fallback Spotify
+        // 2️⃣ Fallback a Spotify si no hay datos
         if (!title || !artist) {
-          console.log('⚠️ SRG SSR sin metadata, buscando en Spotify...');
-          const spotifyData = await fetchSpotifyMetadata('Desconocido', 'Desconocido'); // Puedes intentar con datos parciales
-          if (spotifyData) {
-            title = spotifyData.title || title;
-            artist = spotifyData.artist || artist;
-            album = spotifyData.album || album;
-          }
+          const fallbackArtist = 'Desconocido';
+          const fallbackTitle = 'Desconocido';
+          const spotifyUrl = `https://weathered-mode-71a3.chcs.workers.dev/spotify?artist=${encodeURIComponent(fallbackArtist)}&title=${encodeURIComponent(fallbackTitle)}`;
+          const spotifyResp = await fetch(spotifyUrl);
+          const spotifyData = await spotifyResp.json();
+
+          title = spotifyData.title || title || 'Desconocido';
+          artist = spotifyData.artist || artist || 'Desconocido';
+          album = spotifyData.album || album || '';
         }
 
-        // 3️⃣ Actualizar UI solo si hay cambio de canción
-        const isNewTrack = title && artist &&
-          (currentTrackInfo.title !== title || currentTrackInfo.artist !== artist);
+        const isNewTrack = !currentTrackInfo || currentTrackInfo.title !== title || currentTrackInfo.artist !== artist;
 
         if (isNewTrack) {
-          currentTrackInfo.title = title;
-          currentTrackInfo.artist = artist;
-          currentTrackInfo.album = album;
-
-          document.getElementById('title').textContent = `Título: ${title}`;
-          document.getElementById('artist').textContent = `Artista: ${artist}`;
-          document.getElementById('album').textContent = `Álbum: ${album}`;
-
-          console.log('🔄 Nueva canción detectada y UI actualizada');
-
-          // 4️⃣ Actualizar datos extra de Spotify si hay fallback
-          const spotifyData = await fetchSpotifyMetadata(artist, title, album);
-          if (spotifyData) {
-            document.getElementById('duration').textContent = `Duración: ${spotifyData.duration || '—'} s`;
-            document.getElementById('genres').textContent = `Géneros: ${spotifyData.genres?.join(', ') || '—'}`;
-          }
+          console.log('🎵 Nueva canción detectada:', { title, artist, album });
+          currentTrackInfo = { title, artist, album };
+          updateUI(currentTrackInfo);
         }
 
-      } catch (error) {
-        console.error('Error al actualizar metadata de canción:', error);
+      } catch (err) {
+        console.error('Error al obtener metadata:', err);
       }
     }
 
-    // Ejecutar cada 10 segundos
-    setInterval(updateTrackInfo, 10000);
-    // Primera actualización inmediata
-    updateTrackInfo();
+    function updateUI(track) {
+      document.getElementById('title').textContent = track.title;
+      document.getElementById('artist').textContent = track.artist;
+      document.getElementById('album').textContent = track.album || 'N/A';
+    }
+
+    // Ejecutar la primera vez y luego cada 10 segundos
+    fetchMetadata();
+    setInterval(fetchMetadata, 10000);
   </script>
 </body>
 </html>
