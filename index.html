@@ -1127,7 +1127,8 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const allStations = await response.json();
                     const groupedStations = allStations.reduce((acc, station) => {
-                        const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'srgssr' ? 'SRG SSR' : 'Otro';
+                        // CAMBIO: Reemplazado 'srgssr' por 'nrk'
+                        const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
                         if (!acc[serviceName]) acc[serviceName] = [];
                         acc[serviceName].push(station);
                         return acc;
@@ -1303,13 +1304,38 @@
                 
                 updateShareButtonVisibility();
                 
+                // NUEVA LÓGICA PARA NRK
+                if (currentStation.service === 'nrk') {
+                    // Añadir un listener que se ejecute una vez cuando los metadatos del audio estén listos
+                    audioPlayer.addEventListener('loadedmetadata', () => {
+                        trackDuration = audioPlayer.duration;
+                        trackStartTime = Date.now();
+
+                        const newTrackInfo = {
+                            title: currentStation.name,
+                            artist: currentStation.description,
+                            album: `Emisión del ${extractDateFromUrl(currentStation.url)}`
+                        };
+                        currentTrackInfo = newTrackInfo;
+                        updateUIWithTrackInfo(newTrackInfo);
+                        
+                        resetAlbumCover();
+                        resetAlbumDetails();
+                        startCountdown();
+                        updateShareButtonVisibility();
+
+                    }, { once: true }); // { once: true } asegura que el listener se elimine después de ejecutarse
+                }
+
                 // Intentar reproducir
                 audioPlayer.play()
                     .then(() => { 
                         isPlaying = true; 
                         updateStatus(true); 
-                        // Dar un pequeño margen antes de empezar a pedir datos
-                        setTimeout(() => startSongInfoUpdates(), 5000); 
+                        // Dar un pequeño margen antes de empezar a pedir datos para streams que no son NRK
+                        if (currentStation.service !== 'nrk') {
+                            setTimeout(() => startSongInfoUpdates(), 5000);
+                        }
                     })
                     .catch(error => {
                         console.error('Error al reproducir (promise rejected):', error);
@@ -1317,11 +1343,25 @@
                     });
             }
 
+            // NUEVA FUNCIÓN AUXILIAR
+            function extractDateFromUrl(url) {
+                const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
+                if (match) {
+                    const dateStr = match[1];
+                    const year = dateStr.substring(0, 4);
+                    const month = dateStr.substring(4, 6);
+                    const day = dateStr.substring(6, 8);
+                    return `${day}-${month}-${year}`;
+                }
+                return 'Fecha desconocida';
+            }
+
             async function updateSongInfo() {
                 if (!currentStation || !currentStation.service) return;
+                // CAMBIO: Eliminada la llamada a updateSrgssrInfo
                 if (currentStation.service === 'somafm') await updateSomaFmInfo();
                 else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo();
-                else if (currentStation.service === 'srgssr') await updateSrgssrInfo(); // <-- MODIFICADO
+                // NRK no necesita actualizaciones periódicas, se maneja en playStation
             }
         
             async function updateSomaFmInfo() {
@@ -1388,62 +1428,9 @@
                     console.error('Error al obtener info de Radio Paradise (vía proxy):', error);
                 }
             }
-
-// NUEVA FUNCIÓN: Para obtener metadata de streams SRG SSR vía Worker
-async function updateSrgssrInfo() {
-    try {
-        // IMPORTANTE: Reemplaza esta URL con la de tu Worker de Cloudflare
-        const proxyUrl = 'https://weathered-mode-71a3.chcs.workers.dev/metadata?stream=rsc_de'; 
-        console.log(`Consultando metadata para SRG SSR vía Cloudflare Worker: ${proxyUrl}`);
-
-        const response = await fetch(proxyUrl);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('RAW metadata response:', data);
-
-        // Validamos que haya al menos título o artista
-        if (data.title || data.artist) {
-            const newTrackInfo = {
-                title: data.title || 'Título desconocido',
-                artist: data.artist || 'Artista desconocido',
-                album: data.album || '', 
-            };
-
-            // Detectar si la canción cambió
-            const isNewTrack = !currentTrackInfo ||
-                               currentTrackInfo.title !== newTrackInfo.title ||
-                               currentTrackInfo.artist !== newTrackInfo.artist;
-
-            if (isNewTrack) {
-                console.log('🔄 CAMBIO DE CANCIÓN DETECTADO (SRG SSR)');
-                
-                // Reseteos para la nueva canción
-                resetCountdown();
-                resetAlbumDetails();
-                resetAlbumCover();
-                trackStartTime = Date.now();
-
-                currentTrackInfo = newTrackInfo;
-
-                // Actualizar la UI
-                updateUIWithTrackInfo(newTrackInfo);
-
-                // Obtener información extra (Spotify fallback)
-                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-            }
-        } else {
-            console.log('No se recibió metadata válida del proxy.');
-        }
-
-    } catch (error) {
-        console.error('Error al obtener info de SRG SSR (vía Cloudflare Worker):', error);
-    }
-}
             
+            // ELIMINADA: La función updateSrgssrInfo ha sido completamente removida.
+
             async function fetchSongDetails(artist, title, album) {
                 if (!artist || !title) { 
                     console.log('⚠️ Artista o título no proporcionados.'); 
@@ -1475,6 +1462,7 @@ async function updateSrgssrInfo() {
                         if (data.duration) {
                             trackDuration = data.duration;
                             trackStartTime = Date.now();
+                            console.log('✅ Duración obtenida desde Spotify:', trackDuration, 'segundos');
                             startCountdown();
                         } else {
                              console.log('ℹ️ Spotify no proporcionó duración. Buscando en MusicBrainz...');
@@ -1642,7 +1630,12 @@ async function updateSrgssrInfo() {
                         if (remaining <= 0) {
                             clearInterval(countdownInterval); countdownInterval = null;
                             countdownTimer.textContent = '00:00';
-                            updateSongInfo();
+                            // Para NRK, no se busca una nueva canción, simplemente se detiene.
+                            if(currentStation && currentStation.service === 'nrk') {
+                                stopBtn.click();
+                            } else {
+                                updateSongInfo();
+                            }
                             return;
                         }
 
