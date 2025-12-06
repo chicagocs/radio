@@ -1,4 +1,4 @@
-const CACHE_NAME = 'radiomax-v1';
+const CACHE_NAME = 'radiomax-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -18,9 +18,23 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Service Worker: Cacheando archivos estáticos');
-        return cache.addAll(STATIC_ASSETS);
+        // Usamos Promise.all para esperar a que todos los intentos de caché terminen
+        return Promise.all(
+          STATIC_ASSETS.map(urlToCache => {
+            // Intentamos añadir cada URL al caché
+            return cache.add(urlToCache).catch(error => {
+              // Si falla, lo registramos en la consola pero no detenemos todo el proceso
+              console.error(`Error al cachear ${urlToCache}:`, error);
+              // Devolvemos una promesa resuelta para que Promise.all no falle
+              return Promise.resolve();
+            });
+          })
+        );
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('Service Worker: Instalación completada.');
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -37,9 +51,11 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+        console.log('Service Worker: Activación completada.');
+        return self.clients.claim();
     })
   );
-  return self.clients.claim();
 });
 
 // Interceptar peticiones de red
@@ -61,7 +77,7 @@ self.addEventListener('fetch', event => {
   if (requestUrl.hostname.includes('api.somafm.com') || 
       requestUrl.hostname.includes('musicbrainz.org') ||
       requestUrl.hostname.includes('nrk.no') ||
-      requestUrl.hostname.includes('tu-worker.tramax.com.ar')) { // <-- ¡IMPORTANTE! Añade tu dominio de Worker aquí
+      requestUrl.hostname.includes('tu-worker.tramax.com.ar')) { // ¡IMPORTANTE! Usa tu dominio de Worker aquí
     event.respondWith(
       fetch(event.request)
         .then(response => {
