@@ -1733,16 +1733,20 @@
             }
 
             function resetUI() {
+                if (isReconnecting) {
+                     console.log('Skipping UI reset because reconnection is in progress.');
+                     return;
+                  }
+
                 songTitle.textContent = 'Reproduciendo...';
                 songArtist.textContent = '';
                 songAlbum.textContent = '';
                 resetCountdown();
                 resetAlbumCover();
                 resetAlbumDetails();
-                
                 updateShareButtonVisibility();
             }
-            
+                          
             function displayAlbumCover(img) {
                 albumCover.innerHTML = '';
                 const displayImg = document.createElement('img');
