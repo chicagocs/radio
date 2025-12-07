@@ -1,4 +1,4 @@
-RadioMax | Una experiencia inmersiva
+🎧 RadioMax | Una experiencia inmersiva
 
 RadioMax es una aplicación web progresiva (PWA) moderna y elegante para escuchar radio en linea. 
 Diseñada para los amantes de la música, ofrece una experiencia envolvente con información de canciones en tiempo real, portadas de álbumes y una interfaz oscura y personalizada. Instálala en tu dispositivo para disfrutar de una experiencia de aplicación nativa.
@@ -18,17 +18,10 @@ PWA: Service Workers, Web App Manifest
 Backend/Proxy: Cloudflare Workers para llamadas a APIs seguras.
 
 
-
-# 🎧 RadioMax
-
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
 [![Live Demo](https://img.shields.io/badge/Demo-Live-orange?style=for-the-badge&logo=github-pages)](https://chicagocs.github.io/radiomax/)
 [![GitHub Pages](https://img.shields.io/badge/GitHub-Pages-blue?style=for-the-badge&logo=github)](https://pages.github.com/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
-
-Un reproductor de radio web elegante y moderno, construido únicamente con HTML, CSS y JavaScript vanilla. Ofrece una experiencia de usuario inmersiva con una interfaz oscura, controles intuitivos y la capacidad de sintonizar selectas estaciones de radio.
-
----
 
 ### 🖼️ Captura de Pantalla
 
