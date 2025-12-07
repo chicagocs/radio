@@ -1903,57 +1903,64 @@ footer strong {
         });
     </script>
     
-    <!-- PWA: Script para registrar el Service Worker con detección de actualizaciones -->
-    <script>
-      if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-              let refreshing = false;
-              const updateNotification = document.getElementById('update-notification');
-              const updateReloadBtn = document.getElementById('update-reload-btn');
+<script>
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+          let refreshing = false;
+          const updateNotification = document.getElementById('update-notification');
+          const updateReloadBtn = document.getElementById('update-reload-btn');
 
-              navigator.serviceWorker.register('/sw.js')
-                  .then(registration => {
-                      console.log('ServiceWorker registrado con éxito:', registration.scope);
+          navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                  console.log('ServiceWorker registrado con éxito:', registration.scope);
 
-                      // Comprobar si hay una nueva versión esperando
-                      if (registration.waiting) {
-                          updateNotification.style.display = 'block';
-                      }
-
-                      // Detectar cuando se instala una nueva versión del Service Worker
-                      registration.addEventListener('updatefound', () => {
-                          const newWorker = registration.installing;
-                          newWorker.addEventListener('statechange', () => {
-                              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                  // Una nueva versión está disponible, mostrar la notificación
-                                  updateNotification.style.display = 'block';
-                              }
-                          });
-                      });
-                  })
-                  .catch(error => {
-                      console.log('Error al registrar el ServiceWorker:', error);
-                  });
-
-              // Escuchar cambios de controlador para recargar la página
-              navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  console.log('Controller changed, reloading page...');
-                  if (refreshing) return;
-                  refreshing = true;
-                  window.location.reload();
-              });
-
-              // Manejar el clic en el botón de actualizar
-              updateReloadBtn.addEventListener('click', () => {
-                  updateNotification.style.display = 'none';
-                  if (navigator.serviceWorker.controller) {
-                      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                  // Comprobar si hay una nueva versión esperando
+                  if (registration.waiting) {
+                      updateNotification.style.display = 'block';
                   }
-              });
-          });
-      }
-    </script>
 
+                  // Detectar cuando se instala una nueva versión del Service Worker
+                  registration.addEventListener('updatefound', () => {
+                      const newWorker = registration.installing;
+                      newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // Una nueva versión está disponible, mostrar la notificación
+                              updateNotification.style.display = 'block';
+                          }
+                      });
+                  });
+              })
+              .catch(error => {
+                  console.log('Error al registrar el ServiceWorker:', error);
+              });
+
+          // Escuchar cambios de controlador para recargar la página
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+              console.log('Controller changed, reloading page...');
+              if (refreshing) return;
+              refreshing = true;
+              window.location.reload();
+          });
+
+          // Manejar el clic en el botón de actualizar
+          updateReloadBtn.addEventListener('click', () => {
+              console.log('Botón de actualizar presionado. Forzando recarga.');
+              updateNotification.style.display = 'none'; // Ocultar notificación inmediatamente
+              
+              // Enviar mensaje al Service Worker para que active la nueva versión
+              if (navigator.serviceWorker.controller) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+              }
+              
+              // Forzar la recarga de la página como respaldo inmediato
+              // Esto es más fiable en móviles
+              setTimeout(() => {
+                  window.location.reload();
+              }, 100); // Pequeño retraso para asegurar que el mensaje se envíe
+          });
+      });
+  }
+</script>
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
 </body>
