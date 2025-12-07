@@ -12,6 +12,7 @@ Características Clave
 🎨 Interfaz pulida: Un diseño oscuro con acentos naranjas, totalmente responsivo y creado para una experiencia musical inmersiva.
 🔒 Seguro y robusto: Implementa las mejores prácticas de seguridad web moderna, incluyendo Content Security Policy (CSP).
 📱 Totalmente adaptable: Se adapta sin problemas a cualquier tamaño de pantalla, desde escritorio hasta móvil.
+
 Tecnologías Utilizadas
 Frontend: HTML5, CSS3, JavaScript (ES6+)
 PWA: Service Workers, Web App Manifest
