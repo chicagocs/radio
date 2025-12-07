@@ -747,10 +747,10 @@ footer strong {
     }
 }
     
-        /* Estilos para la notificación de actualización */
+
         #update-notification {
             position: fixed;
-            bottom: 60px; /* Se posiciona justo encima del pie de página */
+            bottom: 60px; 
             left: 50%;
             transform: translateX(-50%);
             background-color: #ff6600;
@@ -773,6 +773,37 @@ footer strong {
             cursor: pointer;
             font-weight: bold;
         }
+        /* --- ESTILOS PARA BOTONES DE INSTALACIÓN PWA --- */
+#install-pwa-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px; /* Espacio entre los botones */
+    margin-top: 5px;
+}
+
+.install-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #999999;
+    text-decoration: none;
+    font-size: 11px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.install-btn:hover {
+    color: #ff6600;
+    opacity: 1;
+}
+
+.install-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+} 
+           
 </style>    
 </head>
 <body>
@@ -862,11 +893,27 @@ footer strong {
         <audio id="audioPlayer"></audio>
     </div>
 
-    <!-- INICIO: Pie de página -->
     <footer>
         <strong>RadioMax</strong> | una experiencia inmersiva
     </footer>
-    <!-- FIN: Pie de página -->
+
+    <footer>
+    <strong>RadioMax</strong> | una experiencia inmersiva
+    <div id="install-pwa-container">
+        <a href="#" id="install-pwa-btn-android" class="install-btn" title="Instalar Aplicación">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM9 19v-6h4v6H9z"/>
+            </svg>
+            <span>Instalar</span>
+        </a>
+        <a href="#" id="install-pwa-btn-ios" class="install-btn" title="Añadir a pantalla de inicio">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.51.5 1.24.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92zM18 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM6 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 7.02c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+            </svg>
+            <span>iOS</span>
+        </a>
+    </div>
+    </footer>
 
     <!-- Notificación de actualización de PWA -->
     <div id="update-notification" style="display: none;">
@@ -1010,6 +1057,81 @@ footer strong {
                 }
             });
 
+            // --- LÓGICA DE INSTALACIÓN PWA ---
+
+let deferredPrompt; // Variable para guardar el evento de instalación de Android
+const installPwaBtnAndroid = document.getElementById('install-pwa-btn-android');
+const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
+
+// Función para mostrar u ocultar los botones de instalación
+function showInstallPwaButtons() {
+    // No mostrar si ya está en modo standalone (ya instalado)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
+        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
+        return;
+    }
+
+    // Detectar el sistema operativo para mostrar el botón correcto
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    
+    if (isIos) {
+        if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
+        if (installPwaBtnIos) installPwaBtnIos.style.display = 'flex';
+    } else {
+        if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'flex';
+        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
+    }
+}
+
+// Evento que se dispara cuando el navegador detecta que la PWA se puede instalar (Android/Chrome)
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevenir que Chrome muestre su banner automáticamente
+    e.preventDefault();
+    // Guardar el evento para poder usarlo más tarde
+    deferredPrompt = e;
+    // Mostrar el botón de instalación
+    showInstallPwaButtons();
+});
+
+// Lógica para el botón de instalación de Android
+if (installPwaBtnAndroid) {
+    installPwaBtnAndroid.addEventListener('click', async (e) => {
+        e.preventDefault();
+        if (!deferredPrompt) {
+            console.log('No se puede mostrar el prompt de instalación.');
+            return;
+        }
+        // Mostrar el prompt de instalación
+        deferredPrompt.prompt();
+        // Esperar la respuesta del usuario
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Resultado de la instalación: ${outcome}`);
+        if (outcome === 'accepted') {
+            console.log('PWA instalada con éxito.');
+            // Ocultar el botón si la instalación fue aceptada
+            if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
+        }
+        // Limpiar la variable
+        deferredPrompt = null;
+    });
+}
+
+// Lógica para el botón de instalación de iOS
+if (installPwaBtnIos) {
+    installPwaBtnIos.addEventListener('click', (e) => {
+        e.preventDefault();
+        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+    });
+}
+
+// Llamar a la función al cargar la página para verificar el estado
+document.addEventListener('DOMContentLoaded', () => {
+    // Pequeño retraso para asegurar que el DOM esté listo
+    setTimeout(showInstallPwaButtons, 1000); 
+});
+            
+            
             function showNotification(message) {
                 notification.textContent = message;
                 notification.classList.add('show');
