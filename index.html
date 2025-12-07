@@ -992,12 +992,16 @@
             let currentTrackInfo = null;
             let lastPlaybackTime = 0;
             let timeStuckCheckInterval = null;
+            let isReconnecting = false;
+            let reconnectAttempts = 0;
+            const MAX_RECONNECT_ATTEMPTS = 5;
+            let reconnectTimeoutId = null;
+
             audioPlayer.volume = 0.5;
-                                 
+
             // ==========================================================================
-            // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
-            // ==========================================================================
-            
+               // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
+               // ==========================================================================
             const apiCallTracker = {
                 somaFM: { lastCall: 0, minInterval: 5000 },
                 radioParadise: { lastCall: 0, minInterval: 5000 },
@@ -1024,8 +1028,8 @@
                         lastPlaybackTime = audioPlayer.currentTime;
                     }
                 }, 3000); // Comprobamos cada 3 segundos
-            }          
-            
+            }
+
             function canMakeApiCall(service) {
                 const now = Date.now();
                 if (now - apiCallTracker[service].lastCall >= apiCallTracker[service].minInterval) {
@@ -1366,11 +1370,17 @@
             });
 
             function handlePlaybackError() {
+                // Si ya estamos en modo reconexión, no hacemos nada para no interferir.
+                if (isReconnecting) {
+                    return;
+                }
+
                 isPlaying = false;
                 updateStatus(false);
 
                 audioPlayer.pause();
-                audioPlayer.src = '';
+                // No limpiamos el src aquí, para poder reutilizarlo en la reconexión
+                // audioPlayer.src = ''; 
 
                 if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
 
@@ -1384,12 +1394,18 @@
                 resetCountdown();
                 resetAlbumCover();
                 resetAlbumDetails();
-
-                songTitle.textContent = 'Error de reproducción';
-                songArtist.textContent = 'Inténtalo de nuevo más tarde';
-                songAlbum.textContent = '';
                 
-                updateShareButtonVisibility();
+                isReconnecting = true;
+                reconnectAttempts = 0;
+                songTitle.textContent = 'Conexión perdida. Esperando disponibilidad de red...';
+                songArtist.textContent = 'La reproducción se reanudará automáticamente.';
+                songAlbum.textContent = '';
+
+                // Si la conexión ya está online, intentamos reconectar inmediatamente.
+                // Si no, el evento 'online' se encargará.
+                if (navigator.onLine) {
+                    setTimeout(attemptReconnect, 2000); // Pequeña espera para que la red se estabilice
+                }
                 
                 logErrorForAnalysis('Playback error', {
                     station: currentStation ? currentStation.id : 'unknown',
@@ -1445,8 +1461,11 @@
                 audioPlayer.play()
                     .then(() => { 
                         isPlaying = true; 
-                        updateStatus(true);
+                        updateStatus(true); 
+                        
+                        // NUEVO: Iniciar monitoreo de tiempo congelado
                         startTimeStuckCheck();
+
                         if (currentStation.service !== 'nrk') {
                             setTimeout(() => startSongInfoUpdates(), 5000);
                         }
@@ -1811,12 +1830,22 @@
                 updateShareButtonVisibility();
             }
 
+            // MODIFICADO: Ahora cancela la reconexión si está en curso
             stopBtn.addEventListener('click', function() {
+                // NUEVO: Cancelar la reconexión si está en curso
+                if (isReconnecting) {
+                    isReconnecting = false;
+                    reconnectAttempts = 0;
+                    if (reconnectTimeoutId) {
+                        clearTimeout(reconnectTimeoutId);
+                        reconnectTimeoutId = null;
+                    }
+                }
+
                 audioPlayer.pause();
-                audioPlayer.src = '';
+                audioPlayer.src = ''; // Aquí sí limpiamos el src
                 isPlaying = false;
                 updateStatus(false);
-                if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
                 stopSongInfoUpdates();
             });
 
@@ -1883,6 +1912,62 @@
             audioPlayer.addEventListener('playing', () => { isPlaying = true; updateStatus(true); });
             audioPlayer.addEventListener('pause', () => { isPlaying = false; updateStatus(false); });
             audioPlayer.addEventListener('ended', () => { isPlaying = false; updateStatus(false); });
+
+            // ==========================================================================
+               // LÓGICA DE RECONEXIÓN AUTOMÁTICA
+               // ==========================================================================
+
+            // Escuchar cuando la conexión se restablece
+            window.addEventListener('online', () => {
+                if (isReconnecting) {
+                    console.log('Network is back. Attempting to reconnect...');
+                    attemptReconnect();
+                }
+            });
+
+            // Escuchar cuando se pierde la conexión (para información)
+            window.addEventListener('offline', () => {
+                console.log('Network connection lost.');
+            });
+
+            // NUEVO: Función para intentar la reconexión
+            function attemptReconnect() {
+                if (!isReconnecting || !currentStation) {
+                    return;
+                }
+
+                if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                    console.error('Max reconnection attempts reached. Stopping.');
+                    songTitle.textContent = 'Error de conexión: no se pudo restaurar';
+                    songArtist.textContent = 'Intenta reproducir manualmente';
+                    isReconnecting = false; // Salimos del modo reconexión
+                    return;
+                }
+
+                reconnectAttempts++;
+                songTitle.textContent = `Intentando reconectar... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
+                songArtist.textContent = '';
+                songAlbum.textContent = '';
+
+                // Intentamos reproducir. La función playStation devuelve la promesa de audioPlayer.play()
+                playStation()
+                    .then(() => {
+                        // ¡Éxito! La reconexión funcionó.
+                        console.log('Reconnection successful!');
+                        isReconnecting = false;
+                        reconnectAttempts = 0;
+                        if (reconnectTimeoutId) {
+                            clearTimeout(reconnectTimeoutId);
+                            reconnectTimeoutId = null;
+                        }
+                    })
+                    .catch((error) => {
+                        // Fallo. Programamos otro intento.
+                        console.error(`Reconnection attempt ${reconnectAttempts} failed:`, error);
+                        reconnectTimeoutId = setTimeout(attemptReconnect, 5000); // Reintentar en 5 segundos
+                    });
+            }
+
 
             // ==========================================================================
                // LÓGICA DE INSTALACIÓN PWA
