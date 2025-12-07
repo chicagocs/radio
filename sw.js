@@ -1,4 +1,4 @@
-const CACHE_NAME = 'radiomax-v2';
+const CACHE_NAME = 'radiomax-v3'; 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -62,22 +62,34 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
 
-  // Estrategia 1: Cache First para el App Shell (archivos estáticos)
+  // ESTRATEGIA 1: Stale-While-Revalidate para el App Shell (archivos estáticos)
+  // Servimos desde caché al instante, PERO actualizamos la caché en segundo plano.
   if (STATIC_ASSETS.includes(requestUrl.pathname) || requestUrl.pathname === '/') {
     event.respondWith(
-      caches.match(event.request)
-        .then(response => {
-          return response || fetch(event.request);
-        })
+      caches.open(CACHE_NAME).then(cache => {
+        // Buscar en caché y hacer la petición a la red al mismo tiempo
+        return cache.match(event.request).then(cachedResponse => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            // Si la respuesta de red es válida, actualizamos la caché
+            if (networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          });
+          // Servir la versión cacheada inmediatamente para velocidad
+          return cachedResponse || fetchPromise;
+        });
+      })
     );
-    return;
+    return; // Importante: salir para no ejecutar la lógica de abajo
   }
 
-  // Estrategia 2: Network First para llamadas a APIs (con fallback a caché)
+  // ESTRATEGIA 2: Network First para llamadas a APIs (con fallback a caché)
+  // Esta parte está bien, no hay que cambiarla.
   if (requestUrl.hostname.includes('api.somafm.com') || 
       requestUrl.hostname.includes('musicbrainz.org') ||
       requestUrl.hostname.includes('nrk.no') ||
-      requestUrl.hostname.includes('tu-worker.tramax.com.ar')) { // ¡IMPORTANTE! Usa tu dominio de Worker aquí
+      requestUrl.hostname.includes('core.chcs.workers.dev')) { // Usar tu dominio de Worker aquí
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -104,9 +116,9 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// Escuchar el mensaje para saltar la espera y activarse inmediatamente
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
-
