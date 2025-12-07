@@ -932,10 +932,9 @@
                 <div class="now-playing-header">
                     <div class="now-playing-label">Ahora</div>
                     <button class="share-button" id="shareButton">&nbsp;&nbsp;&nbsp;&nbsp;
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                            <polyline points="16 6 12 2 8 6"></polyline>
-                            <line x1="12" y1="2" x2="12" y2="15"></line>
+                        <!-- CORREGIDO: SVG de compartir reemplazado por una versión más simple y robusta -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566-5.314m0 0a2.25 2.25 0 0 1 2.186-3.185 2.25 2.25 0 0 1 2.186 3.185m-1.945 2.294a2.25 2.25 0 0 0 3.186 0l2.968-2.953a2.25 2.25 0 0 0 0-3.186L16.913 4.12a2.25 2.25 0 0 0-3.186 0l-2.968 2.953Z" />
                         </svg>
                         <span class="share-button-text">COMPARTIR</span>
                         <div class="share-options" id="shareOptions">
@@ -1041,7 +1040,10 @@
         <div class="invitation-text">Instalar</div>
         <div class="invitation-logos">
             <a href="#" id="install-windows" class="install-logo-btn" title="Instalar en Windows">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801z"/></svg>
+                <!-- CORREGIDO: SVG de Windows reemplazado por una versión más simple -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M0 3.449L9.75 2.1v9.451H0M10.949 2.1V24L24 11.4H10.949"/>
+                </svg>
             </a>
             <a href="#" id="install-android" class="install-logo-btn" title="Instalar en Android">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.523 15.34a1.5 1.5 0 1 1 .001 3.001 1.5 1.5 0 0 1-.001-3.001zm-11.046 0a1.5 1.5 0 1 1 .001 3.001 1.5 1.5 0 0 1-.001-3.001zM12 .011C8.926.011 7.574 1.363 7.574 4.437v2.192H5.382a1.5 1.5 0 0 0-1.5 1.5v12.857a1.5 1.5 0 0 0 1.5 1.5h13.236a1.5 1.5 0 0 0 1.5-1.5V8.129a1.5 1.5 0 0 0-1.5-1.5h-2.192V4.437C16.426 1.363 15.074.011 12 .011zm0 2.998c1.376 0 2.428 1.052 2.428 2.428v2.192H9.572V4.437c0-1.376 1.052-2.428 2.428-2.428z"/></svg>
