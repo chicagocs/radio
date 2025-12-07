@@ -6,18 +6,17 @@ Diseñada para los amantes de la música, ofrece una experiencia envolvente con 
 Características Clave
 
 🚀 Instalable como PWA: Disfruta de una experiencia de aplicación nativa, directamente desde tu navegador. Funciona sin conexión gracias al caché inteligente.<br>
-🎵 Multiplataforma de streaming: Incluye estaciones de servicios populares y selectos en un solo lugar.
-🎨 Información enriquecida: Muestra en tiempo real el título, artista, álbum, portada, año, sello discográfico y género de la canción que suena.
-⚡ Rendimiento superior: Construido con service worker y proxy para una experiencia rápida, segura y fiable.
-🎨 Interfaz pulida: Un diseño oscuro con acentos naranjas, totalmente responsivo y creado para una experiencia musical inmersiva.
-🔒 Seguro y robusto: Implementa las mejores prácticas de seguridad web moderna, incluyendo Content Security Policy (CSP).
-📱 Totalmente adaptable: Se adapta sin problemas a cualquier tamaño de pantalla, desde escritorio hasta móvil.
+🎵 Multiplataforma de streaming: Incluye estaciones de servicios populares y selectos en un solo lugar.<br>
+🎨 Información enriquecida: Muestra en tiempo real el título, artista, álbum, portada, año, sello discográfico y género de la canción que suena.<br>
+⚡ Rendimiento superior: Construido con service worker y proxy para una experiencia rápida, segura y fiable.<br>
+🎨 Interfaz pulida: Un diseño oscuro con acentos naranjas, totalmente responsivo y creado para una experiencia musical inmersiva.<br>
+🔒 Seguro y robusto: Implementa las mejores prácticas de seguridad web moderna, incluyendo Content Security Policy (CSP).<br>
+📱 Totalmente adaptable: Se adapta sin problemas a cualquier tamaño de pantalla, desde escritorio hasta móvil.<br>
 
-Tecnologías Utilizadas
-Frontend: HTML5, CSS3, JavaScript (ES6+)
-PWA: Service Workers, Web App Manifest
-Backend/Proxy: Cloudflare Workers para llamadas a APIs seguras.
-
+Tecnologías Utilizadas<br>
+Frontend: HTML5, CSS3, JavaScript (ES6+)<br>
+PWA: Service Workers, Web App Manifest<br>
+Backend/Proxy: Cloudflare Workers para llamadas a APIs seguras.<br>
 
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
 [![Live Demo](https://img.shields.io/badge/Demo-Live-orange?style=for-the-badge&logo=github-pages)](https://chicagocs.github.io/radiomax/)
