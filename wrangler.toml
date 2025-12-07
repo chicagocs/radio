@@ -1,4 +1,4 @@
-name = "spotifydeveloper-api"
+name = "core"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 [vars]
@@ -17,4 +17,5 @@ invocation_logs = true
 enabled = false
 persist = true
 head_sampling_rate = 1
+
 
