@@ -5,7 +5,7 @@ Diseñada para los amantes de la música, ofrece una experiencia envolvente con 
 
 Características Clave
 
-🚀 Instalable como PWA: Disfruta de una experiencia de aplicación nativa, directamente desde tu navegador. Funciona sin conexión gracias al caché inteligente.
+🚀 Instalable como PWA: Disfruta de una experiencia de aplicación nativa, directamente desde tu navegador. Funciona sin conexión gracias al caché inteligente.<br>
 🎵 Multiplataforma de streaming: Incluye estaciones de servicios populares y selectos en un solo lugar.
 🎨 Información enriquecida: Muestra en tiempo real el título, artista, álbum, portada, año, sello discográfico y género de la canción que suena.
 ⚡ Rendimiento superior: Construido con service worker y proxy para una experiencia rápida, segura y fiable.
