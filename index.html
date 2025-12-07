@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadioMax</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.tramax.com.ar; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://spotifydeveloper-api.chcs.workers.dev
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://stats.tramax.com.ar; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; media-src 'self' https:; connect-src 'self' https: https://api.somafm.com https://musicbrainz.org https://core.chcs.workers.dev
     https://kutt.it;">  
     <link rel="canonical" href="https://radiomax.tramax.com.ar/index.html">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -1459,7 +1459,7 @@ footer strong {
                 }
                 
                 try {
-                    const workerUrl = 'https://spotifydeveloper-api.chcs.workers.dev/radioparadise';
+                    const workerUrl = 'https://core.chcs.workers.dev/radioparadise';
                     const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
                     const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
 
@@ -1519,7 +1519,7 @@ footer strong {
                 resetCountdown();
                 
                 try {
-                    const netlifyApiUrl = 'https://spotifydeveloper-api.chcs.workers.dev/spotify';
+                    const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify';
                     
                     const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
                     
