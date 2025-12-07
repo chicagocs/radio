@@ -990,18 +990,42 @@
             let trackDuration = 0;
             let trackStartTime = 0;
             let currentTrackInfo = null;
-
+            let lastPlaybackTime = 0;
+            let timeStuckCheckInterval = null;
             audioPlayer.volume = 0.5;
-
+                                 
             // ==========================================================================
-               // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
-               // ==========================================================================
+            // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
+            // ==========================================================================
+            
             const apiCallTracker = {
                 somaFM: { lastCall: 0, minInterval: 5000 },
                 radioParadise: { lastCall: 0, minInterval: 5000 },
                 musicBrainz: { lastCall: 0, minInterval: 1000 }
             };
 
+            function startTimeStuckCheck() {
+                // Limpiamos cualquier comprobación anterior
+                if (timeStuckCheckInterval) clearInterval(timeStuckCheckInterval);
+                
+                // Guardamos el tiempo actual como referencia
+                lastPlaybackTime = audioPlayer.currentTime;
+
+                timeStuckCheckInterval = setInterval(() => {
+                    // Solo comprobamos si creemos que está sonando
+                    if (isPlaying) {
+                        // Si el tiempo de audio no ha avanzado en los últimos 3 segundos, hay un problema
+                        if (audioPlayer.currentTime === lastPlaybackTime) {
+                            console.warn('Playback time is frozen. Handling as a network error.');
+                            handlePlaybackError();
+                            return; // Detenemos la comprobación
+                        }
+                        // Actualizamos el tiempo de referencia para la próxima comprobación
+                        lastPlaybackTime = audioPlayer.currentTime;
+                    }
+                }, 3000); // Comprobamos cada 3 segundos
+            }          
+            
             function canMakeApiCall(service) {
                 const now = Date.now();
                 if (now - apiCallTracker[service].lastCall >= apiCallTracker[service].minInterval) {
@@ -1348,6 +1372,8 @@
                 audioPlayer.pause();
                 audioPlayer.src = '';
 
+                if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
+
                 if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
                 if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
                 
@@ -1419,7 +1445,8 @@
                 audioPlayer.play()
                     .then(() => { 
                         isPlaying = true; 
-                        updateStatus(true); 
+                        updateStatus(true);
+                        startTimeStuckCheck();
                         if (currentStation.service !== 'nrk') {
                             setTimeout(() => startSongInfoUpdates(), 5000);
                         }
@@ -1789,6 +1816,7 @@
                 audioPlayer.src = '';
                 isPlaying = false;
                 updateStatus(false);
+                if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
                 stopSongInfoUpdates();
             });
 
