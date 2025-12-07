@@ -1,3 +1,24 @@
+RadioMax | Una experiencia inmersiva
+
+RadioMax es una aplicación web progresiva (PWA) moderna y elegante para escuchar radio en linea. 
+Diseñada para los amantes de la música, ofrece una experiencia envolvente con información de canciones en tiempo real, portadas de álbumes y una interfaz oscura y personalizada. Instálala en tu dispositivo para disfrutar de una experiencia de aplicación nativa.
+
+Características Clave
+
+🚀 Instalable como PWA: Disfruta de una experiencia de aplicación nativa, directamente desde tu navegador. Funciona sin conexión gracias al caché inteligente.
+🎵 Multiplataforma de streaming: Incluye estaciones de servicios populares y selectos en un solo lugar.
+🎨 Información enriquecida: Muestra en tiempo real el título, artista, álbum, portada, año, sello discográfico y género de la canción que suena.
+⚡ Rendimiento superior: Construido con service worker y proxy para una experiencia rápida, segura y fiable.
+🎨 Interfaz pulida: Un diseño oscuro con acentos naranjas, totalmente responsivo y creado para una experiencia musical inmersiva.
+🔒 Seguro y robusto: Implementa las mejores prácticas de seguridad web moderna, incluyendo Content Security Policy (CSP).
+📱 Totalmente adaptable: Se adapta sin problemas a cualquier tamaño de pantalla, desde escritorio hasta móvil.
+Tecnologías Utilizadas
+Frontend: HTML5, CSS3, JavaScript (ES6+)
+PWA: Service Workers, Web App Manifest
+Backend/Proxy: Cloudflare Workers para llamadas a APIs seguras.
+
+
+
 # 🎧 RadioMax
 
 <!-- TODO: Reemplaza 'TU_USUARIO' y 'TU_REPOSITORIO' con tus datos -->
