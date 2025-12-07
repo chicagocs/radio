@@ -914,8 +914,9 @@
     </div>
 
     <!-- INICIO: Pie de página -->
+    <!-- MODIFICADO: Se agregó el span para el número de versión -->
     <footer>
-        <strong>RadioMax</strong> | una experiencia inmersiva
+        <strong>RadioMax</strong> | una experiencia inmersiva   v<span id="version-number">...</span>
         <script>
         /*  
         Inicio por habilitar
@@ -2199,6 +2200,36 @@
               });
           });
       }
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const versionSpan = document.getElementById('version-number');
+            
+            // Usamos fetch para obtener el contenido del archivo sw.js como texto
+            fetch('sw.js')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    // Usamos una expresión regular para encontrar la versión.
+                    // Busca un patrón como "v1.2.3" o "Version: 1.2.3" al principio del archivo.
+                    const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+\.\d+\.\d+)/m);
+                    if (versionMatch) {
+                        versionSpan.textContent = versionMatch[1];
+                    } else {
+                        versionSpan.textContent = 'N/D'; // No Disponible
+                        console.warn('No se pudo encontrar el número de versión en sw.js');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
+                    versionSpan.textContent = 'Error';
+                });
+        });
     </script>
 
     <script data-goatcounter="https://stats.tramax.com.ar/count"
