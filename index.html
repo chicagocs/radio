@@ -735,24 +735,32 @@
         
         /* ==========================================================================
            ESTILOS DEL PIE DE PÁGINA Y PWA
-           ========================================================================== */
+        ========================================================================== */
         footer {
-            position: fixed;
-            bottom: 19px;
-            left: 50%;
-            transform: translateX(-50%);
-            
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 12px;
-            color: #999999;
-            text-align: center;
-            z-index: 10;
-            white-space: nowrap; 
+          position: fixed;
+          bottom: 19px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-size: 12px;
+          color: #999999;
+          z-index: 10;
+          white-space: nowrap;
+          display: flex; /* Convierte al footer en un contenedor flexible */
+          align-items: center; /* Centra verticalmente el contenido de las columnas */
+          justify-content: center; /* Centra horizontalmente el grupo de columnas */
+          width: 100%; /* Ocupa todo el ancho disponible */
+          max-width: 500px; /* Limita el ancho máximo para que no se estire demasiado */
+        }
+
+        .footer-column {
+          flex: 1; /* Hace que cada columna ocupe la misma cantidad de espacio */
+          text-align: center; /* Centra el texto dentro de cada columna */
         }
 
         footer strong {
-            color: #ffffff;
-            font-weight: bold;
+         color: #ffffff;
+         font-weight: bold;
         }
         
         /* Estilos para la notificación de actualización */
@@ -915,7 +923,15 @@
 
     <!-- INICIO: Pie de página -->
     <footer>
-        <strong>RadioMax</strong> | una experiencia inmersiva  v<span id="version-number">...</span>
+        <div class="footer-column">
+        <!-- -->
+        </div>
+        <div class="footer-column">
+         <strong>RadioMax</strong> | una experiencia inmersiva
+        </div>
+        <div class="footer-column">
+          v<span id="version-number">...</span>
+        </div>
         <script>
         /*  
         Inicio por habilitar
