@@ -2147,7 +2147,6 @@
         });
     </script>
     
-    <!-- PWA: Script para registrar el Service Worker con detección de actualizaciones (Versión Robusta) -->
     <script>
       if ('serviceWorker' in navigator) {
           window.addEventListener('load', () => {
@@ -2204,34 +2203,39 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const versionSpan = document.getElementById('version-number');
-            
-            // Usamos fetch para obtener el contenido del archivo sw.js como texto
-            fetch('sw.js')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(text => {
-                    // Usamos una expresión regular para encontrar la versión.
-                    // Busca un patrón como "v1.2.3" o "Version: 1.2.3" al principio del archivo.
-                    const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+\.\d+\.\d+)/m);
-                    if (versionMatch) {
-                        versionSpan.textContent = versionMatch[1];
-                    } else {
-                        versionSpan.textContent = 'N/D'; // No Disponible
-                        console.warn('No se pudo encontrar el número de versión en sw.js');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
-                    versionSpan.textContent = 'Error';
-                });
-        });
-    </script>
+        const versionSpan = document.getElementById('version-number');
+        
+        // Usamos fetch para obtener el contenido del archivo sw.js como texto
+        fetch('sw.js')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(text => {
+                // --- DEPURACIÓN ---
+                // Puedes ver en la consola lo que se ha descargado del archivo sw.js
+                // console.log("Contenido de sw.js recibido:", text);
+                // ------------------
 
+                // NUEVA EXPRESIÓN REGULAR CORREGIDA:
+                // Busca un número de versión con 1 o 2 partes decimales (ej: "3.0" o "3.0.1")
+                const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+                if (versionMatch && versionMatch[1]) {
+                    versionSpan.textContent = versionMatch[1];
+                } else {
+                    versionSpan.textContent = 'N/D'; // No Disponible
+                    console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
+                versionSpan.textContent = 'Error';
+            });
+    });
+    </script>
+        
     <script data-goatcounter="https://stats.tramax.com.ar/count"
         async src="/count.js"></script>   
 </body>
