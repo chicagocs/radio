@@ -1929,40 +1929,40 @@
             });
 
             shareWhatsApp.addEventListener('click', () => {
-                const title = songTitle.textContent;
-                const artist = songArtist.textContent;
-                
-                if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-                    const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en megaradio!`;
-                    
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
-                    
-                    if (isBraveAndroid) {
-                        showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
-                        setTimeout(() => {
-                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                        }, 1000);
-                    } else if (isMobile) {
-                        const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
-                        const link = document.createElement('a');
-                        link.href = whatsappUri;
-                        link.target = '_blank';
-                        link.rel = 'noopener noreferrer';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        setTimeout(() => {
-                            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                        }, 1500);
-                    } else {
-                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                    }
-                    
-                    shareOptions.classList.remove('active');
-                } else {
-                    showNotification('Por favor, espera a que comience una canción para compartir');
-                }
+              const title = songTitle.textContent;
+              const artist = songArtist.textContent;
+    
+              if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
+                 const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en megaradio!`;
+        
+                 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                 const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
+        
+              if (isBraveAndroid) {
+                  showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
+                  setTimeout(() => {
+                     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                     }, 1000);
+                 } else if (isMobile) {
+                 const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
+                 const link = document.createElement('a');
+            link.href = whatsappUri;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => {
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+            }, 1500);
+        } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+        }
+        
+        shareOptions.classList.remove('active');
+    } else {
+        showNotification('Por favor, espera a que comience una canción para compartir');
+    }
             });
 
             // ==========================================================================
