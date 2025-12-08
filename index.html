@@ -1455,7 +1455,7 @@
                     if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
                 } else {
                     if (currentStation) playStation();
-                    else alert('Por favor seleccionar estación primero');
+                    else alert('Por favor, seleccionar una estación');
                 }
             });
 
@@ -1481,7 +1481,7 @@
             }
 
             function playStation() {
-                if (!currentStation) { alert('Por favor selecciona una estación primero'); return; }
+                if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
                 if (updateInterval) clearInterval(updateInterval);
                 if (countdownInterval) clearInterval(countdownInterval);
                 
