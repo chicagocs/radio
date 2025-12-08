@@ -50,9 +50,8 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
-            /* Añadimos padding-bottom para evitar la superposición con el footer fijo */
-            padding-bottom: 60px; 
+            padding: 20px; 
+            /* padding-bottom: 60px; */
         }
 
         /* ==========================================================================
@@ -738,10 +737,13 @@
            MODIFICADO: ESTILOS DEL PIE DE PÁGINA Y PWA
         ========================================================================== */
         footer {
-          position: fixed;
+          /* position: fixed;
           bottom: 19px;
           left: 50%;
-          transform: translateX(-50%);
+          transform: translateX(-50%); */
+          position: relative;
+          margin-top: 30px; /* Añade espacio entre el contenido y el footer */
+          padding: 15px 0; /* Añade padding interno */  
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           font-size: 12px;
           color: #999999;
@@ -766,7 +768,7 @@
         
         /* ESTILOS PARA BOTONES DE INSTALACIÓN PWA */
         #install-pwa-container {
-            display: none; /* CAMBIO CLAVE: Oculto por defecto */
+            display: none;
             justify-content: center;
             align-items: center;
             gap: 15px;
