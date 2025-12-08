@@ -1,4 +1,3 @@
-// sw.js
 // v3.1
 const CACHE_NAME = 'radiomax-v3.1'; 
 const STATIC_ASSETS = [
@@ -124,5 +123,6 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+
 
 
