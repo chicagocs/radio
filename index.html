@@ -933,9 +933,9 @@
                 <div class="now-playing-header">
                     <div class="now-playing-label">Ahora</div>
                     <button class="share-button" id="shareButton">&nbsp;&nbsp;&nbsp;&nbsp;
-                        <!-- CORREGIDO: SVG de compartir reemplazado por una versión más simple y robusta -->
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566-5.314m0 0a2.25 2.25 0 0 1 2.186-3.185 2.25 2.25 0 0 1 2.186 3.185m-1.945 2.294a2.25 2.25 0 0 0 3.186 0l2.968-2.953a2.25 2.25 0 0 0 0-3.186L16.913 4.12a2.25 2.25 0 0 0-3.186 0l-2.968 2.953Z" />
+                        <!-- CAMBIADO: Icono de compartir reemplazado por uno más estándar -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3.5 18.49l6-6.01 4 4L22 6.5l-4-4L14 8.5V2h-1v6.5L7.5 8.5 3.5 10zM11 2v9h1V2h-1z"/>
                         </svg>
                         <span class="share-button-text">COMPARTIR</span>
                         <div class="share-options" id="shareOptions">
@@ -1007,7 +1007,6 @@
             <div id="install-pwa-container">
                 <!-- Botón para Android -->
                 <a href="#" id="install-pwa-btn-android" class="install-btn" title="Instalar Aplicación">
-                    <!-- CORREGIDO: Icono de descarga estándar -->
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V4.5" />
                     </svg>
@@ -1016,7 +1015,7 @@
                 <!-- Botón para iOS -->
                 <a href="#" id="install-pwa-btn-ios" class="install-btn" title="Añadir a pantalla de inicio">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                        <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.24.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92zM18 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM6 13c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm12 7.02c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
                     </svg>
                     <span>iOS</span>
                 </a>
@@ -1039,21 +1038,22 @@
     <!-- NUEVO: Notificación de invitación a instalar PWA -->
     <div id="install-pwa-invitation" style="display: none;">
         <button id="close-invitation" class="close-btn">&times;</button>
-        <!-- MODIFICADO: Nueva leyenda y estilo -->
-        <div class="invitation-text">Mejora tu experiencia instalando nuestra app oficial, segura y privada</div>
+        <!-- CAMBIADO: Nueva leyenda y estilo -->
+        <div class="invitation-text">Mejora tu experiencia</div>
         <div class="invitation-logos">
-            <!-- MODIFICADO: Iconos más pequeños y correctos -->
-            <a href="#" id="install-windows" class="install-logo-btn" title="Instalar en Windows">
+            <!-- CAMBIADO: Iconos más pequeños y tooltips unificados -->
+            <a href="#" id="install-windows" class="install-logo-btn" title="Instalar app oficial">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801z"/>
+                    <path d="M0 3.449L9.75 2.1v9.451H0M10.949 2.1V24L24 11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801z"/>
                 </svg>
             </a>
-            <a href="#" id="install-android" class="install-logo-btn" title="Instalar en Android">
+            <a href="#" id="install-android" class="install-logo-btn" title="Instalar app oficial">
+                <!-- CAMBIADO: Icono de Android más estilizado -->
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.523 15.34a1.5 1.5 0 1 1 .001 3.001 1.5 1.5 0 0 1-.001-3.001zm-11.046 0a1.5 1.5 0 1 1 .001 3.001 1.5 1.5 0 0 1-.001-3.001zM12 .011C8.926.011 7.574 1.363 7.574 4.437v2.192H5.382a1.5 1.5 0 0 0-1.5 1.5v12.857a1.5 1.5 0 0 0 1.5 1.5h13.236a1.5 1.5 0 0 0 1.5-1.5V8.129a1.5 1.5 0 0 0-1.5-1.5h-2.192V4.437C16.426 1.363 15.074.011 12 .011zm0 2.998c1.376 0 2.428 1.052 2.428 2.428v2.192H9.572V4.437c0-1.376 1.052-2.428 2.428-2.428z"/>
+                    <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85l-.85-.5c-.31-.18-.69-.04-.85.26l-1.84 3.18c-.16.31-.04.69.26.85l.85.5c.31.18.69.04.85-.26zm-3.8-6.58c-.31-.18-.69-.04-.85.26l-.85.5c-.31.18-.69.04-.85-.26l-1.84 3.18c-.16.31-.04.69.26.85l.85.5c.31.18.69.04.85-.26zm-3.8 6.58c-.31-.18-.69-.04-.85-.26l-.85-.5c-.31-.18-.69-.04-.85-.26l-1.84-3.18c-.16-.31-.04-.69.26-.85l.85-.5c.31-.18.69-.04.85.26zm-3.8-6.58c-.31-.18-.69-.04-.85.26l-.85.5c-.31.18-.69.04-.85.26l-1.84 3.18c-.16.31-.04.69.26.85l.85.5c.31.18.69.04.85-.26zM6 8c-1.11 0-2 .89-2 2s.89 2 2 2 2-.89 2-2-.89-2-2-2zm12 0c-1.11 0-2 .89-2 2s.89 2 2 2 2-.89 2-2-.89-2-2-2zm-6 4c-1.11 0-2 .89-2 2s.89 2 2 2 2-.89 2-2-.89-2-2-2z"/>
                 </svg>
             </a>
-            <a href="#" id="install-ios" class="install-logo-btn" title="Instalar en iOS">
+            <a href="#" id="install-ios" class="install-logo-btn" title="Instalar app oficial">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
                 </svg>
@@ -1573,7 +1573,9 @@
                             resetCountdown(); resetAlbumDetails(); currentTrackInfo = newTrackInfo;
                             updateUIWithTrackInfo(newTrackInfo); resetAlbumCover();
                             trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+                            
                             await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                            
                         }
                     } else { resetUI(); }
                 } catch (error) { 
@@ -1597,6 +1599,7 @@
                         resetCountdown(); resetAlbumDetails(); currentTrackInfo = newTrackInfo;
                         updateUIWithTrackInfo(newTrackInfo); resetAlbumCover();
                         trackStartTime = Date.now();
+                        
                         await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                     }
                 } catch (error) {
@@ -1618,6 +1621,7 @@
                     if (data && data.imageUrl) {
                         displayAlbumCoverFromUrl(data.imageUrl);
                         updateAlbumDetailsWithSpotifyData(data);
+                        
                         if (data.duration) { trackDuration = data.duration; trackStartTime = Date.now(); startCountdown(); }
                         else { await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); }
                         return;
@@ -1965,7 +1969,7 @@
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
                         if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
-                        else { console.log('User dismissed A2HS prompt'); }
+                        else { console.log('User dismissed the A2HS prompt'); }
                         deferredPrompt = null;
                     });
                     hideInstallInvitation();
@@ -1979,7 +1983,7 @@
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     deferredPrompt.userChoice.then((choiceResult) => {
-                        if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
+                        if (choiceResult.outcome === 'accepted') { console.log('User accepted the A2HS prompt'); }
                         else { console.log('User dismissed the A2HS prompt'); }
                         deferredPrompt = null;
                     });
