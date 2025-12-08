@@ -1538,7 +1538,7 @@
             }
         
             async function updateSomaFmInfo() {
-                if (!canMakeApiCall('somaFM')) { console.log('Rate limiting: Demasiadas llamadas a SomaFM'); return; }
+                if (!canMakeApiCall('somaFM')) { console.log('Rate limiting: Demasiadas llamadas a APISFM'); return; }
                 try {
                     const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -1563,7 +1563,7 @@
             }
         
             async function updateRadioParadiseInfo() {
-                if (!canMakeApiCall('radioParadise')) { console.log('Rate limiting: Demasiadas llamadas a Radio Paradise'); return; }
+                if (!canMakeApiCall('radioParadise')) { console.log('Rate limiting: Demasiadas llamadas a APIRP'); return; }
                 try {
                     const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
                     const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
