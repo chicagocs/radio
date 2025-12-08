@@ -1919,15 +1919,15 @@
                  const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
                  if (isBraveAndroid) {
                      showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
-                     setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
+                     setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)&src=Whatsapp}`, '_blank'); }, 1000);
                  } else if (isMobile) {
-                     const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
+                     const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)&src=Whatsapp}`;
                      const link = document.createElement('a');
                      link.href = whatsappUri; link.target = '_blank'; link.rel = 'noopener noreferrer';
                      document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                     setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1500);
+                     setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)&src=Whatsapp}`, '_blank'); }, 1500);
                  } else {
-                     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                     window.open(`https://wa.me/?text=${encodeURIComponent(message)&src=Whatsapp}`, '_blank');
                  }
                  shareOptions.classList.remove('active');
               } else {
