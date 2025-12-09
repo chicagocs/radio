@@ -1,0 +1,71 @@
+# .github/workflows/test-security-headers.yml
+
+name: 🛡️ Test Security Headers
+
+# Dispara el workflow en cada push a la rama main y en cada pull request
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-headers:
+    runs-on: ubuntu-latest # Usar una máquina virtual con Linux
+
+    steps:
+      # Paso 1: Descarga el código de tu repositorio
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Paso 2: Ejecuta el script de prueba
+      # Puedes pegar el script del Método 1 directamente aquí para no tener que crear otro archivo.
+      - name: Run Header Tests
+        run: |
+          # URL de tu API y de tu página principal
+          API_URL="https://core.chcs.workers.dev/spotify?artist=test&title=test"
+
+          # Array de encabezados a verificar (formato: "NombreDelEncabezado:ValorEsperado")
+          declare -A HEADERS_TO_CHECK=(
+            ["Content-Security-Policy"]="default-src 'none'"
+            ["Strict-Transport-Security"]="max-age="
+            ["X-Frame-Options"]="SAMEORIGIN"
+            ["X-Content-Type-Options"]="nosniff"
+            ["Referrer-Policy"]="strict-origin-when-cross-origin"
+            ["Access-Control-Allow-Origin"]="https://radiomax.tramax.com.ar"
+          )
+
+          echo "🔍 Probando encabezados en: $API_URL"
+          echo "=================================================="
+
+          HEADERS_OUTPUT=$(curl -s -D - -o /dev/null "$API_URL")
+          FAILED_CHECKS=0
+
+          for HEADER in "${!HEADERS_TO_CHECK[@]}"; do
+            EXPECTED_VALUE="${HEADERS_TO_CHECK[$HEADER]}"
+            if echo "$HEADERS_OUTPUT" | grep -qi "^$HEADER:"; then
+              if [ -n "$EXPECTED_VALUE" ]; then
+                if echo "$HEADERS_OUTPUT" | grep -i "^$HEADER:" | grep -q "$EXPECTED_VALUE"; then
+                  echo "✅ $HEADER: OK"
+                else
+                  echo "❌ $HEADER: Valor incorrecto. Se esperaba que contuviera '$EXPECTED_VALUE'."
+                  FAILED_CHECKS=$((FAILED_CHECKS + 1))
+                fi
+              else
+                echo "✅ $HEADER: Presente"
+              fi
+            else
+              echo "❌ $HEADER: AUSENTE"
+              FAILED_CHECKS=$((FAILED_CHECKS + 1))
+            fi
+          done
+
+          echo "=================================================="
+          if [ $FAILED_CHECKS -eq 0 ]; then
+            echo "🎉 Todas las pruebas de encabezados pasaron."
+          else
+            echo "💥 Se encontraron $FAILED_CHECKS errores."
+            exit 1 # Este comando hace que el job falle si hay errores
+          fi
