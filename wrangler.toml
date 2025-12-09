@@ -2,20 +2,30 @@ name = "core"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-[site]
-bucket = "./"
-
+# ------------------------------------------------------------
+# KV Namespace
+# ------------------------------------------------------------
 [[kv_namespaces]]
 binding = "AREA51_KV"
 id = "b6330a5ca2b6489da5e06e73ff54f4d8"
 
-[vars]
+# ------------------------------------------------------------
+# Archivos estáticos
+# ------------------------------------------------------------
+[site]
+bucket = "."   # raiz del repo, donde está index.html
 
+# ------------------------------------------------------------
+# Observabilidad (logs, trazas, etc)
+# ------------------------------------------------------------
 [observability]
-enabled = true
+enabled = false
 
 [observability.logs]
 enabled = true
 head_sampling_rate = 1
 persist = true
 invocation_logs = true
+
+[observability.traces]
+enabled = false
