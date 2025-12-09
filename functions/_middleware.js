@@ -1,6 +1,7 @@
 // functions/_middleware.js
 
 export function onRequest(context) {
+  // Obtenemos la respuesta original
   const response = context.next();
 
   // Tus headers de seguridad
@@ -17,10 +18,11 @@ export function onRequest(context) {
     "Cross-Origin-Resource-Policy": "same-origin"
   };
 
-  // Aplicar los headers a la respuesta
+  // Aplicamos los headers a la respuesta
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
   });
 
+  // Devolvemos la respuesta modificada
   return response;
 }
