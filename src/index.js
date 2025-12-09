@@ -1,5 +1,3 @@
-// /src/index.js
-
 // ===============================================================
 //  CORS
 // ===============================================================
@@ -31,15 +29,15 @@ function applySecurityHeaders(response) {
       "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-      "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
+      "img-src 'self' data: https://core.s.workers.dev https://stats.max.com; " +
+      "connect-src 'self' https://api.radio.com https://core.s.workers.dev; " +
       "font-src 'self'; " +
       "manifest-src 'self'; " +
       "base-uri 'self'; " +
       "form-action 'self'; " +
       "frame-ancestors 'none'; " +
       "upgrade-insecure-requests",
-    "Strict-Transport-Security": "max-age=63072000; includeSubDomains;",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Embedder-Policy": "require-corp",
     "Cross-Origin-Resource-Policy": "same-origin"
@@ -65,7 +63,8 @@ function getAlbumTypeDescription(album) {
   const type = album.album_type;
 
   const reissueKeywords = [
-    "remastered", "deluxe", "expanded", "anniversary", "edition", "reissue", "legacy"
+    "remastered", "deluxe", "expanded", "anniversary",
+    "edition", "reissue", "legacy"
   ];
 
   if (type === "compilation") return "Compilación";
@@ -112,12 +111,13 @@ async function handleSpotifyRequest(request, env) {
     });
 
     if (!tokenResponse.ok) throw new Error("No se pudo obtener token de Spotify");
+
     const accessToken = (await tokenResponse.json()).access_token;
 
-    // ---- Búsquedas por fases ----
     let searchData = null;
     let responseFetch = null;
 
+    // Búsqueda por album -> track + artist + album
     if (album) {
       const q = `track:"${title}" artist:"${artist}" album:"${album}"`;
       responseFetch = await fetch(
@@ -127,6 +127,7 @@ async function handleSpotifyRequest(request, env) {
       if (responseFetch.ok) searchData = await responseFetch.json();
     }
 
+    // Si no hay resultados -> track + artist
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `track:"${title}" artist:"${artist}"`;
       responseFetch = await fetch(
@@ -136,6 +137,7 @@ async function handleSpotifyRequest(request, env) {
       if (responseFetch.ok) searchData = await responseFetch.json();
     }
 
+    // Último recurso -> artist + title libre
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `${artist} ${title}`;
       responseFetch = await fetch(
@@ -172,10 +174,11 @@ async function handleSpotifyRequest(request, env) {
           if (full.ok) {
             const fullAlbum = await full.json();
             resp.label = fullAlbum.label ?? resp.label;
-
             if (fullAlbum.tracks?.items) {
-              resp.totalAlbumDuration = fullAlbum.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0);
-              const idx = fullAlbum.tracks.items.findIndex((t) => t.id === track.id);
+              resp.totalAlbumDuration = fullAlbum.tracks.items.reduce(
+                (sum, t) => sum + t.duration_ms, 0
+              );
+              const idx = fullAlbum.tracks.items.findIndex(t => t.id === track.id);
               if (idx !== -1) resp.trackNumber = idx + 1;
             }
           }
@@ -203,6 +206,7 @@ async function handleSpotifyRequest(request, env) {
       });
     }
 
+    // No se encontró nada
     return new Response(
       JSON.stringify({
         imageUrl: null,
@@ -261,7 +265,7 @@ async function handleRadioParadiseRequest(request) {
 }
 
 // ===============================================================
-//  ROUTER + SERVE STATIC
+//  ROUTER + SERVIR STATIC / SPA
 // ===============================================================
 export default {
   async fetch(request, env) {
@@ -278,17 +282,21 @@ export default {
       response = await handleRadioParadiseRequest(request);
 
     } else {
-      // SERVIR ARCHIVOS ESTÁTICOS DESDE ASSETS
+      // SERVIR ARCHIVOS ESTÁTICOS Y SPA
       if (env.ASSETS) {
         try {
+          // Primero intenta servir el archivo solicitado
           response = await env.ASSETS.fetch(request);
         } catch {
-          // Si no existe el archivo, servir index.html (SPA fallback)
+          // Si no existe, sirve index.html (SPA)
           response = await env.ASSETS.fetch(new Request("/index.html", request));
         }
       } else {
-        // Fallback si no hay ASSETS configurados
-        response = new Response("<h1>OK</h1>", { status: 200, headers: { "Content-Type": "text/html" } });
+        // Fallback si Assets no configurado
+        response = new Response(
+          "<h1>OK</h1>",
+          { status: 200, headers: { "Content-Type": "text/html" } }
+        );
       }
     }
 
