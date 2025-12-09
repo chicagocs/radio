@@ -1,0 +1,28 @@
+name = "core"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[site]
+bucket = "./"
+entry-point = "src"
+
+[[kv_namespaces]]
+binding = "AREA51_KV"
+id = "b6330a5ca2b6489da5e06e73ff54f4d8"
+
+[vars]
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1
