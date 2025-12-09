@@ -12,7 +12,7 @@ function handleOptions() {
 }
 
 // ===============================================================
-//  HEADERS DE SEGURIDAD (se aplican a TODAS las respuestas)
+//  HEADERS DE SEGURIDAD
 // ===============================================================
 function applySecurityHeaders(response) {
   const securityHeaders = {
@@ -30,7 +30,7 @@ function applySecurityHeaders(response) {
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-      "connect-src 'self' https://api.radioparadise.com https://core.chcs.workers.dev; " +
+      "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
       "font-src 'self'; " +
       "manifest-src 'self'; " +
       "base-uri 'self'; " +
@@ -63,8 +63,13 @@ function getAlbumTypeDescription(album) {
   const type = album.album_type;
 
   const reissueKeywords = [
-    "remastered", "deluxe", "expanded", "anniversary",
-    "edition", "reissue", "legacy"
+    "remastered",
+    "deluxe",
+    "expanded",
+    "anniversary",
+    "edition",
+    "reissue",
+    "legacy"
   ];
 
   if (type === "compilation") return "Compilación";
@@ -101,53 +106,55 @@ async function handleSpotifyRequest(request, env) {
     }
 
     const authString = btoa(`${clientId}:${clientSecret}`);
-    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${authString}`,
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: "grant_type=client_credentials"
-    });
+    const tokenResponse = await fetch(
+      "https://accounts.spotify.com/api/token",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${authString}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "grant_type=client_credentials"
+      }
+    );
 
     if (!tokenResponse.ok) throw new Error("No se pudo obtener token de Spotify");
 
     const accessToken = (await tokenResponse.json()).access_token;
 
+    // Búsqueda
     let searchData = null;
-    let responseFetch = null;
+    let responseSpotify = null;
 
-    // Búsqueda por album -> track + artist + album
     if (album) {
       const q = `track:"${title}" artist:"${artist}" album:"${album}"`;
-      responseFetch = await fetch(
+      responseSpotify = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      if (responseFetch.ok) searchData = await responseFetch.json();
+      if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
 
-    // Si no hay resultados -> track + artist
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `track:"${title}" artist:"${artist}"`;
-      responseFetch = await fetch(
+      responseSpotify = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      if (responseFetch.ok) searchData = await responseFetch.json();
+      if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
 
-    // Último recurso -> artist + title libre
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `${artist} ${title}`;
-      responseFetch = await fetch(
+      responseSpotify = await fetch(
         `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      if (responseFetch.ok) searchData = await responseFetch.json();
+      if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
 
-    if (!responseFetch.ok) throw new Error("Error en búsqueda de Spotify");
+    if (!responseSpotify.ok)
+      throw new Error("Error en búsqueda de Spotify");
 
     if (searchData && searchData.tracks.items.length > 0) {
       const track = searchData.tracks.items[0];
@@ -165,33 +172,38 @@ async function handleSpotifyRequest(request, env) {
         albumTypeDescription: getAlbumTypeDescription(albumData)
       };
 
-      // Datos del álbum completo
+      // Datos completos del álbum
       if (albumData.id) {
         try {
-          const full = await fetch(`https://api.spotify.com/v1/albums/${albumData.id}`, {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+          const full = await fetch(
+            `https://api.spotify.com/v1/albums/${albumData.id}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
           if (full.ok) {
             const fullAlbum = await full.json();
             resp.label = fullAlbum.label ?? resp.label;
             if (fullAlbum.tracks?.items) {
               resp.totalAlbumDuration = fullAlbum.tracks.items.reduce(
-                (sum, t) => sum + t.duration_ms, 0
+                (sum, t) => sum + t.duration_ms,
+                0
               );
-              const idx = fullAlbum.tracks.items.findIndex(t => t.id === track.id);
+              const idx = fullAlbum.tracks.items.findIndex(
+                (t) => t.id === track.id
+              );
               if (idx !== -1) resp.trackNumber = idx + 1;
             }
           }
         } catch {}
       }
 
-      // Géneros de artistas
+      // Géneros artistas
       if (track.artists.length > 0) {
         const tasks = track.artists.slice(0, 3).map(async (a) => {
           try {
-            const r = await fetch(`https://api.spotify.com/v1/artists/${a.id}`, {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            });
+            const r = await fetch(
+              `https://api.spotify.com/v1/artists/${a.id}`,
+              { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
             return r.ok ? (await r.json()).genres ?? [] : [];
           } catch {
             return [];
@@ -206,7 +218,6 @@ async function handleSpotifyRequest(request, env) {
       });
     }
 
-    // No se encontró nada
     return new Response(
       JSON.stringify({
         imageUrl: null,
@@ -219,7 +230,10 @@ async function handleSpotifyRequest(request, env) {
         trackNumber: null,
         albumTypeDescription: null
       }),
-      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
     );
 
   } catch (err) {
@@ -246,6 +260,7 @@ async function handleRadioParadiseRequest(request) {
     }
 
     const targetUrl = `https://api.radioparadise.com/${path}`;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
@@ -265,11 +280,12 @@ async function handleRadioParadiseRequest(request) {
 }
 
 // ===============================================================
-//  ROUTER + SERVIR STATIC / SPA
+//  ROUTER + SERVIR ARCHIVOS ESTÁTICOS
 // ===============================================================
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
     let response;
 
     if (request.method === "OPTIONS") {
@@ -282,17 +298,16 @@ export default {
       response = await handleRadioParadiseRequest(request);
 
     } else {
-      // SERVIR ARCHIVOS ESTÁTICOS Y SPA
+      // SERVIR ARCHIVOS ESTÁTICOS DESDE ASSETS
       if (env.ASSETS) {
         try {
-          // Primero intenta servir el archivo solicitado
           response = await env.ASSETS.fetch(request);
-        } catch {
-          // Si no existe, sirve index.html (SPA)
+        } catch (err) {
+          // SPA fallback: siempre servir index.html
           response = await env.ASSETS.fetch(new Request("/index.html", request));
         }
       } else {
-        // Fallback si Assets no configurado
+        // Fallback simple si no hay Assets
         response = new Response(
           "<h1>OK</h1>",
           { status: 200, headers: { "Content-Type": "text/html" } }
