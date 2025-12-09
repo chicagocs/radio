@@ -1,8 +1,13 @@
 name = "core"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "AREA51_KV"
+id = "b6330a5ca2b6489da5e06e73ff54f4d8"
+
 [vars]
-# Las variables secretas se configurarán en el dashboard de Cloudflare
+
 [observability]
 enabled = false
 head_sampling_rate = 1
@@ -17,5 +22,6 @@ invocation_logs = true
 enabled = false
 persist = true
 head_sampling_rate = 1
+
 
 
