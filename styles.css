@@ -457,3 +457,413 @@ body {
 
 .countdown-timer-column {
     width: 65px;
+    flex-shrink: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.countdown-label {
+    font-size: 10px;
+    color: #888888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.countdown-timer {
+    font-size: 15px;
+    font-weight: bold;
+    color: #ff6600;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.total-duration {
+    font-size: 12px;
+    color: #999999;
+    font-family: 'Courier New', monospace;
+    margin-top: 2px;
+}
+
+.timer-separator {
+    width: 60px;
+    height: 1px;
+    background-color: #444;
+    margin: 5px 0;
+}
+
+.countdown-timer.ending {
+    color: #ff3300;
+    animation: blink 1s infinite;
+}
+
+.album-details-column {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: flex-start;
+   gap: 4px;
+   padding-left: 10px;
+   border-left: 1px solid #333;
+ }
+
+.details-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+ }
+
+.details-label {
+    font-size: 11px;
+    color: #888888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px;
+}
+
+.details-value {
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.details-value.genre {
+    color: #cccccc;
+}
+
+/* ==========================================================================
+   ESTILOS DEL CONTROL DE VOLUMEN
+   ========================================================================== */
+.volume-control {
+    margin-bottom: 0;
+    position: relative;
+    margin-top: 15px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.volume-slider {
+    width: 100%;
+    height: 8px;
+    background: #1a1a1a;
+    border-radius: 5px;
+    outline: none;
+    -webkit-appearance: none;
+    flex: 1;
+}
+
+.volume-icon {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    
+    width: 20px;
+    height: 20px;
+    background-color: #ff6600;
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 2;
+    transition: left 0.1s ease-out, background-color 0.3s ease, border 0.3s ease, cursor 0.1s ease;
+}
+
+.volume-icon:hover {
+    background-color: #ff8833;
+}
+
+.volume-icon.muted {
+    background-color: transparent;
+    border: 2px solid #ff6600;
+    cursor: grab;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: grab;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: grab;
+}
+
+audio {
+    display: none;
+}
+
+.track-position-info {
+    font-size: 12px;
+    color: #999999;
+    font-family: 'Courier New', monospace;
+    margin-top: 2px;
+}
+
+.release-date-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.release-date-tooltip .tooltip-text {
+    visibility: hidden;
+    width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -125px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 11px;
+    box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+    border: 1px solid #ff6600;
+}
+
+.release-date-tooltip .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #ff6600 transparent transparent transparent;
+}
+
+.release-date-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip-icon {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 12px;
+    color: #ff6600;
+    cursor: help;
+    vertical-align: top;
+}
+
+.notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1a1a1a;
+    border: 2px solid #ff6600;
+    border-radius: 10px;
+    padding: 12px 20px;
+    color: #fff;
+    font-size: 14px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.notification.show {
+    display: block;
+    animation: fadeIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* ==========================================================================
+   MODIFICADO: ESTILOS DEL PIE DE PÁGINA Y PWA
+   ========================================================================== */
+footer {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 12px;
+  color: #999999;
+  z-index: 10;
+  white-space: nowrap;
+  display: flex; /* Convierte al footer en un contenedor flexible */
+  align-items: center; /* Centra verticalmente el contenido de las columnas */
+  justify-content: center; /* Centra horizontalmente el grupo de columnas */
+  width: 100%; /* Ocupa todo el ancho disponible */
+  max-width: 500px; /* Limita el ancho máximo para que no se estire demasiado */
+}
+
+.footer-column {
+  flex: 1; /* Hace que cada columna ocupe la misma cantidad de espacio */
+  text-align: center; /* Centra el texto dentro de cada columna */
+}
+
+footer strong {
+ color: #ffffff;
+ font-weight: bold;
+}
+
+/* ESTILOS PARA BOTONES DE INSTALACIÓN PWA */
+#install-pwa-container {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.install-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #999999;
+    text-decoration: none;
+    font-size: 11px;
+    opacity: 0.7;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.install-btn:hover {
+    color: #ff6600;
+    opacity: 1;
+}
+
+/* Estilos para la notificación de actualización */
+#update-notification {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff6600;
+    color: #000000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 1001;
+    text-align: center;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+#update-reload-btn {
+    background: #000000;
+    color: #ff6600;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* ==========================================================================
+   NUEVO: ESTILOS PARA LA INVITACIÓN DE INSTALACIÓN PWA
+   ========================================================================== */
+#install-pwa-invitation {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #1a1a1a;
+    border: 2px solid #ff6600;
+    border-radius: 15px;
+    padding: 20px 25px;
+    z-index: 1002;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: #ff6600;
+}
+
+.invitation-text {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px; /* Reducido para que quepa el texto largo */
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 5px;
+    max-width: 250px; /* Ancho máximo para que el texto se ajuste */
+}
+
+.invitation-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+}
+
+.install-logo-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    color: #ff6600;
+    font-weight: bold;
+    font-size: 14px;
+    padding: 10px;
+    border: 2px solid #ff6600;
+    border-radius: 8px;
+    min-width: 80px;
+}
+
+.install-logo-btn:not(.disabled):hover {
+    transform: scale(1.1);
+    background-color: rgba(255, 102, 0, 0.1);
+}
+
+.install-logo-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: #555555;
+    border-color: #555555;
+}
+
+/* ==========================================================================
+   MEDIA QUERIES PARA RESPONSIVIDAD
+   ========================================================================== */
+@media (max-width: 400px) {
+    footer {
+        font-size: 11px; /* Reducimos el tamaño de la fuente en móviles */
+    }
+}
