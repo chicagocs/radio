@@ -8,7 +8,7 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), encrypted-media=(), fullscreen=(self), picture-in-picture=(self)",
   "Content-Security-Policy": "default-src 'none'; script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://core.s.workers.dev https://stats.max.com; connect-src 'self' https://api.radio.com https://core.s.workers.dev; font-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains;",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Embedder-Policy": "require-corp",
   "Cross-Origin-Resource-Policy": "same-origin"
@@ -353,21 +353,33 @@ export default {
       return handleOptions();
     }
 
+    // Rutas de API
     if (url.pathname.startsWith('/spotify')) {
       console.log("Worker: Enviando a handleSpotifyRequest");
       return handleSpotifyRequest(request, env);
     } else if (url.pathname.startsWith('/radioparadise')) {
       console.log("Worker: Enviando a handleRadioParadiseRequest");
       return handleRadioParadiseRequest(request);
-    } else {
+    } 
+    
+    // Para todas las demás rutas (HTML, CSS, JS, imágenes, etc.)
+    // Obtener el asset desde Cloudflare Pages y aplicar headers de seguridad
+    try {
+      // ASSETS es el binding automático de Cloudflare Pages
+      const response = await env.ASSETS.fetch(request);
+      
+      // Aplicar headers de seguridad (sin CORS para archivos estáticos)
+      return applySecurityHeaders(response, false);
+    } catch (error) {
+      console.error("Error al servir asset:", error);
       const response = new Response(
-        JSON.stringify({ error: "Ruta no encontrada. Usa /spotify o /radioparadise" }), 
+        "Recurso no encontrado", 
         {
           status: 404,
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "text/plain" }
         }
       );
-      return applySecurityHeaders(response, true);
+      return applySecurityHeaders(response, false);
     }
   }
 };
