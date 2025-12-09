@@ -1,54 +1,43 @@
 // ===============================================================
-//  CORS
+//  CONFIGURACIÓN DE ENCABEZADOS
 // ===============================================================
+
+// Encabezados para permitir solicitudes desde otros orígenes (CORS)
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://radiomax.tramax.com.ar",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
 };
 
-function handleOptions() {
-  return new Response(null, { status: 200, headers: corsHeaders });
-}
+// Encabezados de seguridad para proteger tu aplicación
+const securityHeaders = {
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-Content-Type-Options": "nosniff",
+  "X-XSS-Protection": "1; mode=block",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy":
+    "geolocation=(), microphone=(), camera=(), payment=(), usb=(), " +
+    "magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), " +
+    "encrypted-media=(), fullscreen=(self), picture-in-picture=(self)",
+  "Content-Security-Policy":
+    "default-src 'none'; " +
+    "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
+    "worker-src 'self' blob:; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
+    "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev" +
+    "font-src 'self'; " +
+    "manifest-src 'self'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'; " +
+    "frame-ancestors 'none'; " +
+    "upgrade-insecure-requests",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+  "Cross-Origin-Resource-Policy": "same-origin"
+};
 
-// ===============================================================
-//  HEADERS DE SEGURIDAD
-// ===============================================================
-function applySecurityHeaders(response) {
-  const securityHeaders = {
-    "X-Frame-Options": "SAMEORIGIN",
-    "X-Content-Type-Options": "nosniff",
-    "X-XSS-Protection": "1; mode=block",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy":
-      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), " +
-      "magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), " +
-      "encrypted-media=(), fullscreen=(self), picture-in-picture=(self)",
-    "Content-Security-Policy":
-      "default-src 'none'; " +
-      "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-      "worker-src 'self' blob:; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-      "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
-      "font-src 'self'; " +
-      "manifest-src 'self'; " +
-      "base-uri 'self'; " +
-      "form-action 'self'; " +
-      "frame-ancestors 'none'; " +
-      "upgrade-insecure-requests",
-    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Embedder-Policy": "require-corp",
-    "Cross-Origin-Resource-Policy": "same-origin"
-  };
-
-  const newResponse = new Response(response.body, response);
-  for (const [key, value] of Object.entries(securityHeaders)) {
-    newResponse.headers.set(key, value);
-  }
-  return newResponse;
-}
 
 // ===============================================================
 //  UTILIDADES
@@ -92,7 +81,7 @@ async function handleSpotifyRequest(request, env) {
     if (!artist || !title) {
       return new Response(
         JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -101,7 +90,7 @@ async function handleSpotifyRequest(request, env) {
     if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({ error: "Credenciales de Spotify no configuradas" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -214,7 +203,7 @@ async function handleSpotifyRequest(request, env) {
 
       return new Response(JSON.stringify(resp), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" }
       });
     }
 
@@ -232,14 +221,14 @@ async function handleSpotifyRequest(request, env) {
       }),
       {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" }
       }
     );
 
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Error interno Spotify", details: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
@@ -255,7 +244,7 @@ async function handleRadioParadiseRequest(request) {
     if (!path) {
       return new Response(
         JSON.stringify({ error: 'Se requiere "url".' }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -267,54 +256,66 @@ async function handleRadioParadiseRequest(request) {
     const apiResp = await fetch(targetUrl, { signal: controller.signal });
     clearTimeout(timeout);
 
-    const final = new Response(apiResp.body, apiResp);
-    final.headers.set("Access-Control-Allow-Origin", "*");
-    return final;
+    // Devolvemos la respuesta directamente. El router principal se encargará de añadir los encabezados.
+    return new Response(apiResp.body, apiResp);
 
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Proxy RP error", details: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
 
 // ===============================================================
-//  ROUTER + SERVIR ARCHIVOS ESTÁTICOS
+//  ROUTER PRINCIPAL
 // ===============================================================
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
     let response;
 
+    // 1. Manejar solicitudes OPTIONS (preflight de CORS)
     if (request.method === "OPTIONS") {
-      response = handleOptions();
+      // La respuesta OPTIONS solo necesita los encabezados CORS
+      return new Response(null, { status: 200, headers: corsHeaders });
+    }
 
-    } else if (url.pathname.startsWith("/spotify")) {
+    // 2. Enrutamiento a los manejadores de lógica de negocio
+    if (url.pathname.startsWith("/spotify")) {
       response = await handleSpotifyRequest(request, env);
-
     } else if (url.pathname.startsWith("/radioparadise")) {
       response = await handleRadioParadiseRequest(request);
-
     } else {
-      // SERVIR ARCHIVOS ESTÁTICOS DESDE ASSETS
+      // Servir archivos estáticos desde ASSETS
       if (env.ASSETS) {
         try {
           response = await env.ASSETS.fetch(request);
         } catch (err) {
-          // SPA fallback: siempre servir index.html
+          // SPA fallback: siempre servir index.html si no se encuentra el archivo
           response = await env.ASSETS.fetch(new Request("/index.html", request));
         }
       } else {
         // Fallback simple si no hay Assets
-        response = new Response(
-          "<h1>OK</h1>",
-          { status: 200, headers: { "Content-Type": "text/html" } }
-        );
+        response = new Response("<h1>OK</h1>", { status: 200, headers: { "Content-Type": "text/html" } });
       }
     }
 
-    return applySecurityHeaders(response);
+    // 3. Aplicar encabezados finales a la respuesta
+    //    Aquí es donde combinamos los encabezados CORS y de seguridad.
+    const finalHeaders = new Headers(response.headers);
+    
+    // Añadir encabezados CORS
+    Object.entries(corsHeaders).forEach(([key, value]) => finalHeaders.set(key, value));
+    
+    // Añadir encabezados de seguridad
+    Object.entries(securityHeaders).forEach(([key, value]) => finalHeaders.set(key, value));
+    
+    // Crear la respuesta final con todos los encabezados
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: finalHeaders
+    });
   }
 };
