@@ -18,7 +18,8 @@ const securityHeaders = {
   "Permissions-Policy":
     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), " +
     "magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), " +
-    "encrypted-media=(), fullscreen=(self), picture-in-picture=(self)",
+    "encrypted-media=(), fullscreen=(self), picture-in-picture=(self), " +
+  "interest-cohort=(), sync-xhr=()",
   "Content-Security-Policy":
     "default-src 'none'; " +
     "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
