@@ -29,8 +29,8 @@ function applySecurityHeaders(response) {
       "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data: https://core.s.workers.dev https://stats.max.com; " +
-      "connect-src 'self' https://api.radio.com https://core.s.workers.dev; " +
+      "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
+      "connect-src 'self' https://api.radioparadise.com https://core.chcs.workers.dev; " +
       "font-src 'self'; " +
       "manifest-src 'self'; " +
       "base-uri 'self'; " +
