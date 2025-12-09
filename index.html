@@ -1,43 +1,86 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <!-- 1. Charset y Viewport (Correctos) -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RadioMax | una experiencia inmersiva</title>
-    
-    <!-- PWA: Vincular el Manifest -->
+
+    <!-- 2. Título Optimizado para SEO -->
+    <title>RadioMax | una experiencia inmersiva | escucha selectas radios en linea las 24 horas</title>
+
+    <!-- 3. Meta Descripción (CRÍTICO) -->
+    <meta name="description" content="RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!">
+
+    <!-- 4. Meta Robots para control de rastreo -->
+    <meta name="robots" content="index, follow">
+
+    <!-- 5. Idioma de la página (Muy importante) -->
+    <html lang="es">
+
+    <!-- 6. PWA y Canonical (Correctos) -->
     <link rel="manifest" href="site.webmanifest">
-    
-    <!-- Iconos y Metadatos -->
     <link rel="canonical" href="https://radiomax.tramax.com.ar/">
+
+    <!-- 7. Preconnect para acelerar la carga -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://core.chcs.workers.dev">
+    
+    <!-- 8. Iconos (Correctos y completos) -->
     <link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
     <link rel="icon" type="image/png"  sizes="96x96" href="/images/favicon-96x96.png">    
-    
-    <!-- INICIO: Metaetiquetas para Redes Sociales (Open Graph / Facebook) -->
-    <meta property="og:title" content="RadioMax | una experiencia inmersiva">
-    <meta property="og:description" content="una experiencia inmersiva">
-    <meta property="og:image" content="https://placehold.co/600x600/000000/FF6600?text=RadioMax">
+
+    <!-- 9. Metaetiquetas Open Graph (Facebook, LinkedIn, etc.) -->
+    <meta property="og:title" content="RadioMax | una experiencia inmersiva | escucha selectas radios en linea las 24 horas">
+    <meta property="og:description" content="RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!">
+    <!-- IMPORTANTE: Reemplaza esto con una imagen real y de alta calidad (1200x630px) -->
+    <meta property="og:image" content="https://radiomax.tramax.com.ar/images/radiomax-social-card-1200x630.jpg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="https://radiomax.tramax.com.ar/index.html">
+    <meta property="og:url" content="https://radiomax.tramax.com.ar/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="RadioMax">
+    <meta property="og:locale" content="es_ES">
 
-    <!-- Metaetiquetas para Twitter Cards -->
+    <!-- 10. Metaetiquetas para Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="RadioMax | una experiencia inmersiva">
-    <meta name="twitter:description" content="una experiencia inmersiva.">
-    <meta name="twitter:image" content="https://placehold.co/1200x630/000000/FF6600?text=RadioMax">
-    <!-- FIN: Metaetiquetas para Redes Sociales -->
+    <meta name="twitter:title" content="RadioMax | una experiencia inmersiva | escucha selectas radios en linea las 24 horas">
+    <meta name="twitter:description" content="RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!">
+    <!-- IMPORTANTE: La imagen debe ser la misma que en og:image -->
+    <meta name="twitter:image" content="https://radiomax.tramax.com.ar/images/radiomax-social-card-1200x630.jpg">
 
-    <!-- Enlace a la hoja de estilos CSS -->
+    <!-- 11. Hoja de estilos -->
     <link rel="stylesheet" href="/css/styles.css">
+
+    <!-- 12. Datos Estructurados (Schema.org) - AVANZADO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "RadioMax",
+        "alternateName": "RadioMax Radio Online",
+        "url": "https://radiomax.tramax.com.ar/",
+        "description": "RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!",
+        "potentialAction": {
+            "@type": "ListenAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://radiomax.tramax.com.ar/",
+                "inLanguage": "es",
+                "actionPlatform": [
+                    "https://schema.org/DesktopWebPlatform",
+                    "https://schema.org/MobileWebPlatform"
+                ]
+            }
+        }
+    }
+    </script>
 </head>
+
 <body>
-    <div class="player-container">
+<div class="player-container">
         <div class="station-info">
             <h1 class="station-name" id="stationName"></h1>
         </div>
