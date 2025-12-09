@@ -24,7 +24,7 @@ const securityHeaders = {
     "default-src 'none'; " +
     "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
     "worker-src 'self' blob:; " +
-    "style-src 'self' 'unsafe-inline'; " +
+    "style-src 'self'; " +
     "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
     "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
     "font-src 'self'; " +
