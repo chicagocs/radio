@@ -174,7 +174,7 @@ body {
     gap: 15px;
     margin-bottom: 20px;
     align-items: stretch;
- }
+}
 
 .album-cover {
     width: 120px;
@@ -515,7 +515,7 @@ body {
    border-left: 1px solid #333;
  }
 
-.details-row {
+ .details-row {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -523,22 +523,22 @@ body {
     width: 100%;
  }
 
-.details-label {
+ .details-label {
     font-size: 11px;
     color: #888888;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 60px;
-}
+  }
 
-.details-value {
-    font-size: 12px;
-    color: #cccccc;
-}
+  .details-value {
+     font-size: 12px;
+     color: #cccccc;
+  }
 
-.details-value.genre {
-    color: #cccccc;
-}
+  .details-value.genre {
+     color: #cccccc;
+  }
 
 /* ==========================================================================
    ESTILOS DEL CONTROL DE VOLUMEN
@@ -700,7 +700,7 @@ audio {
 
 /* ==========================================================================
    MODIFICADO: ESTILOS DEL PIE DE PÁGINA Y PWA
-   ========================================================================== */
+========================================================================== */
 footer {
   position: fixed;
   bottom: 14px;
