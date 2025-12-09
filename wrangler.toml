@@ -1,5 +1,4 @@
 name = "core"
-routes = ["radiomax.tramax.com.ar/*"]
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
@@ -15,7 +14,7 @@ id = "b6330a5ca2b6489da5e06e73ff54f4d8"
 # ------------------------------------------------------------
 [site]
 bucket = "."   # raiz del repo, donde está index.html
-
+routes = ["radiomax.tramax.com.ar/*"]
 # ------------------------------------------------------------
 # Observabilidad (logs, trazas, etc)
 # ------------------------------------------------------------
