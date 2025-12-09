@@ -32,7 +32,7 @@ function applySecurityHeaders(response) {
       "worker-src 'self' blob:; " +
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-      "connect-src 'self' https://api.radioparadise.com https://core.chcs.workers.dev; " +
+      "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
       "font-src 'self'; " +
       "manifest-src 'self'; " +
       "base-uri 'self'; " +
@@ -53,7 +53,7 @@ function applySecurityHeaders(response) {
 }
 
 // ===============================================================
-//   UTILIDADES
+//  UTILIDADES
 // ===============================================================
 function cleanSearchTerm(term) {
   if (!term) return "";
@@ -63,10 +63,15 @@ function cleanSearchTerm(term) {
 function getAlbumTypeDescription(album) {
   const name = album.name.toLowerCase();
   const type = album.album_type;
-  const reissueKeywords = ["remastered", "deluxe", "expanded", "anniversary", "edition", "reissue", "legacy"];
+
+  const reissueKeywords = [
+    "remastered", "deluxe", "expanded", "anniversary", "edition", "reissue", "legacy"
+  ];
+
   if (type === "compilation") return "Compilación";
   if (type === "single") return "Sencillo";
   if (reissueKeywords.some((k) => name.includes(k))) return "Reedición";
+
   return "Álbum";
 }
 
@@ -74,18 +79,189 @@ function getAlbumTypeDescription(album) {
 //  SPOTIFY HANDLER
 // ===============================================================
 async function handleSpotifyRequest(request, env) {
-  // (igual que antes, omitido aquí por brevedad, copia tu función existente)
+  try {
+    const url = new URL(request.url);
+    const artist = cleanSearchTerm(url.searchParams.get("artist"));
+    const title = cleanSearchTerm(url.searchParams.get("title"));
+    const album = cleanSearchTerm(url.searchParams.get("album"));
+
+    if (!artist || !title) {
+      return new Response(
+        JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const clientId = env.SPOTIFY_CLIENT_ID;
+    const clientSecret = env.SPOTIFY_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      return new Response(
+        JSON.stringify({ error: "Credenciales de Spotify no configuradas" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authString = btoa(`${clientId}:${clientSecret}`);
+    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${authString}`,
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "grant_type=client_credentials"
+    });
+
+    if (!tokenResponse.ok) throw new Error("No se pudo obtener token de Spotify");
+    const accessToken = (await tokenResponse.json()).access_token;
+
+    // ---- Búsquedas por fases ----
+    let searchData = null;
+    let responseFetch = null;
+
+    if (album) {
+      const q = `track:"${title}" artist:"${artist}" album:"${album}"`;
+      responseFetch = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (responseFetch.ok) searchData = await responseFetch.json();
+    }
+
+    if (!searchData || searchData.tracks.items.length === 0) {
+      const q = `track:"${title}" artist:"${artist}"`;
+      responseFetch = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (responseFetch.ok) searchData = await responseFetch.json();
+    }
+
+    if (!searchData || searchData.tracks.items.length === 0) {
+      const q = `${artist} ${title}`;
+      responseFetch = await fetch(
+        `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (responseFetch.ok) searchData = await responseFetch.json();
+    }
+
+    if (!responseFetch.ok) throw new Error("Error en búsqueda de Spotify");
+
+    if (searchData && searchData.tracks.items.length > 0) {
+      const track = searchData.tracks.items[0];
+      const albumData = track.album;
+
+      const resp = {
+        imageUrl: albumData.images?.[0]?.url ?? null,
+        release_date: albumData.release_date ?? null,
+        label: albumData.label ?? null,
+        genres: [],
+        duration: Math.floor(track.duration_ms / 1000),
+        totalTracks: albumData.total_tracks ?? null,
+        totalAlbumDuration: 0,
+        trackNumber: null,
+        albumTypeDescription: getAlbumTypeDescription(albumData)
+      };
+
+      // Datos del álbum completo
+      if (albumData.id) {
+        try {
+          const full = await fetch(`https://api.spotify.com/v1/albums/${albumData.id}`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+          if (full.ok) {
+            const fullAlbum = await full.json();
+            resp.label = fullAlbum.label ?? resp.label;
+
+            if (fullAlbum.tracks?.items) {
+              resp.totalAlbumDuration = fullAlbum.tracks.items.reduce((sum, t) => sum + t.duration_ms, 0);
+              const idx = fullAlbum.tracks.items.findIndex((t) => t.id === track.id);
+              if (idx !== -1) resp.trackNumber = idx + 1;
+            }
+          }
+        } catch {}
+      }
+
+      // Géneros de artistas
+      if (track.artists.length > 0) {
+        const tasks = track.artists.slice(0, 3).map(async (a) => {
+          try {
+            const r = await fetch(`https://api.spotify.com/v1/artists/${a.id}`, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            return r.ok ? (await r.json()).genres ?? [] : [];
+          } catch {
+            return [];
+          }
+        });
+        resp.genres = [...new Set((await Promise.all(tasks)).flat())];
+      }
+
+      return new Response(JSON.stringify(resp), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        imageUrl: null,
+        release_date: null,
+        label: null,
+        genres: [],
+        duration: 0,
+        totalTracks: null,
+        totalAlbumDuration: 0,
+        trackNumber: null,
+        albumTypeDescription: null
+      }),
+      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: "Error interno Spotify", details: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 }
 
 // ===============================================================
 //  RADIO PARADISE HANDLER
 // ===============================================================
 async function handleRadioParadiseRequest(request) {
-  // (igual que antes, omitido aquí por brevedad, copia tu función existente)
+  try {
+    const url = new URL(request.url);
+    const path = url.searchParams.get("url");
+
+    if (!path) {
+      return new Response(
+        JSON.stringify({ error: 'Se requiere "url".' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const targetUrl = `https://api.radioparadise.com/${path}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const apiResp = await fetch(targetUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    const final = new Response(apiResp.body, apiResp);
+    final.headers.set("Access-Control-Allow-Origin", "*");
+    return final;
+
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: "Proxy RP error", details: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 }
 
 // ===============================================================
-//  ROUTER + SERVE STATIC (SPA fallback)
+//  ROUTER + SERVE STATIC
 // ===============================================================
 export default {
   async fetch(request, env) {
@@ -101,21 +277,19 @@ export default {
     } else if (url.pathname.startsWith("/radioparadise")) {
       response = await handleRadioParadiseRequest(request);
 
-    } else if (env.ASSETS) {
-      try {
-        // Intentamos servir el archivo solicitado
-        response = await env.ASSETS.fetch(request);
-        if (response.status === 404) {
-          // Si no existe, devolvemos index.html (SPA)
+    } else {
+      // SERVIR ARCHIVOS ESTÁTICOS DESDE ASSETS
+      if (env.ASSETS) {
+        try {
+          response = await env.ASSETS.fetch(request);
+        } catch {
+          // Si no existe el archivo, servir index.html (SPA fallback)
           response = await env.ASSETS.fetch(new Request("/index.html", request));
         }
-      } catch (err) {
-        // Fallback: siempre devolvemos index.html
-        response = await env.ASSETS.fetch(new Request("/index.html", request));
+      } else {
+        // Fallback si no hay ASSETS configurados
+        response = new Response("<h1>OK</h1>", { status: 200, headers: { "Content-Type": "text/html" } });
       }
-    } else {
-      // Sin assets, devolvemos un OK básico
-      response = new Response("<h1>OK</h1>", { status: 200, headers: { "Content-Type": "text/html" } });
     }
 
     return applySecurityHeaders(response);
