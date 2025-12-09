@@ -1,11 +1,13 @@
 // src/index.js
 
 const securityHeaders = {
-  "Content-Security-Policy": "default-src 'none'; script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com,ar/count.js; style-src 'self'; img-src 'self' data: https://i.scdn.co; connect-src 'self' https://api.radioparadise.com; media-src https://stream.radioparadise.com; font-src 'self'; frame-ancestors 'none'; form-action 'none';",
+  "Content-Security-Policy": "default-src 'none'; script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar/count.js; style-src 'self'; img-src 'self' data: https://i.scdn.co; connect-src 'self' https://api.radioparadise.com; media-src https://stream.radioparadise.com; font-src 'self'; frame-ancestors 'none'; form-action 'none';",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
-  "Strict-Transport-Security": "max-age=31536000; includeSubDomains;"
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains;",
+  // Agregamos el Permissions-Policy que faltaba
+  "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), encrypted-media=(), fullscreen=(), picture-in-picture=()"
 };
 
 // Cabeceras CORS comunes para todas las respuestas
