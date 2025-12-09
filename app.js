@@ -1,5 +1,3 @@
-// app.js
-
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
        // SELECCIÓN DE ELEMENTOS DEL DOM
@@ -218,10 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let name = option.textContent;
             let description = '';
             if (station) {
-                // MODIFICADO: Usar el nombre aleatorio
-                name = station.randomName || station.name;
+                name = station.name;
                 if (station.service === 'radioparadise') {
-                    name = name.split(' - ')[1] || name;
+                    name = station.name.split(' - ')[1] || station.name;
                 }
                 description = station.description || '';
             }
@@ -285,10 +282,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTriggerText() {
             const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
             const station = stationsById[selectedOption.value];
-            // MODIFICADO: Usar el nombre aleatorio
-            let text = station ? (station.randomName || station.name) : selectedOption.textContent;
-            if (station && station.service === 'radioparadise') {
-                text = text.split(' - ')[1] || text;
+            let text = selectedOption.textContent;
+            if (station) {
+                text = station.name;
+                if (station.service === 'radioparadise') {
+                    text = station.name.split(' - ')[1] || station.name;
+                }
             }
             this.customSelectTrigger.textContent = text || " Seleccionar Estación ";
         }
@@ -302,18 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('stations.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const allStations = await response.json();
-            
-            // PASO 2: Asignar nombres aleatorios a cada estación
-            if (typeof getRandomStationName === 'function') {
-                allStations.forEach(station => {
-                    station.randomName = getRandomStationName(station.id);
-                });
-            } else {
-                console.error("La función getRandomStationName no está disponible. Asegúrate de que area51.js se haya cargado.");
-                loadingStations.textContent = 'Error: No se pudieron cargar los nombres de estación.';
-                return [];
-            }
-
             const groupedStations = allStations.reduce((acc, station) => {
                 const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
                 if (!acc[serviceName]) acc[serviceName] = [];
@@ -346,10 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const station = stationsById[lastSelectedStation];
                 if (station) {
                     currentStation = station;
-                    // MODIFICADO: Usar el nombre aleatorio para el nombre principal
-                    let displayName = station.randomName || station.name;
+                    let displayName = station.name;
                     if (station.service === 'radioparadise') {
-                        displayName = displayName.split(' - ')[1] || displayName;
+                        displayName = station.name.split(' - ')[1] || station.name;
                     }
                     stationName.textContent = displayName;
                 }
@@ -405,10 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const station = stationsById[selectedStationId];
             if (station) {
                 currentStation = station;
-                // MODIFICADO: Usar el nombre aleatorio para el nombre principal
-                let displayName = station.randomName || station.name;
+                let displayName = station.name;
                 if (station.service === 'radioparadise') {
-                    displayName = displayName.split(' - ')[1] || displayName;
+                    displayName = station.name.split(' - ')[1] || station.name;
                 }
                 stationName.textContent = displayName;
                 playStation();
@@ -507,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentStation.service === 'somafm') await updateSomaFmInfo();
         else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo();
     }
- 
+
     async function updateSomaFmInfo() {
         if (!canMakeApiCall('somaFM')) { console.log('Rate limiting: Demasiadas llamadas a APISFM'); return; }
         try {
@@ -532,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logErrorForAnalysis('SomaFM API error', { error: error.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
         }
     }
- 
+
     async function updateRadioParadiseInfo() {
         if (!canMakeApiCall('radioParadise')) { console.log('Rate limiting: Demasiadas llamadas a APIRP'); return; }
         try {
@@ -973,8 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const customSelect = document.querySelector('.custom-select-wrapper');
                 const trigger = customSelect.querySelector('.custom-select-trigger');
                 const station = stationsById[stationId];
-                let displayName = station.randomName || station.name;
-                if (station.service === 'radioparadise') { displayName = displayName.split(' - ')[1] || displayName; }
+                let displayName = station.name;
+                if (station.service === 'radioparadise') { displayName = station.name.split(' - ')[1] || station.name; }
                 trigger.textContent = displayName;
                 customOptions.forEach(option => { option.classList.remove('selected'); });
                 selectedOption.classList.add('selected');
@@ -984,4 +969,63 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateVolumeIconPosition();
+});
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        let refreshing = false;
+        const updateNotification = document.getElementById('update-notification');
+        const updateReloadBtn = document.getElementById('update-reload-btn');
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registrado con éxito:', registration.scope);
+                if (registration.waiting) { updateNotification.style.display = 'block'; }
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            updateNotification.style.display = 'block';
+                        }
+                    });
+                });
+            })
+            .catch(error => { console.log('Error al registrar el ServiceWorker:', error); });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('Controller changed, reloading page...');
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+        });
+        updateReloadBtn.addEventListener('click', () => {
+            updateNotification.style.display = 'none';
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+            }
+            setTimeout(() => { window.location.reload(); }, 100);
+        });
+    });
+}
+
+// Versión
+document.addEventListener('DOMContentLoaded', () => {
+    const versionSpan = document.getElementById('version-number');
+    fetch('sw.js')
+        .then(response => {
+            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+            return response.text();
+        })
+        .then(text => {
+            const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+            if (versionMatch && versionMatch[1]) {
+                versionSpan.textContent = versionMatch[1];
+            } else {
+                versionSpan.textContent = 'N/D';
+                console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
+            versionSpan.textContent = 'Error';
+        });
 });
