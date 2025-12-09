@@ -1,7 +1,7 @@
 // src/index.js
 
 const securityHeaders = {
-  "Content-Security-Policy": "default-src 'none'; script-src 'self' https://stats.tramax.com,ar/count.js; style-src 'self'; img-src 'self' data: https://i.scdn.co; connect-src 'self' https://api.radioparadise.com; media-src https://stream.radioparadise.com; font-src 'self'; frame-ancestors 'none'; form-action 'none';",
+  "Content-Security-Policy": "default-src 'none'; script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com,ar/count.js; style-src 'self'; img-src 'self' data: https://i.scdn.co; connect-src 'self' https://api.radioparadise.com; media-src https://stream.radioparadise.com; font-src 'self'; frame-ancestors 'none'; form-action 'none';",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
