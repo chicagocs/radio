@@ -4,11 +4,11 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/stations.json',
-  '/apple-touch-icon.png',
-  '/favicon-32x32.png',
-  '/favicon-16x16.png',
-  '/icon-192.png',
-  '/icon-512.png',
+  '/images/apple-touch-icon.png',
+  '/images/favicon-32x32.png',
+  '/images/favicon-16x16.png',
+  '/images/icon-192.png',
+  '/images/icon-512.png',
   '/site.webmanifest'
 ];
 
@@ -123,6 +123,7 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+
 
 
 
