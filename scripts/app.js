@@ -1257,7 +1257,7 @@ document.addEventListener('DOMContentLoaded', () => {
        // VERSIÓN DE LA APLICACIÓN
        // ==========================================================================
     const versionSpan = document.getElementById('version-number');
-    fetch('/scripts/sw.js')
+    fetch('/sw.js')
         .then(response => {
             if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
             return response.text();
@@ -1284,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateNotification = document.getElementById('update-notification');
         const updateReloadBtn = document.getElementById('update-reload-btn');
         
-        navigator.serviceWorker.register('/scripts/sw.js', { scope: '/' })
+        navigator.serviceWorker.register('/sw.js')
             .then(registration => {
                 console.log('ServiceWorker registrado con éxito:', registration.scope);
                 if (registration.waiting) { updateNotification.style.display = 'block'; }
