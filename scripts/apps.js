@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareWhatsApp = document.getElementById('shareWhatsApp');
     const notification = document.getElementById('notification');
 
-    // NUEVO: Elementos para la invitación PWA
+    // Elementos para la invitación PWA
     const installPwaInvitation = document.getElementById('install-pwa-invitation');
     const closeInvitationBtn = document.getElementById('close-invitation');
     const installWindowsBtn = document.getElementById('install-windows');
@@ -52,9 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let reconnectAttempts = 0;
     const MAX_RECONNECT_ATTEMPTS = 5;
     let reconnectTimeoutId = null;
-    let installInvitationTimeout = null; // NUEVO
+    let installInvitationTimeout = null;
 
-    // NUEVO: Variable para rastrear el estado de reproducción antes de perder el foco
+    // Variable para rastrear el estado de reproducción antes de perder el foco
     let wasPlayingBeforeFocusLoss = false;
 
     // Variables adicionales para el manejo de Facebook
@@ -138,7 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    // NUEVO: Funciones para mostrar/ocultar invitación PWA
     function showInstallInvitation() {
         if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) {
             return;
@@ -164,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         installPwaInvitation.style.display = 'none';
     }
 
-    // NUEVO: Función mejorada para reanudar reproducción
     function attemptResumePlayback() {
         if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
             setTimeout(() => {
@@ -185,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Función para verificar si Facebook está activo
     function isFacebookActive() {
         return document.visibilityState === 'visible' && 
                document.hasFocus() && 
@@ -194,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
                currentStation;
     }
 
-    // Iniciar verificación periódica para Facebook
     function startFacebookDetection() {
         if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
         
@@ -203,15 +199,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Detectada posible interrupción de Facebook, intentando reanudar...');
                 attemptResumePlayback();
             }
-        }, 2000); // Verificar cada 2 segundos
+        }, 2000);
     }
 
-    // Función para verificar el contexto de audio
     function checkAudioContext() {
         if (!audioPlayer.paused && isPlaying) {
             lastAudioContextTime = Date.now();
         } else if (isPlaying && !audioPlayer.paused) {
-            // Si el reproductor no está pausado pero el tiempo no avanza
             if (audioPlayer.currentTime === lastAudioContextTime) {
                 console.log('Contexto de audio perdido, intentando reanudar...');
                 attemptResumePlayback();
@@ -220,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Iniciar verificación del contexto de audio
     function startAudioContextCheck() {
         if (audioContextCheckInterval) clearInterval(audioContextCheckInterval);
         
@@ -228,16 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isPlaying && currentStation) {
                 checkAudioContext();
             }
-        }, 3000); // Verificar cada 3 segundos
+        }, 3000);
     }
 
-    // Iniciar verificaciones cuando comienza la reproducción
     function startPlaybackChecks() {
         startFacebookDetection();
         startAudioContextCheck();
     }
 
-    // Detener verificaciones cuando se detiene la reproducción
     function stopPlaybackChecks() {
         if (pageFocusCheckInterval) {
             clearInterval(pageFocusCheckInterval);
@@ -500,21 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     playBtn.addEventListener('click', function() {
-        // Si el botón tiene la animación de pulso, quitarla
         this.style.animation = '';
         
         if (isPlaying) {
             audioPlayer.pause(); 
             isPlaying = false; 
             updateStatus(false);
-            if (countdownInterval) { 
-                clearInterval(countdownInterval); 
-                countdownInterval = null; 
-            }
-            if (updateInterval) { 
-                clearInterval(updateInterval); 
-                updateInterval = null; 
-            }
+            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+            if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
         } else {
             if (currentStation) {
                 playStation();
@@ -570,15 +554,13 @@ document.addEventListener('DOMContentLoaded', () => {
         audioPlayer.play()
             .then(() => { 
                 isPlaying = true; updateStatus(true); startTimeStuckCheck();
-                wasPlayingBeforeFocusLoss = true; // NUEVO: Marcar que está reproduciendo
+                wasPlayingBeforeFocusLoss = true;
                 if (currentStation.service !== 'nrk') {
                     setTimeout(() => startSongInfoUpdates(), 5000);
                 }
-                // NUEVO: Iniciar temporizador para la invitación PWA
                 if (installInvitationTimeout === null) {
-                    setTimeout(showInstallInvitation, 600000); // 10 minutos
+                    setTimeout(showInstallInvitation, 600000);
                 }
-                // Iniciar verificaciones después de que la reproducción comience
                 setTimeout(() => {
                     if (isPlaying) {
                         startPlaybackChecks();
@@ -625,7 +607,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
                     
                     await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                    
                 }
             } else { resetUI(); }
         } catch (error) { 
@@ -737,9 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
      if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
      if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
      if (data.totalAlbumDuration) {
-        // CORRECCIÓN: Verificar si la duración está en milisegundos y convertirla
         let durationInSeconds = data.totalAlbumDuration;
-        // Si el valor es mayor que 10,000, probablemente está en milisegundos
         if (durationInSeconds > 10000) {
             durationInSeconds = Math.floor(durationInSeconds / 1000);
         }
@@ -852,28 +831,17 @@ document.addEventListener('DOMContentLoaded', () => {
         audioPlayer.pause(); audioPlayer.src = '';
         isPlaying = false; updateStatus(false);
         stopSongInfoUpdates();
-        wasPlayingBeforeFocusLoss = false; // NUEVO: Resetear estado de reproducción
-        stopPlaybackChecks(); // NUEVO: Detener verificaciones
+        wasPlayingBeforeFocusLoss = false;
+        stopPlaybackChecks();
     });
 
-    // MODIFICADO: Mejorar el manejo de errores de audio
     audioPlayer.addEventListener('error', (e) => {
         const error = audioPlayer.error;
         if (error) {
-            if (error.code == 1 || error.code == 4) { 
-                return; 
-            }
-            logErrorForAnalysis('Audio element error', { 
-                errorCode: error.code, 
-                errorMessage: error.message, 
-                station: currentStation ? currentStation.id : 'unknown', 
-                timestamp: new Date().toISOString() 
-            });
+            if (error.code == 1 || error.code == 4) { return; }
+            logErrorForAnalysis('Audio element error', { errorCode: error.code, errorMessage: error.message, station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString() });
             
-            // Si el error es por el contexto de audio, intentar reanudar
-            if (error.message.includes('The play() request was interrupted') || 
-                error.message.includes('The fetching process for the media resource was aborted')) {
-                
+            if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for the media resource was aborted')) {
                 console.log('Error de contexto de audio detectado, intentando reanudar...');
                 wasPlayingBeforeFocusLoss = true;
                 
@@ -897,9 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // MODIFICADO: Mejorar el evento de pausa para detectar pausas no intencionadas
     audioPlayer.addEventListener('pause', () => {
-        // Si la pausa no fue intencionada (no causada por el usuario)
         if (isPlaying && !document.hidden) {
             console.log('Pausa no intencionada detectada, intentando reanudar...');
             wasPlayingBeforeFocusLoss = true;
@@ -924,7 +890,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Detectar cuando el audio se detiene inesperadamente
     audioPlayer.addEventListener('stalled', () => {
         if (isPlaying) {
             console.log('Audio detenido inesperadamente, intentando reanudar...');
@@ -974,12 +939,12 @@ document.addEventListener('DOMContentLoaded', () => {
     audioPlayer.addEventListener('playing', () => { 
         isPlaying = true; 
         updateStatus(true); 
-        wasPlayingBeforeFocusLoss = true; // NUEVO: Marcar que está reproduciendo
+        wasPlayingBeforeFocusLoss = true;
     });
     audioPlayer.addEventListener('ended', () => { 
         isPlaying = false; 
         updateStatus(false);
-        wasPlayingBeforeFocusLoss = false; // NUEVO: Resetear estado de reproducción
+        wasPlayingBeforeFocusLoss = false;
     });
 
     // ==========================================================================
@@ -1015,10 +980,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-       // NUEVO: LÓGICA PARA DETECTAR Y RECUPERAR REPRODUCCIÓN
+       // LÓGICA PARA DETECTAR Y RECUPERAR REPRODUCCIÓN
        // ==========================================================================
     
-    // Implementar la API de Media Session para mejor integración con el sistema
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: 'RadioMax',
@@ -1052,26 +1016,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Detectar cambios de visibilidad de la página
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            // La página está oculta
             wasPlayingBeforeFocusLoss = isPlaying;
             console.log('Página oculta, reproducción actual:', isPlaying);
             
-            // Detectar si es Facebook
             if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
                 facebookVideoDetected = true;
                 console.log('Detectado Facebook, iniciando verificación especial');
             }
         } else {
-            // La página es visible de nuevo
             console.log('Página visible de nuevo, estaba reproduciendo:', wasPlayingBeforeFocusLoss);
-            
-            // Si estaba reproduciendo antes y ahora no está, intentar reanudar
             attemptResumePlayback();
             
-            // Si es Facebook, iniciar verificación periódica
             if (facebookVideoDetected) {
                 startFacebookDetection();
                 setTimeout(() => {
@@ -1080,17 +1037,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         clearInterval(pageFocusCheckInterval);
                         pageFocusCheckInterval = null;
                     }
-                }, 30000); // Verificar por 30 segundos después de volver de Facebook
+                }, 30000);
             }
         }
     });
 
-    // Detectar cambios de foco de la ventana
     window.addEventListener('blur', () => {
         wasPlayingBeforeFocusLoss = isPlaying;
         console.log('Ventana perdió el foco, reproducción actual:', isPlaying);
         
-        // Detectar si es Facebook
         if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
             facebookVideoDetected = true;
             console.log('Detectado Facebook, iniciando verificación especial');
@@ -1099,11 +1054,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('focus', () => {
         console.log('Ventana recuperó el foco, estaba reproduciendo:', wasPlayingBeforeFocusLoss);
-        
-        // Si estaba reproduciendo antes y ahora no está, intentar reanudar
         attemptResumePlayback();
         
-        // Si es Facebook, iniciar verificación periódica
         if (facebookVideoDetected) {
             startFacebookDetection();
             setTimeout(() => {
@@ -1112,11 +1064,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(pageFocusCheckInterval);
                     pageFocusCheckInterval = null;
                 }
-            }, 30000); // Verificar por 30 segundos después de volver de Facebook
+            }, 30000);
         }
     });
 
-    // Detectar cuando la página gana foco después de una interrupción
     document.addEventListener('click', () => {
         if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
             setTimeout(() => {
@@ -1188,9 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(showInstallPwaButtons, 1000); 
-    });
+    setTimeout(showInstallPwaButtons, 1000);
 
     // ==========================================================================
        // LÓGICA DE COMPARTIR
@@ -1227,12 +1176,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // NUEVO: Event Listener para cerrar invitación
     closeInvitationBtn.addEventListener('click', () => {
         hideInstallInvitation();
     });
 
-    // NUEVO: Manejadores de clic para los logos de la invitación
     installWindowsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         if (deferredPrompt) {
@@ -1305,46 +1252,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateVolumeIconPosition();
-});
 
-// Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        let refreshing = false;
-        const updateNotification = document.getElementById('update-notification');
-        const updateReloadBtn = document.getElementById('update-reload-btn');
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registrado con éxito:', registration.scope);
-                if (registration.waiting) { updateNotification.style.display = 'block'; }
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            updateNotification.style.display = 'block';
-                        }
-                    });
-                });
-            })
-            .catch(error => { console.log('Error al registrar el ServiceWorker:', error); });
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('Controller changed, reloading page...');
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
-        });
-        updateReloadBtn.addEventListener('click', () => {
-            updateNotification.style.display = 'none';
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-            }
-            setTimeout(() => { window.location.reload(); }, 100);
-        });
-    });
-}
-
-// Versión
-document.addEventListener('DOMContentLoaded', () => {
+    // ==========================================================================
+       // VERSIÓN DE LA APLICACIÓN
+       // ==========================================================================
     const versionSpan = document.getElementById('version-number');
     fetch('sw.js')
         .then(response => {
@@ -1364,4 +1275,43 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
             versionSpan.textContent = 'Error';
         });
+
+    // ==========================================================================
+       // SERVICE WORKER
+       // ==========================================================================
+    if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        const updateNotification = document.getElementById('update-notification');
+        const updateReloadBtn = document.getElementById('update-reload-btn');
+        
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registrado con éxito:', registration.scope);
+                if (registration.waiting) { updateNotification.style.display = 'block'; }
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            updateNotification.style.display = 'block';
+                        }
+                    });
+                });
+            })
+            .catch(error => { console.log('Error al registrar el ServiceWorker:', error); });
+            
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('Controller changed, reloading page...');
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+        });
+        
+        updateReloadBtn.addEventListener('click', () => {
+            updateNotification.style.display = 'none';
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+            }
+            setTimeout(() => { window.location.reload(); }, 100);
+        });
+    }
 });
