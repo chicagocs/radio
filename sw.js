@@ -1,11 +1,11 @@
 // v3.2.1 (Mejorado con fallback offline y TTL para API)
 const CACHE_NAME = 'radiomax-v3.2.1'; 
 
-// <-- CAMBIO: Añadido offline.html a los activos estáticos
+
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/offline.html', // <-- NUEVO
+  '/offline.html',
   '/stations.json',
   '/images/apple-touch-icon.png',
   '/images/favicon-32x32.png',
@@ -15,7 +15,6 @@ const STATIC_ASSETS = [
   '/site.webmanifest'
 ];
 
-// <-- NUEVO: Constante para definir el tiempo de vida de la caché de la API (5 minutos)
 const API_CACHE_TTL = 5 * 60 * 1000; 
 
 // Instalación: Guardar los archivos estáticos en el caché
