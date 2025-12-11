@@ -544,12 +544,20 @@ body {
 /* ==========================================================================
    NUEVO: ESTILOS PARA LA PANTALLA DE BIENVENIDA Y REPRODUCCIÓN
    ========================================================================== */
+/* ==========================================================================
+   NUEVO: ESTILOS PARA LA PANTALLA DE BIENVENIDA Y REPRODUCCIÓN
+   ========================================================================== */
+/* --- MODIFICADO --- */
 .welcome-screen {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    /* --- NUEVO --- */
+    flex-direction: column; /* Alinea los hijos en una columna (uno debajo del otro) */
+    justify-content: center; /* Centra los hijos verticalmente */
+    align-items: center; /* Centra los hijos horizontalmente */
+    gap: 10px; /* Crea un espacio de 10px entre el SVG y el texto de la versión */
+    /* --- FIN NUEVO --- */
     width: 100%;
-    height: 100%; 
+    height: 100%; /* Ocupa el 100% de la altura del contenedor padre fijo */
     text-align: center;
 }
 
@@ -561,8 +569,19 @@ body {
 
 .welcome-screen svg text {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 50px;
+    font-size: 45px;
     font-weight: bold;
+}
+
+.version-container {
+    font-size: 14px;
+    color: #cccccc;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.version-container #version-number {
+    font-weight: bold;
+    color: #ff6600;
 }
 
 .playback-info {
@@ -570,6 +589,7 @@ body {
     width: 100%;
     height: 100%;
 }
+
 /* ==========================================================================
    ESTILOS DEL CONTROL DE VOLUMEN
    ========================================================================== */
