@@ -6,7 +6,6 @@
     <title>RadioMax, una experiencia inmersiva</title>
     <meta name="description" content="RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!">
     <meta name="robots" content="index, follow">
-    <html lang="es">
 
     <link rel="manifest" href="site.webmanifest">
     <link rel="canonical" href="https://radiomax.tramax.com.ar/">
@@ -37,7 +36,7 @@
     <meta name="twitter:description" content="RadioMax, disfruta de una experiencia inmersiva con la mejor música las 24 horas. ¡Escucha gratis ahora!">
     <meta name="twitter:image" content="https://radiomax.tramax.com.ar/images/radiomax-social-card-1200x630.jpg">
 
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/styles2.css">
 
     <script type="application/ld+json">
     {
@@ -105,37 +104,65 @@
             </div>
         </div>
 
+        <!-- INICIO: Contenedor de cuenta regresiva y información del álbum -->
         <div class="countdown-container" id="countdownContainer">
-            <div class="countdown-timer-column">
-                <div class="countdown-label">Restan</div>
-                <div class="countdown-timer" id="countdownTimer">--:--</div>
-                <div class="total-duration" id="totalDuration">--:--</div>
-                <div class="timer-separator"></div>
-                <div class="track-position-info" id="trackPosition">--/--</div>
+            
+            <!-- NUEVO: Contenedor para el mensaje de bienvenida (SVG) -->
+            <!-- Este contenedor será visible por defecto y cuando se detenga la música -->
+            <div id="welcomeScreen" class="welcome-screen">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet">
+                    <g class="layer">
+                        <title>Layer 1</title>
+                        <text 
+                            fill="#ff7f00" 
+                            font-family="Sans-serif" 
+                            font-size="24" 
+                            stroke="#000000" 
+                            stroke-width="0" 
+                            text-anchor="middle" 
+                            x="50%" 
+                            xml:space="preserve" 
+                            y="50%">RadioMax</text>
+                    </g>
+                </svg>
             </div>
-            <div class="album-details-column">
-                <div class="details-row">
-                    <span class="details-label">Año</span>
-                    <span class="details-value" id="releaseDate">----</span>
+
+            <!-- MODIFICADO: Contenedor para la información de reproducción -->
+            <!-- Este contenedor estará oculto por defecto y se mostrará al reproducir -->
+            <div id="playbackInfo" class="playback-info" style="display: none;">
+                <div class="countdown-timer-column">
+                    <div class="countdown-label">Restan</div>
+                    <div class="countdown-timer" id="countdownTimer">--:--</div>
+                    <div class="total-duration" id="totalDuration">--:--</div>
+                    <div class="timer-separator"></div>
+                    <div class="track-position-info" id="trackPosition">--/--</div>
                 </div>
-                <div class="details-row">
-                    <span class="details-label">Sello</span>
-                    <span class="details-value" id="recordLabel">----</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Tracks</span>
-                    <span class="details-value" id="albumTrackCount">--</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Tiempo</span>
-                    <span class="details-value" id="albumTotalDuration">--:--</span>
-                </div>
-                <div class="details-row">
-                    <span class="details-label">Género</span>
-                    <span class="details-value genre" id="trackGenre">--</span>
+                <div class="album-details-column">
+                    <div class="details-row">
+                        <span class="details-label">Año</span>
+                        <span class="details-value" id="releaseDate">----</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Sello</span>
+                        <span class="details-value" id="recordLabel">----</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Tracks</span>
+                        <span class="details-value" id="albumTrackCount">--</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Tiempo</span>
+                        <span class="details-value" id="albumTotalDuration">--:--</span>
+                    </div>
+                    <div class="details-row">
+                        <span class="details-label">Género</span>
+                        <span class="details-value genre" id="trackGenre">--</span>
+                    </div>
                 </div>
             </div>
+
         </div>
+        <!-- FIN: Contenedor de cuenta regresiva y información del álbum -->
 
         <div class="controls">
             <button class="btn" id="playBtn">▶ SONAR</button>
