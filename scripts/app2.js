@@ -520,6 +520,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus(false);
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
+             wasPlayingBeforeFocusLoss = false;
+             stopPlaybackChecks();            
         } else {
             if (currentStation) {
                 playStation();
