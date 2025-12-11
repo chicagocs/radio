@@ -135,7 +135,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .catch(() => {
-        // <-- NUEVO: Si la petición es una página, servimos la página offline
         if (event.request.destination === 'document') {
             return caches.match('/offline.html');
         }
