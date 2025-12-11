@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RadioMax - Sin Conexión</title>
+    <style>
+        /* --- Estilos Globales y de Fondo --- */
+        :root {
+            --bg-color: #000000;
+            --primary-orange: #fe8800;
+            --text-color: #f0f0f0;
+            --muted-text-color: #aaaaaa;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        /* --- Contenedor Principal --- */
+        .offline-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        /* --- SVG del Robot --- */
+        .robot-svg {
+            width: 180px;
+            height: 180px;
+            margin-bottom: 2rem;
+        }
+
+        /* --- Animación de la boca (ondas de sonido) --- */
+        .soundwave-bar {
+            animation: soundwave-pulse 1.2s ease-in-out infinite;
+            transform-origin: bottom;
+        }
+        .soundwave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .soundwave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .soundwave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .soundwave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes soundwave-pulse {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* --- Tipografía --- */
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            color: var(--primary-orange);
+            font-weight: 700;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            color: var(--muted-text-color);
+            max-width: 320px;
+            line-height: 1.5;
+        }
+
+    </style>
+</head>
+<body>
+
+    <main class="offline-container">
+        
+        <!-- Robot Minimalista con Auriculares -->
+        <svg class="robot-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <g id="robot-head">
+                <!-- Antena -->
+                <line x1="100" y1="20" x2="100" y2="5" stroke="#fe8800" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="100" cy="5" r="4" fill="#fe8800"/>
+                
+                <!-- Cabeza -->
+                <rect x="50" y="40" width="100" height="80" rx="15" fill="#333" />
+                
+                <!-- Ojos -->
+                <circle cx="80" cy="75" r="8" fill="#fe8800" />
+                <circle cx="120" cy="75" r="8" fill="#fe8800" />
+            </g>
+            
+            <g id="mouth-soundwave">
+                <!-- Ondas de sonido para la boca -->
+                <rect class="soundwave-bar" x="85" y="95" width="6" height="20" rx="3" fill="#fe8800" />
+                <rect class="soundwave-bar" x="94" y="90" width="6" height="25" rx="3" fill="#fe8800" />
+                <rect class="soundwave-bar" x="103" y="85" width="6" height="30" rx="3" fill="#fe8800" />
+                <rect class="soundwave-bar" x="112" y="90" width="6" height="25" rx="3" fill="#fe8800" />
+                <rect class="soundwave-bar" x="121" y="95" width="6" height="20" rx="3" fill="#fe8800" />
+            </g>
+            
+            <g id="headphones">
+                <!-- Banda de los auriculares -->
+                <path d="M 40 60 Q 40 20, 100 20 Q 160 20, 160 60" stroke="#fe8800" stroke-width="8" fill="none" stroke-linecap="round"/>
+                
+                <!-- Cascos -->
+                <rect x="35" y="55" width="20" height="40" rx="10" fill="#fe8800" />
+                <rect x="145" y="55" width="20" height="40" rx="10" fill="#fe8800" />
+            </g>
+        </svg>
+
+        <h1>Sin conexión</h1>
+        <p>Parece que estás desconectado.<br>Revisa tu conexión ...<br>para volver a tu experiencia inmersiva.</p>
+
+    </main>
+
+</body>
+</html>
