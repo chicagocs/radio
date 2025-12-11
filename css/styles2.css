@@ -580,8 +580,7 @@ body {
 }
 
 .version-container #version-number {
-    font-weight: bold;
-    color: #ff6600;
+    color: #cccccc;
 }
 
 .playback-info {
