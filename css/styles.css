@@ -568,6 +568,12 @@ body {
     font-weight: bold;
 }
 
+.version-inmersiva {
+    font-size: 15px;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 .version-container {
     font-size: 12px;
     color: #cccccc;
