@@ -1,0 +1,24 @@
+# .github/workflows/backup.yml
+name: Repository Backup to GitLab
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for trigger'
+        required: false
+        default: 'Scheduled backup from Cloudflare Worker'
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror Repository to GitLab
+        run: |
+          git clone --mirror https://${{ secrets.ORIGIN_TOKEN }}@github.com/chicagocs/radiomax.git
+          
+          cd REPOSITORIO_ORIGINAL.git
+          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicagocs-project.git
+          # Haz push espejo al repositorio de GitLab
+          # ¡IMPORTANTE! Reemplaza los valores de la URL de GitLab
+          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicago-project.git
