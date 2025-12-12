@@ -1,0 +1,3 @@
+name = "backup-orchestrator"
+main = "orchestrator-worker.js"
+compatibility_date = "2024-01-01"
