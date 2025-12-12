@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_RECONNECT_ATTEMPTS = 5;
     let reconnectTimeoutId = null;
     let installInvitationTimeout = null;
-    let periodicSongCheckInterval = null; // NUEVO: Intervalo para verificación periódica
 
     // Variable para rastrear el estado de reproducción antes de perder el foco
     let wasPlayingBeforeFocusLoss = false;
@@ -527,7 +526,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus(false);
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-            if (periodicSongCheckInterval) { clearInterval(periodicSongCheckInterval); periodicSongCheckInterval = null; } // NUEVO
              wasPlayingBeforeFocusLoss = false;
              stopPlaybackChecks();            
         } else {
@@ -546,7 +544,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
         if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-        if (periodicSongCheckInterval) { clearInterval(periodicSongCheckInterval); periodicSongCheckInterval = null; } // NUEVO
         
         currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
         resetCountdown(); resetAlbumCover(); resetAlbumDetails();
@@ -564,24 +561,10 @@ document.addEventListener('DOMContentLoaded', () => {
         logErrorForAnalysis('Playback error', { station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
     }
 
-    // NUEVO: Función para verificar periódicamente si la canción ha cambiado
-    function startPeriodicSongCheck() {
-        if (periodicSongCheckInterval) clearInterval(periodicSongCheckInterval);
-        
-        // Verificar cada 10 segundos si hay cambios
-        periodicSongCheckInterval = setInterval(async () => {
-            if (isPlaying && currentStation) {
-                // Forzar una actualización de la información de la canción
-                await updateSongInfo(true);
-            }
-        }, 10000);
-    }
-
     function playStation() {
         if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
         if (updateInterval) clearInterval(updateInterval);
         if (countdownInterval) clearInterval(countdownInterval);
-        if (periodicSongCheckInterval) clearInterval(periodicSongCheckInterval); // NUEVO
         
         currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
         resetCountdown(); resetAlbumDetails();
@@ -608,8 +591,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 wasPlayingBeforeFocusLoss = true;
                 if (currentStation.service !== 'nrk') {
                     setTimeout(() => startSongInfoUpdates(), 5000);
-                    // NUEVO: Iniciar la verificación periódica de canciones
-                    startPeriodicSongCheck();
                 }
                 if (installInvitationTimeout === null) {
                     setTimeout(showInstallInvitation, 600000);
@@ -855,10 +836,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(currentStation && currentStation.service === 'nrk') { 
                         stopBtn.click(); 
                     } else { 
-                        // Forzar actualización inmediata de la información de la canción
-                        updateSongInfo();
-                        // Programar otra actualización en 5 segundos para asegurar que se detecte el cambio
-                        setTimeout(updateSongInfo, 5000);
+                        // CAMBIO CLAVE: Forzar la actualización justo cuando la canción termina
+                        console.log('Canción terminada, forzando actualización inmediata...');
+                        updateSongInfo(true); // Llamada forzada
+                        // Programar otra actualización como respaldo
+                        setTimeout(() => updateSongInfo(true), 3000); 
                     }
                     return;
                 }
@@ -871,14 +853,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Añadir una advertencia cuando queden menos de 30 segundos
                 if (remaining < 30) { 
                     countdownTimer.classList.add('ending');
-                    // Forzar una actualización de la información cuando queden pocos segundos
-                    if (remaining < 5 && !countdownInterval.nearEnd) {
-                        countdownInterval.nearEnd = true;
-                        updateSongInfo();
-                    }
                 } else { 
                     countdownTimer.classList.remove('ending');
-                    countdownInterval.nearEnd = false;
                 }
             }, 500); // Reducir a 500ms para mayor precisión
         }
@@ -903,7 +879,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function stopSongInfoUpdates() {
         if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-        if (periodicSongCheckInterval) { clearInterval(periodicSongCheckInterval); periodicSongCheckInterval = null; } // NUEVO
         resetCountdown(); resetAlbumCover(); resetAlbumDetails();
         currentTrackInfo = null;
         songTitle.textContent = 'Seleccionar estación';
