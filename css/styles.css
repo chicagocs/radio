@@ -578,9 +578,6 @@ body {
     color: #cccccc;
 }
 
-.version-container:first-of-type {
-    margin-top: -10px;
-}
 .playback-info {
     display: flex;
     width: 100%;
