@@ -183,7 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
             setTimeout(() => {
                 if (!isPlaying) {
-                    console.log('Intentando reanudar reproducción...');
                     audioPlayer.play().then(() => {
                         isPlaying = true;
                         updateStatus(true);
@@ -212,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         pageFocusCheckInterval = setInterval(() => {
             if (isFacebookActive()) {
-                console.log('Detectada posible interrupción de Facebook, intentando reanudar...');
                 attemptResumePlayback();
             }
         }, 2000);
@@ -223,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lastAudioContextTime = Date.now();
         } else if (isPlaying && !audioPlayer.paused) {
             if (audioPlayer.currentTime === lastAudioContextTime) {
-                console.log('Contexto de audio perdido, intentando reanudar...');
                 attemptResumePlayback();
             }
             lastAudioContextTime = audioPlayer.currentTime;
@@ -620,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateSomaFmInfo() {
-        if (!canMakeApiCall('somaFM')) { console.log('Rate limiting: Demasiadas llamadas a APISFM'); return; }
+        if (!canMakeApiCall('somaFM')) { return; }
         try {
             const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -644,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateRadioParadiseInfo() {
-        if (!canMakeApiCall('radioParadise')) { console.log('Rate limiting: Demasiadas llamadas a APIRP'); return; }
+        if (!canMakeApiCall('radioParadise')) { return; }
         try {
             const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
             const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
@@ -692,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getMusicBrainzDuration(artist, title) {
-        if (!canMakeApiCall('musicBrainz')) { console.log('Rate limiting: Demasiadas llamadas a MusicBrainz'); return; }
+        if (!canMakeApiCall('musicBrainz')) { return; }
         try {
             const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
             const response = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
@@ -772,7 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetUI() {
-        if (isReconnecting) { console.log('Skipping UI reset because reconnection is in progress.'); return; }
+        if (isReconnecting) { return; }
         songTitle.textContent = 'Reproduciendo...';
         songArtist.textContent = ''; songAlbum.textContent = '';
         resetCountdown(); resetAlbumCover(); resetAlbumDetails();
@@ -872,7 +869,6 @@ document.addEventListener('DOMContentLoaded', () => {
             logErrorForAnalysis('Audio element error', { errorCode: error.code, errorMessage: error.message, station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString() });
             
             if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for the media resource was aborted')) {
-                console.log('Error de contexto de audio detectado, intentando reanudar...');
                 wasPlayingBeforeFocusLoss = true;
                 
                 setTimeout(() => {
@@ -897,7 +893,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     audioPlayer.addEventListener('pause', () => {
         if (isPlaying && !document.hidden) {
-            console.log('Pausa no intencionada detectada, intentando reanudar...');
             wasPlayingBeforeFocusLoss = true;
             
             setTimeout(() => {
@@ -922,7 +917,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     audioPlayer.addEventListener('stalled', () => {
         if (isPlaying) {
-            console.log('Audio detenido inesperadamente, intentando reanudar...');
             wasPlayingBeforeFocusLoss = true;
             
             setTimeout(() => {
@@ -981,9 +975,9 @@ document.addEventListener('DOMContentLoaded', () => {
        // LÓGICA DE RECONEXIÓN AUTOMÁTICA
        // ==========================================================================
     window.addEventListener('online', () => {
-        if (isReconnecting) { console.log('Network is back. Attempting to reconnect...'); attemptReconnect(); }
+        if (isReconnecting) { attemptReconnect(); }
     });
-    window.addEventListener('offline', () => { console.log('Network connection lost.'); });
+    window.addEventListener('offline', () => { });
 
     function attemptReconnect() {
         if (!isReconnecting || !currentStation) { return; }
@@ -999,7 +993,6 @@ document.addEventListener('DOMContentLoaded', () => {
         songArtist.textContent = ''; songAlbum.textContent = '';
         playStation()
             .then(() => {
-                console.log('Reconnection successful!');
                 isReconnecting = false; reconnectAttempts = 0;
                 if (reconnectTimeoutId) { clearTimeout(reconnectTimeoutId); reconnectTimeoutId = null; }
             })
@@ -1049,14 +1042,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             wasPlayingBeforeFocusLoss = isPlaying;
-            console.log('Página oculta, reproducción actual:', isPlaying);
             
             if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
                 facebookVideoDetected = true;
-                console.log('Detectado Facebook, iniciando verificación especial');
             }
         } else {
-            console.log('Página visible de nuevo, estaba reproduciendo:', wasPlayingBeforeFocusLoss);
             attemptResumePlayback();
             
             if (facebookVideoDetected) {
@@ -1074,16 +1064,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('blur', () => {
         wasPlayingBeforeFocusLoss = isPlaying;
-        console.log('Ventana perdió el foco, reproducción actual:', isPlaying);
         
         if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
             facebookVideoDetected = true;
-            console.log('Detectado Facebook, iniciando verificación especial');
         }
     });
 
     window.addEventListener('focus', () => {
-        console.log('Ventana recuperó el foco, estaba reproduciendo:', wasPlayingBeforeFocusLoss);
         attemptResumePlayback();
         
         if (facebookVideoDetected) {
@@ -1102,7 +1089,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
             setTimeout(() => {
                 if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
-                    console.log('Click detectado, verificando estado de reproducción...');
                     attemptResumePlayback();
                 }
             }, 500);
@@ -1330,7 +1316,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => { console.log('Error al registrar el ServiceWorker:', error); });
             
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('Controller changed, reloading page...');
             if (refreshing) return;
             refreshing = true;
             window.location.reload();
