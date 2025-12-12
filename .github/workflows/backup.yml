@@ -24,5 +24,5 @@ jobs:
           # Entra al directorio usando la variable
           cd ${{ env.REPO_NAME }}.git
           
-          # Haz push espejo al repositorio de GitLab
-          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/TU_USUARIO_GITLAB/TU_PROYECTO_BACKUP.git
+          # ¡IMPORTANTE! Reemplaza los valores de la URL de GitLab por los tuyos
+          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicagocs-project.git
