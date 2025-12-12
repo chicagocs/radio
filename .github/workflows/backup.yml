@@ -17,7 +17,7 @@ jobs:
         run: |
           git clone --mirror https://${{ secrets.ORIGIN_TOKEN }}@github.com/chicagocs/radiomax.git
           
-          cd REPOSITORIO_ORIGINAL.git
+          cd radiomax.git
           git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicagocs-project.git
           # Haz push espejo al repositorio de GitLab
           # ¡IMPORTANTE! Reemplaza los valores de la URL de GitLab
