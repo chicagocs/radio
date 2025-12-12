@@ -12,13 +12,17 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-latest
+    env:
+      # Define el nombre del repositorio como una variable de entorno
+      REPO_NAME: radiomax 
     steps:
       - name: Mirror Repository to GitLab
         run: |
-          git clone --mirror https://${{ secrets.ORIGIN_TOKEN }}@github.com/chicagocs/radiomax.git
+          # Clona el repositorio usando la variable
+          git clone --mirror https://${{ secrets.ORIGIN_TOKEN }}@github.com/chicagocs/${{ env.REPO_NAME }}.git
           
-          cd radiomax.git
-          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicagocs-project.git
+          # Entra al directorio usando la variable
+          cd ${{ env.REPO_NAME }}.git
+          
           # Haz push espejo al repositorio de GitLab
-          # ¡IMPORTANTE! Reemplaza los valores de la URL de GitLab
-          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/chicagocs/chicago-project.git
+          git push --mirror https://oauth2:${{ secrets.DESTINATION_TOKEN }}@gitlab.com/TU_USUARIO_GITLAB/TU_PROYECTO_BACKUP.git
