@@ -1,65 +1,49 @@
 // orchestrator-worker.js
 
-export default {
-  /**
-   * Este manejador se ejecuta cuando el Worker recibe una solicitud HTTP
-   * (por ejemplo, si alguien visita su URL en un navegador).
-   * Su propósito es evitar el error "No fetch handler!".
-   */
-  async fetch(request, env, ctx) {
-    console.log("Petición fetch recibida. Este Worker se ejecuta principalmente en un horario programado.");
-    return new Response("El orquestador de backup está activo. Para ver los logs de la tarea programada, revisa el dashboard de Cloudflare Workers.", {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' },
-    });
-  },
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
 
-  /**
-   * Este es tu manejador original. Se ejecutará según el Cron Trigger
-   * que configures en el dashboard de Cloudflare.
-   */
-  async scheduled(event, env, ctx) {
-    console.log("Iniciando orquestación de backup programado...");
+async function handleRequest(request) {
+  // 1. Obtén el token secreto desde las variables de entorno de Cloudflare
+  const githubApiToken = GITHUB_API_TOKEN; 
 
-    const WORKFLOW_ID = 'backup.yml'; 
-    
-    // CAMBIO AQUÍ: Usamos la variable de entorno ORIGIN_TOKEN
-    const GITHUB_TOKEN = env.ORIGIN_TOKEN;
-    
-    const OWNER = env.REPO_OWNER;
-    const REPO = env.REPO_NAME;
+  // 2. Define los detalles de tu repositorio y workflow
+  const owner = 'chicagocs';
+  const repo = 'radiomax';
+  const workflowId = 'backup.yml'; 
 
-    if (!GITHUB_TOKEN || !OWNER || !REPO) {
-        console.error("Faltan variables de entorno críticas.");
-        return;
+  // 3. Construye la URL de la API de GitHub para lanzar el workflow
+  const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
+
+  // 4. Define el cuerpo de la petición.
+  // 'ref' es la rama donde se encuentra el workflow (ej: 'main', 'master').
+  // 'inputs' son los parámetros que definiste en tu workflow.yml
+  const body = {
+    ref: 'main',
+    inputs: {
+      reason: 'Scheduled backup from Cloudflare Worker'
     }
+  };
 
-    const url = `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_ID}/dispatches`;
+  // 5. Realiza la llamada a la API de GitHub
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `token ${githubApiToken}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/vnd.github.v3+json',
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                ref: 'main', // Asegúrate de que 'main' es la rama correcta
-                inputs: {
-                    reason: 'Scheduled backup via Cloudflare Worker'
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Error de GitHub API: ${response.status} ${errorBody}`);
-        }
-
-        console.log("Workflow de backup disparado exitosamente.");
-    } catch (error) {
-        console.error("Fallo al disparar el workflow de backup:", error);
-    }
+  // 6. Maneja la respuesta
+  if (response.ok) {
+    console.log('Workflow dispatched successfully!');
+    return new Response('GitHub Actions workflow triggered successfully.', { status: 200 });
+  } else {
+    const errorBody = await response.text();
+    console.error(`Failed to dispatch workflow: ${response.status} ${errorBody}`);
+    return new Response(`Failed to trigger workflow: ${response.status} ${errorBody}`, { status: 500 });
   }
-};
+}
