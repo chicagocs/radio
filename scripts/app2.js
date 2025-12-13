@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
        // ==========================================================================
     async function loadStations() {
         try {
-            const response = await fetch('stations.json');
+            const response = await fetch('stations2.json');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const allStations = await response.json();
             const groupedStations = allStations.reduce((acc, station) => {
@@ -1409,4 +1409,5 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { window.location.reload(); }, 100);
         });
     }
+
 });
