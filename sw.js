@@ -65,7 +65,6 @@ self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
 
   // ESTRATEGIA 1: Stale-While-Revalidate para el App Shell (archivos estáticos)
-  // <-- CAMBIO: Condición simplificada, ya que '/' está en STATIC_ASSETS
   if (STATIC_ASSETS.includes(requestUrl.pathname)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
