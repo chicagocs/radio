@@ -1,5 +1,8 @@
 // orchestrator-worker.js
 // Actualizar manualmente en Cloudflare Workers este mismo código
+// Cloudflare Worker (disparado por un Cron Trigger) -> Llama a la API de GitHub.
+// GitHub Actions (recibe la llamada) -> Ejecuta el script de backup.
+// GitLab (recibe el push) -> Se actualiza con una copia exacta de repositorio RadioMax de GitHub.
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
