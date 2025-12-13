@@ -1,5 +1,5 @@
 // orchestrator-worker.js
-
+// Actualizar manualmente en Cloudflare Workers este mismo código
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request))
 })
