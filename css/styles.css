@@ -457,7 +457,7 @@ body {
 }
 
 .countdown-timer-column {
-    width: 90x;
+    width: 100x;
     flex-shrink: 0;
     text-align: center;
     display: flex;
