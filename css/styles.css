@@ -210,11 +210,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ff6600;
-    font-size: 14px;
-    font-weight: normal;
-    text-align: center;
-    padding: 10px;
+    padding: 0; /* <-- CAMBIO CLAVE: Padding a cero */
     background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
 }
 
