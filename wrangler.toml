@@ -1,5 +1,6 @@
 name = "core"
-main = "workers/api/api.js"
+# main = "workers/api/api.js"
+main = "workers/router/index.js"
 compatibility_date = "2024-01-01"
 
 # ------------------------------------------------------------
