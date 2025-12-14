@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --------------------------------------------------------------------------
 // REFERENCIAS DOM (DEFENSIVAS)
 // --------------------------------------------------------------------------
-const stationSelect = document.getElementById('station-select');
+const stationSelect = document.getElementById('stationSelect');
 const loadingStations = document.getElementById('loading-stations');
 const stationName = document.getElementById('station-name');
 const songTitle = document.getElementById('song-title');
