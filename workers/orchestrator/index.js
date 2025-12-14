@@ -70,10 +70,13 @@ export default {
                     headers: {
                         'Authorization': `token ${githubApiToken}`,
                         'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json',
+                        // 'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'User-Agent': 'Cloudflare-Worker-Orchestrator'
+                        
                     },
-                    body: JSON.stringify(body),
+                    // body: JSON.stringify(body),
+                    body: body,
                     signal: controller.signal
                 });
 
