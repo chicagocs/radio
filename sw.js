@@ -1,5 +1,5 @@
-// v3.2.3 (Brave / Chromium compatible)
-const CACHE_NAME = 'radiomax-v3.2.3';
+// v3.2.4 (Brave / Chromium compatible)
+const CACHE_NAME = 'radiomax-v3.2.4';
 
 const STATIC_ASSETS = [
   '/index.html',
