@@ -36,33 +36,34 @@ setTimeout(() => notification.classList.remove('show'), 3000);
 // CARGA DE ESTACIONES (FIX LOOP DEFINITIVO)
 // ========================================================================
 async function loadStations() {
-try {
-const response = await fetch('stations.json');
-if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  try {
+    const response = await fetch('stations.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-```
-  const stations = await response.json();
+    const stations = await response.json();
 
-  stations.forEach(station => {
-    const opt = document.createElement('option');
-    opt.value = station.id;
-    opt.textContent = station.name;
-    stationSelect.appendChild(opt);
-  });
+    stations.forEach(station => {
+      const opt = document.createElement('option');
+      opt.value = station.id;
+      opt.textContent = station.name;
+      stationSelect.appendChild(opt);
+    });
 
-  console.log('Stations loaded successfully');
+    console.log('Stations loaded successfully');
 
-} catch (err) {
-  console.error('Error cargando estaciones:', err);
-  loadingStations.textContent = 'Error al cargar estaciones';
+  } catch (error) {
+    console.error('Error cargando estaciones:', error);
+    if (loadingStations) {
+      loadingStations.textContent = 'Error al cargar estaciones';
+    }
 
-} finally {
-  // ✅ evita loop infinito
-  loadingStations.style.display = 'none';
-  stationSelect.style.display = 'block';
-}
-```
-
+  } finally {
+    // ✅ ESTO ES LO QUE EVITA EL LOOP
+    if (loadingStations) loadingStations.style.display = 'none';
+    if (stationSelect) stationSelect.style.display = 'block';
+  }
 }
 
 loadStations();
