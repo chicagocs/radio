@@ -14,4 +14,4 @@ id = "b6330a5ca2b6489da5e06e73ff54f4d8"
 # Triggers para eventos programados (Cron Jobs)
 # ------------------------------------------------------------
 [triggers]
-crons = ["0 2 * * *"] # Se ejecutará todos los días a las 2:00 AM UTC
+crons = ["14 2 * * *"] # Se ejecutará todos los días a las 2:00 AM UTC
