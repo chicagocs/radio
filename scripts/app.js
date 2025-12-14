@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </feMerge>
                       </filter>
                     </defs>
-                    <rect width="640" height="640" fill="#000000" />
+                    <rect width="640" height="640" fill="#151515" />
                     <g stroke="#333333" stroke-width="2" fill="none">
                       <circle cx="320" cy="320" r="280" />
                       <circle cx="320" cy="320" r="220" />
