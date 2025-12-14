@@ -1,0 +1,28 @@
+# .github/workflows/dispatch-wrapper.yml
+name: Dispatch Wrapper
+
+on:
+  workflow_dispatch:
+    inputs:
+      original_reason:
+        description: 'Razón del disparador original'
+        required: false
+        default: 'Disparo manual'
+
+jobs:
+  call-backup:
+    name: Llamar al workflow de backup real
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Necesario para que 'gh' funcione en este contexto
+      actions: read # Necesario para que 'gh' funcione
+
+    steps:
+      - name: Llamar al workflow 'backup'
+        run: |
+          echo "📞 Llamando al workflow 'backup' con la razón: ${{ github.event.inputs.original_reason }}"
+          # Usamos la CLI de GitHub para llamar al otro workflow.
+          # La opción '--json' pasa los inputs de forma segura.
+          gh workflow run backup --ref main --json '{"reason":"${{ github.event.inputs.original_reason }}"}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
