@@ -1,9 +1,8 @@
-// v3.2.2 (Mejorado con fallback offline y TTL para API)
-const CACHE_NAME = 'radiomax-v3.2.2'; 
+// v3.2.3 (Mejorado con fallback offline y TTL para API)
+const CACHE_NAME = 'radiomax-v3.2.3'; 
 
 
 const STATIC_ASSETS = [
-  '/',
   '/index.html',
   '/offline.html',
   '/stations.json',
