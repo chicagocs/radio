@@ -1,6 +1,6 @@
 name = "core"
-# main = "workers/api/api.js"
 main = "workers/router/index.js"
+# main = "workers/api/api.js"
 compatibility_date = "2024-01-01"
 
 # ------------------------------------------------------------
@@ -11,22 +11,7 @@ binding = "AREA51_KV"
 id = "b6330a5ca2b6489da5e06e73ff54f4d8"
 
 # ------------------------------------------------------------
-# Archivos estáticos
+# Triggers para eventos programados (Cron Jobs)
 # ------------------------------------------------------------
-[site]
-bucket = "."   # raiz del repo, donde está index.html
-routes = ["radiomax.tramax.com.ar/*"]
-# ------------------------------------------------------------
-# Observabilidad (logs, trazas, etc)
-# ------------------------------------------------------------
-[observability]
-enabled = false
-
-[observability.logs]
-enabled = true
-head_sampling_rate = 1
-persist = true
-invocation_logs = true
-
-[observability.traces]
-enabled = false
+[triggers]
+crons = ["0 2 * * *"] # Se ejecutará todos los días a las 2:00 AM UTC
