@@ -21,7 +21,7 @@ export default {
         // 2. Parámetros para la API de GitHub
         const owner = 'chicagocs'; // Tu usuario de GitHub
         const repo = 'radiomax';     // Tu repositorio
-        const workflowId = 'backup.yml';
+        const workflowId = 'backup'; // backup.yml
         const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
 
         const body = {
