@@ -1,150 +1,122 @@
-// v3.2.3 (Mejorado con fallback offline y TTL para API)
-const CACHE_NAME = 'radiomax-v3.2.3'; 
-
+// v3.2.3 (Brave / Chromium compatible)
+const CACHE_NAME = 'radiomax-v3.2.3';
 
 const STATIC_ASSETS = [
   '/index.html',
   '/offline.html',
   '/stations.json',
+  '/site.webmanifest',
   '/images/apple-touch-icon.png',
   '/images/favicon-32x32.png',
   '/images/favicon-16x16.png',
   '/images/icon-192.png',
-  '/images/icon-512.png',
-  '/site.webmanifest'
+  '/images/icon-512.png'
 ];
 
-const API_CACHE_TTL = 5 * 60 * 1000; 
+const API_CACHE_TTL = 5 * 60 * 1000;
 
-// Instalación: Guardar los archivos estáticos en el caché
+// INSTALL
 self.addEventListener('install', event => {
-  console.log('Service Worker: Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Service Worker: Cacheando archivos estáticos');
-        return Promise.all(
-          STATIC_ASSETS.map(urlToCache => {
-            return cache.add(urlToCache).catch(error => {
-              console.error(`Error al cachear ${urlToCache}:`, error);
-              return Promise.resolve();
-            });
-          })
-        );
-      })
-      .then(() => {
-        console.log('Service Worker: Instalación completada.');
-        return self.skipWaiting();
-      })
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activación: Limpiar cachés antiguos
+// ACTIVATE
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activando...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Borrando caché antiguo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-        console.log('Service Worker: Activación completada.');
-        return self.clients.claim();
-    })
+    caches.keys()
+      .then(keys =>
+        Promise.all(
+          keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-// Interceptar peticiones de red
+// FETCH
 self.addEventListener('fetch', event => {
-  const requestUrl = new URL(event.request.url);
 
-  // ESTRATEGIA 1: Stale-While-Revalidate para el App Shell (archivos estáticos)
-  if (STATIC_ASSETS.includes(requestUrl.pathname)) {
+  // ✅ 1. Navegación HTML (CRÍTICO PARA PWA)
+  if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cachedResponse => {
-          const fetchPromise = fetch(event.request).then(networkResponse => {
-            if (networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          });
-          return cachedResponse || fetchPromise;
+      fetch(event.request)
+        .catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // ✅ 2. App Shell – Stale While Revalidate
+  if (STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        const fetchPromise = fetch(event.request).then(response => {
+          if (response.ok) {
+            caches.open(CACHE_NAME).then(c => c.put(event.request, response.clone()));
+          }
+          return response;
         });
+        return cached || fetchPromise;
       })
     );
     return;
   }
 
-  // ESTRATEGIA 2: Network First con TTL para llamadas a APIs
-  if (requestUrl.hostname.includes('api.somafm.com') || 
-      requestUrl.hostname.includes('musicbrainz.org') ||
-      requestUrl.hostname.includes('nrk.no') ||
-      requestUrl.hostname.includes('core.chcs.workers.dev')) {
-    
+  // ✅ 3. APIs – Network First con TTL
+  if (
+    url.hostname.includes('api.somafm.com') ||
+    url.hostname.includes('musicbrainz.org') ||
+    url.hostname.includes('nrk.no') ||
+    url.hostname.includes('core.chcs.workers.dev')
+  ) {
     event.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cachedResponse => {
-          // <-- NUEVO: Lógica para verificar el TTL
-          if (cachedResponse) {
-            const responseDate = new Date(cachedResponse.headers.get('sw-cached-time'));
-            const now = new Date();
-            if (responseDate && (now - responseDate < API_CACHE_TTL)) {
-              console.log(`Sirviendo desde caché (válida): ${event.request.url}`);
-              return cachedResponse;
+      caches.open(CACHE_NAME).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) {
+            const cachedTime = cached.headers.get('sw-cached-time');
+            if (cachedTime) {
+              const age = Date.now() - new Date(cachedTime).getTime();
+              if (age < API_CACHE_TTL) {
+                return cached;
+              }
             }
           }
 
-          // Si no hay caché o está caducada, vamos a la red
-          console.log(`Buscando en red: ${event.request.url}`);
-          return fetch(event.request).then(networkResponse => {
-            if (networkResponse.status === 200) {
-                // <-- NUEVO: Añadimos una cabecera con la fecha de caché
-                const responseClone = networkResponse.clone();
-                const headers = new Headers(responseClone.headers);
-                headers.append('sw-cached-time', new Date().toUTCString());
-                
-                const responseWithTimestamp = new Response(responseClone.body, {
-                    status: responseClone.status,
-                    statusText: responseClone.statusText,
-                    headers: headers
+          return fetch(event.request)
+            .then(response => {
+              if (response.ok) {
+                const headers = new Headers(response.headers);
+                headers.set('sw-cached-time', new Date().toISOString());
+
+                const wrapped = new Response(response.clone().body, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers
                 });
 
-                cache.put(event.request, responseWithTimestamp);
-            }
-            return networkResponse;
-          }).catch(() => {
-            // Si la red falla, devolvemos la versión cacheada aunque esté caducada
-            console.log(`Red falló, sirviendo caché (caducada si existe): ${event.request.url}`);
-            return cachedResponse;
-          });
-        });
-      })
+                cache.put(event.request, wrapped);
+              }
+              return response;
+            })
+            .catch(() => cached);
+        })
+      )
     );
     return;
   }
 
-  // ESTRATEGIA 3: Fallback para otras peticiones
-  event.respondWith(
-    fetch(event.request)
-      .catch(() => {
-        if (event.request.destination === 'document') {
-            return caches.match('/offline.html');
-        }
-        // Para otros recursos (imágenes, etc.), simplemente falla
-        return Response.error();
-      })
-  );
+  // ✅ 4. Default
+  event.respondWith(fetch(event.request));
 });
 
-// Escuchar el mensaje para saltar la espera y activarse inmediatamente
+// SKIP WAITING
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
