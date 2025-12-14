@@ -45,7 +45,7 @@ export default {
         return new Promise(async (resolve, reject) => {
             const owner = 'chicagocs';
             const repo = 'radiomax';
-            const workflowId = 'backup'; // SIN la extensión .yml
+            const workflowId = 'backup.yml';
             const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
 
             const body = {
