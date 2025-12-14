@@ -1404,41 +1404,49 @@ document.addEventListener('DOMContentLoaded', () => {
             versionSpan.textContent = 'Error';
         });
 
-    // ==========================================================================
-       // SERVICE WORKER
-       // ==========================================================================
-    if ('serviceWorker' in navigator) {
-        let refreshing = false;
-        const updateNotification = document.getElementById('update-notification');
-        const updateReloadBtn = document.getElementById('update-reload-btn');
-        
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registrado con éxito:', registration.scope);
-                if (registration.waiting) { updateNotification.style.display = 'block'; }
-                registration.addEventListener('updatefound', () => {
-                    const newWorker = registration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            updateNotification.style.display = 'block';
-                        }
-                    });
-                });
-            })
-            .catch(error => { console.log('Error al registrar el ServiceWorker:', error); });
-            
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
-        });
-        
-        updateReloadBtn.addEventListener('click', () => {
-            updateNotification.style.display = 'none';
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+// ==========================================================================
+// SERVICE WORKER (Brave-safe)
+// ==========================================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+
+    let refreshing = false;
+    const updateNotification = document.getElementById('update-notification');
+    const updateReloadBtn = document.getElementById('update-reload-btn');
+
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        console.log('SW registrado:', reg.scope);
+
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          updateNotification && (updateNotification.style.display = 'block');
+        }
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker?.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              updateNotification && (updateNotification.style.display = 'block');
             }
-            setTimeout(() => { window.location.reload(); }, 100);
+          });
         });
-    }
+      })
+      .catch(err => console.error('SW error:', err));
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    updateReloadBtn?.addEventListener('click', () => {
+      updateNotification && (updateNotification.style.display = 'none');
+      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
+      setTimeout(() => window.location.reload(), 100);
+    });
+
+  });
+}
+    
 });
