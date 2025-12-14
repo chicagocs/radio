@@ -13,7 +13,7 @@ id = "b6330a5ca2b6489da5e06e73ff54f4d8"
 # Triggers para eventos programados (Cron Jobs)
 # ------------------------------------------------------------
 [triggers]
-crons = ["00 14 * * *"] # Se ejecutará todos los días a las 2:00 AM UTC
+crons = ["10 17 * * *"]  # 14:10 Argentina = 17:10 UTC
 
 # ------------------------------------------------------------
 # Observabilidad (logs, trazas, etc)
