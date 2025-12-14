@@ -514,8 +514,8 @@ body {
    flex-direction: column;
    justify-content: center;
    align-items: flex-start;
-   gap: 4px;
-   padding-left: 20px;
+   gap: 10px;
+   padding-left: 10px;
    border-left: 1px solid #333;
  }
 
