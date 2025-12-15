@@ -132,7 +132,7 @@ body {
    ESTILOS DEL SELECTOR DE ESTACIONES
    ========================================================================== */
 .station-selector {
-    margin-bottom: 20px;
+    margin-bottom: 30px; /* Aumentado para mejor espaciado en móviles */
     position: relative;
 }
 
@@ -972,6 +972,32 @@ footer strong {
 /* ==========================================================================
    MEDIA QUERIES PARA RESPONSIVIDAD
    ========================================================================== */
+@media (max-width: 480px) {
+    footer {
+        font-size: 11px;
+    }
+    
+    .countdown-container {
+        padding: 5px 10px 5px 5px;
+    }
+    
+    .countdown-timer-column {
+        width: 100px;
+    }
+
+    .details-value {
+        font-size: 11px;
+    }
+   
+    .song-title, .song-artist, .song-album {
+        font-size: 14px;
+    }
+    
+    .station-selector {
+        margin-bottom: 25px; /* Ajuste para móviles */
+    }
+}
+
 @media (max-width: 400px) {
     footer {
         font-size: 11px;
@@ -991,7 +1017,7 @@ footer strong {
    
     .song-title, .song-artist, .song-album {
         font-size: 14px;
-    }   
+    }
 }
 
 .genre-value {
@@ -1004,30 +1030,48 @@ footer strong {
     min-height: 120px;
 }
 
-/* Estilos para los tags de estación */
-
+/* Estilos para los tags de estación - Ajustes para Android */
 .station-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
     margin-top: 10px;
+    min-height: 30px; /* Altura mínima para asegurar visibilidad */
+    padding: 5px 0; /* Espaciado interno */
+    box-sizing: border-box; /* Incluir padding en el cálculo del tamaño */
 }
 
 .station-tag {
     background: linear-gradient(135deg, #ff8833 0%, #cc5200 100%);
     color: var(--background-dark);
-    padding: 3px 7px;
+    padding: 3px 7px; /* Reducido para móviles */
     border-radius: 4px;
     font-size: 11px;
-    font-weight: normal;
+    font-weight: normal; /* Normal en lugar de bold para mejor legibilidad */
     white-space: nowrap;
     transition: all var(--transition-speed) ease;
     box-shadow: 0 2px 5px rgba(255, 102, 0, 0.2);
+    touch-action: manipulation; /* Mejorar interacción táctil */
+    user-select: none; /* Evitar selección de texto accidental */
+    min-width: 30px; /* Ancho mínimo para mejor manejo en móviles */
 }
 
 .station-tag:hover {
     background: linear-gradient(135deg, #ff9944 0%, #dd6600 100%);
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(255, 102, 0, 0.3);
+}
+
+/* Ajustes específicos para móviles */
+@media (max-width: 480px) {
+    .station-tags {
+        gap: 4px; /* Reducir espacio entre tags en móviles */
+        margin-top: 8px; /* Reducir margen superior */
+    }
+    
+    .station-tag {
+        font-size: 10px; /* Reducir tamaño de fuente en móviles */
+        padding: 2px 5px; /* Reducir padding */
+    }
 }
