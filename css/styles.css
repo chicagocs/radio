@@ -503,6 +503,8 @@ body {
     border-radius: 13px;
     height: 140px;
     align-items: stretch;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .countdown-timer-column {
@@ -573,6 +575,8 @@ body {
     justify-content: flex-start;
     gap: 10px;
     width: 100%;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .details-label {
@@ -581,6 +585,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     min-width: 60px;
+    flex-shrink: 0;
 }
 
 .details-value {
@@ -590,6 +595,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    flex: 1;
 }
 
 /* ==========================================================================
