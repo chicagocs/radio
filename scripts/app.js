@@ -1040,15 +1040,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         start() {
             if (this.isReconnecting) return;
-            
-            console.log('ConnectionManager: Starting reconnection process.');
             this.isReconnecting = true;
             this.reconnectAttempts = 0;
             this.attemptReconnect();
         },
 
         stop() {
-            console.log('ConnectionManager: Stopping reconnection process.');
             this.isReconnecting = false;
             this.reconnectAttempts = 0;
             if (this.reconnectTimeoutId) {
