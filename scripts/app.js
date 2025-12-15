@@ -94,18 +94,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // NUEVO: Función para mostrar tags de la estación seleccionada
     function showStationTags(stationId) {
-        stationTags.innerHTML = '';
-        stationTags.style.display = 'flex';
-        
-        const selectedStation = stations.find(s => s.id == stationId);
-        if (selectedStation && selectedStation.tags) {
-            selectedStation.tags.forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.className = 'station-tag';
-                tagElement.textContent = tag;
-                stationTags.appendChild(tagElement);
-            });
-        }
+    stationTags.innerHTML = '';
+    stationTags.style.display = 'flex';
+    
+    // Buscar en el array original de stations
+    const allStations = Object.values(stationsById);
+    const selectedStation = allStations.find(s => s.id === stationId);
+    
+    if (selectedStation && selectedStation.tags) {
+        selectedStation.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'station-tag';
+            tagElement.textContent = tag;
+            stationTags.appendChild(tagElement);
+        });
+    }
     }
 
     function startTimeStuckCheck() {
@@ -509,6 +512,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('lastSelectedStation', this.value);
             const selectedStationId = this.value;
             const station = stationsById[selectedStationId];
+            
+            console.log('Seleccionando estación:', selectedStationId);
+            console.log('Estación encontrada:', station);
             
             // NUEVO: Mostrar tags de la estación seleccionada
             showStationTags(selectedStationId);
