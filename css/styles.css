@@ -566,7 +566,9 @@ body {
     padding-left: 15px;
     border-left: 1px solid var(--border-color);
     min-width: 0;
-    overflow: hidden;  
+    max-width: 100%;
+    overflow: hidden;
+    width: 0;
 }
 
 .details-row {
