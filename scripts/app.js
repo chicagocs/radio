@@ -70,6 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let updateFrequency = 5000; // 5 segundos inicialmente
     let lastSongChangeTime = 0;
     let pendingSongVerification = null;
+
+    // Variables para la detección de audio (se mantendrán pero no se usarán para SomaFM)
     let audioContext = null;
     let analyser = null;
     let audioChangeDetectionActive = false;
@@ -1032,8 +1034,16 @@ document.addEventListener('DOMContentLoaded', () => {
         updateWithAdaptiveFrequency();
     }
 
-    // NUEVO: Implementar un analizador de audio simple para detectar cambios bruscos
+    // MODIFICADO: Implementar un analizador de audio simple para detectar cambios bruscos
+    // DESACTIVADO: La detección de cambios de audio no funciona con streams de SomaFM
+    // debido a restricciones de CORS en sus servidores. El sistema de actualización
+    // adaptativo y la verificación de cambios son suficientes para una detección precisa.
     function setupAudioChangeDetection() {
+        console.warn("Detección de audio desactivada para esta estación por restricciones de CORS.");
+        audioChangeDetectionActive = false;
+        return;
+
+        /*
         if (audioChangeDetectionActive || !currentStation || currentStation.service === 'nrk') {
             return;
         }
@@ -1112,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error al configurar la detección de cambios de audio:', error);
             audioChangeDetectionActive = false;
         }
+        */
     }
 
     function stopSongInfoUpdates() {
@@ -1242,9 +1253,11 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus(true); 
         wasPlayingBeforeFocusLoss = true;
         
-        // Iniciar la detección de cambios de audio cuando comienza la reproducción
+        // MODIFICADO: La detección de cambios de audio está desactivada para SomaFM
+        // por restricciones de CORS. El sistema de actualización adaptativo es suficiente.
         if (currentStation && currentStation.service !== 'nrk') {
-            setTimeout(() => setupAudioChangeDetection(), 1000);
+            // setTimeout(() => setupAudioChangeDetection(), 1000); // Comentado
+            console.log("Iniciando sistema de actualización adaptativo.");
         }
     });
     
@@ -1317,10 +1330,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     startTimeStuckCheck();
                     showPlaybackInfo(); // Mostrar UI de reproducción
                     
-                    // Reiniciar la detección de cambios de audio después de una reconexión exitosa
-                    if (currentStation && currentStation.service !== 'nrk') {
-                        setTimeout(() => setupAudioChangeDetection(), 1000);
-                    }
+                    // MODIFICADO: La detección de cambios de audio está desactivada
+                    // if (currentStation && currentStation.service !== 'nrk') {
+                    //     setTimeout(() => setupAudioChangeDetection(), 1000);
+                    // }
                     
                     this.stop();
                     showNotification('Conexión restaurada con éxito.');
@@ -1369,10 +1382,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateStatus(true);
                     wasPlayingBeforeFocusLoss = true;
                     
-                    // Iniciar la detección de cambios de audio al reanudar la reproducción
-                    if (currentStation && currentStation.service !== 'nrk') {
-                        setTimeout(() => setupAudioChangeDetection(), 1000);
-                    }
+                    // MODIFICADO: La detección de cambios de audio está desactivada
+                    // if (currentStation && currentStation.service !== 'nrk') {
+                    //     setTimeout(() => setupAudioChangeDetection(), 1000);
+                    // }
                 }).catch(error => {
                     console.error('Error al reanudar la reproducción:', error);
                 });
@@ -1688,6 +1701,5 @@ if ('serviceWorker' in navigator) {
     });
 
   });
-}
-    
+} 
 });
