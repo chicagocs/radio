@@ -1413,7 +1413,7 @@ if ('serviceWorker' in navigator) {
 
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
-        console.log('SW registrado:', reg.scope);
+        // console.log('SW registrado:', reg.scope);
 
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
