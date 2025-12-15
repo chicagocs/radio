@@ -719,10 +719,10 @@ audio {
 }
 
 .track-position-info {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-dimmed);
     font-family: 'Courier New', monospace;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 /* ==========================================================================
