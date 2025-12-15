@@ -97,10 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
     stationTags.innerHTML = '';
     stationTags.style.display = 'flex';
     
-    // Buscar en el array original de stations
-    const allStations = Object.values(stationsById);
-    const selectedStation = allStations.find(s => s.id === stationId);
+    // Forzar reflow para asegurar que el elemento esté visible
+    stationTags.offsetHeight;
     
+    const selectedStation = stationsById[stationId];
     if (selectedStation && selectedStation.tags) {
         selectedStation.tags.forEach(tag => {
             const tagElement = document.createElement('span');
@@ -109,6 +109,11 @@ document.addEventListener('DOMContentLoaded', () => {
             stationTags.appendChild(tagElement);
         });
     }
+    
+    // Añadir un pequeño retraso para asegurar la renderización en Android
+    setTimeout(() => {
+        stationTags.style.opacity = '1';
+    }, 100);
     }
 
     function startTimeStuckCheck() {
