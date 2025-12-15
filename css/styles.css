@@ -569,7 +569,7 @@ body {
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
-    width: 0;
+    width: auto;
 }
 
 .details-row {
@@ -599,6 +599,7 @@ body {
     text-overflow: ellipsis;
     min-width: 0;
     flex: 1;
+    max-width: 100%;
 }
 
 /* ==========================================================================
@@ -977,10 +978,28 @@ footer strong {
     }
     
     .countdown-container {
-        padding: 5px 15px 5px 5px;
+        padding: 5px 10px 5px 5px;
     }
     
     .countdown-timer-column {
-        width: 120px;
+        width: 100px;
     }
+
+    .details-value {
+        font-size: 11px;
+    }
+   
+    .song-title, .song-artist, .song-album {
+        font-size: 14px;
+    }   
+}
+
+.genre-value {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.now-playing, .album-cover {
+    height: auto;
+    min-height: 120px;
 }
