@@ -93,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // NUEVO: Función para mostrar tags de la estación seleccionada
+// NUEVO: Función para mostrar tags de la estación seleccionada
     function showStationTags(stationId) {
     stationTags.innerHTML = '';
     
@@ -123,13 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
         stationTags.style.display = 'none';
         stationTags.style.opacity = '0';
     }
-    }    
-    // Añadir un pequeño retraso para asegurar la renderización en Android
-    setTimeout(() => {
-        stationTags.style.opacity = '1';
-    }, 100);
     }
-
+    
     function hideStationTags() {
     stationTags.classList.remove('visible');
     stationTags.style.opacity = '0';
