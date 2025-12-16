@@ -1,4 +1,4 @@
-// v3.2.0-optimized
+// v3.2.0-fixed
 // ==========================================================================
 // CONFIGURACIÓN
 // ==========================================================================
@@ -20,19 +20,9 @@ const STATIC_ASSETS = [
   '/images/icon-512.png'
 ];
 
-// Define estrategias de cache específicas para cada tipo de API o dominio.
-const API_CACHE_STRATEGIES = {
-  // La lista de estaciones rara vez cambia. Cache First es ideal.
-  'stations.json': {
-    strategy: 'cacheFirst',
-    ttl: 24 * 60 * 60 * 1000, // 24 horas
-  },
-  // APIs de información de canciones, que cambian constantemente.
-  'somafm.com': { strategy: 'networkFirst', ttl: 5 * 60 * 1000 },
-  'musicbrainz.org': { strategy: 'networkFirst', ttl: 5 * 60 * 1000 },
-  'core.chcs.workers.dev': { strategy: 'networkFirst', ttl: 5 * 60 * 1000 },
-  'nrk.no': { strategy: 'networkFirst', ttl: 5 * 60 * 1000 },
-};
+// TTLs para diferentes tipos de contenido
+const API_CACHE_TTL = 5 * 60 * 1000; // 5 minutos para APIs de música
+const STATIC_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 horas para assets estáticos (si se quiere refrescar)
 
 // ==========================================================================
 // EVENTOS PRINCIPALES DEL SERVICE WORKER
@@ -83,10 +73,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. Estrategia para APIs: Usa la configuración granular definida arriba.
-  const apiStrategy = findApiStrategy(url);
-  if (apiStrategy) {
-    event.respondWith(handleApiRequest(request, apiStrategy));
+  // 3. Estrategia para APIs: Network First con TTL (lógica simple y directa)
+  if (
+    url.hostname.includes('api.somafm.com') ||
+    url.hostname.includes('musicbrainz.org') ||
+    url.hostname.includes('nrk.no') ||
+    url.hostname.includes('core.chcs.workers.dev')
+  ) {
+    event.respondWith(handleApiRequest(request));
     return;
   }
 
@@ -123,18 +117,10 @@ async function handleStaleWhileRevalidate(request) {
   return cachedResponse || fetchPromise;
 }
 
-async function handleApiRequest(request, strategy) {
+async function handleApiRequest(request) {
   const cache = await caches.open(CACHE_NAME);
   const cachedResponse = await cache.match(request);
 
-  if (strategy.strategy === 'cacheFirst') {
-    if (cachedResponse && !isCacheExpired(cachedResponse, strategy.ttl)) {
-      console.log(`[SW] Cache First: Serving ${request.url} from cache.`);
-      return cachedResponse;
-    }
-  }
-
-  // Network First (o fallback para Cache First si está expirado)
   try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
@@ -158,23 +144,6 @@ async function handleApiRequest(request, strategy) {
     });
   }
 }
-
-function findApiStrategy(url) {
-  for (const domain in API_CACHE_STRATEGIES) {
-    if (url.hostname.includes(domain)) {
-      return API_CACHE_STRATEGIES[domain];
-    }
-  }
-  return null;
-}
-
-function isCacheExpired(response, ttl) {
-  const cachedTime = response.headers.get('sw-cached-time');
-  if (!cachedTime) return true; // Si no tiene fecha, considerarlo expirado
-  const age = Date.now() - new Date(cachedTime).getTime();
-  return age > ttl;
-}
-
 
 // ==========================================================================
 // COMUNICACIÓN CON EL CLIENTE
