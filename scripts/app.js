@@ -40,9 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const welcomeScreen = document.getElementById('welcomeScreen');
     const playbackInfo = document.getElementById('playbackInfo');
     
-    // NUEVO: Elementos para los tags de estación
-    const stationTags = document.getElementById('stationTags');
-    
     let stationsById = {};
     let currentStation = null;
     let updateInterval = null;
@@ -91,49 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (welcomeScreen) welcomeScreen.style.display = 'none';
         if (playbackInfo) playbackInfo.style.display = 'flex';
     }
-
-    // NUEVO: Función para mostrar tags de la estación seleccionada
-// NUEVO: Función para mostrar tags de la estación seleccionada
-    function showStationTags(stationId) {
-    stationTags.innerHTML = '';
-    
-    const selectedStation = stationsById[stationId];
-    if (selectedStation && selectedStation.tags && selectedStation.tags.length > 0) {
-        // Crear los tags
-        selectedStation.tags.forEach(tag => {
-            const tagElement = document.createElement('span');
-            tagElement.className = 'station-tag';
-            tagElement.textContent = tag;
-            stationTags.appendChild(tagElement);
-        });
-        
-        // Forzar reflow ANTES de mostrar
-        stationTags.offsetHeight;
-        
-        // Mostrar con clase visible
-        stationTags.classList.add('visible');
-        stationTags.style.display = 'flex';
-        
-        // Asegurar opacidad después del reflow
-        requestAnimationFrame(() => {
-            stationTags.style.opacity = '1';
-        });
-    } else {
-        // Si no hay tags, ocultar completamente
-        stationTags.classList.remove('visible');
-        stationTags.style.display = 'none';
-        stationTags.style.opacity = '0';
-    }
-    }
-    
-    function hideStationTags() {
-    stationTags.classList.remove('visible');
-    stationTags.style.opacity = '0';
-    setTimeout(() => {
-        stationTags.style.display = 'none';
-        stationTags.innerHTML = '';
-    }, 300); // Esperar a que termine la transición
-    }                      
                           
     function startTimeStuckCheck() {
         if (timeStuckCheckInterval) clearInterval(timeStuckCheckInterval);
@@ -359,17 +313,51 @@ document.addEventListener('DOMContentLoaded', () => {
             const station = stationsById[option.value];
             let name = option.textContent;
             let description = '';
+            let tags = [];
+            
             if (station) {
                 name = station.name;
                 if (station.service === 'radioparadise') {
                     name = station.name.split(' - ')[1] || station.name;
                 }
                 description = station.description || '';
+                tags = station.tags || [];
             }
-            customOption.innerHTML = `
-                <span class="custom-option-name">${name}</span>
-                ${description ? `<span class="custom-option-description">${description}</span>` : ''}
-            `;
+            
+            // Crear contenedor para la información de la estación
+            const stationInfo = document.createElement('div');
+            stationInfo.className = 'station-info';
+            
+            // Nombre de la estación
+            const nameElement = document.createElement('span');
+            nameElement.className = 'custom-option-name';
+            nameElement.textContent = name;
+            stationInfo.appendChild(nameElement);
+            
+            // Descripción si existe
+            if (description) {
+                const descElement = document.createElement('span');
+                descElement.className = 'custom-option-description';
+                descElement.textContent = description;
+                stationInfo.appendChild(descElement);
+            }
+            
+            // Tags si existen
+            if (tags && tags.length > 0) {
+                const tagsContainer = document.createElement('div');
+                tagsContainer.className = 'station-tags-container';
+                
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'station-tag';
+                    tagElement.textContent = tag;
+                    tagsContainer.appendChild(tagElement);
+                });
+                
+                stationInfo.appendChild(tagsContainer);
+            }
+            
+            customOption.appendChild(stationInfo);
             this.customOptions.appendChild(customOption);
         }
 
@@ -540,9 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Seleccionando estación:', selectedStationId);
             console.log('Estación encontrada:', station);
             
-            // NUEVO: Mostrar tags de la estación seleccionada
-            showStationTags(selectedStationId);
-            
             if (station) {
                 currentStation = station;
                 let displayName = station.name;
@@ -552,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stationName.textContent = displayName;
                 // NUEVO: Mostrar pantalla de bienvenida al seleccionar una nueva estación
                 showWelcomeScreen();
-                playStation();
+                // ELIMINADO: No llamar a playStation() aquí para evitar reproducción automática
             } else {
                 console.error('Error: No se encontró la estación con ID:', selectedStationId);
                 logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
@@ -966,7 +951,6 @@ document.addEventListener('DOMContentLoaded', () => {
         stopSongInfoUpdates();
         wasPlayingBeforeFocusLoss = false;
         stopPlaybackChecks();
-        hideStationTags();
         // NUEVO: Mostrar pantalla de bienvenida al detener la reproducción
         showWelcomeScreen();
     });
