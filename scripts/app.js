@@ -410,7 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.updateTriggerText();
                 this.updateSelectedOption();
                 this.close();
-                this.originalSelect.dispatchEvent(new Event('change'));
+                
+                // Disparar el evento de cambio con un pequeño retraso para asegurar que todo esté listo
+                setTimeout(() => {
+                    this.originalSelect.dispatchEvent(new Event('change'));
+                }, 100);
             });
         });
         
