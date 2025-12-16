@@ -352,27 +352,41 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
+        // Modifica la función createCustomOption en la clase CustomSelect
         createCustomOption(option) {
-            const customOption = document.createElement('div');
-            customOption.className = 'custom-option';
-            customOption.dataset.value = option.value;
-            const station = stationsById[option.value];
-            let name = option.textContent;
-            let description = '';
-            if (station) {
-                name = station.name;
-                if (station.service === 'radioparadise') {
-                    name = station.name.split(' - ')[1] || station.name;
-                }
-                description = station.description || '';
-            }
-            customOption.innerHTML = `
-                <span class="custom-option-name">${name}</span>
-                ${description ? `<span class="custom-option-description">${description}</span>` : ''}
-            `;
-            this.customOptions.appendChild(customOption);
+          const customOption = document.createElement('div');
+          customOption.className = 'custom-option';
+          customOption.dataset.value = option.value;
+          const station = stationsById[option.value];
+          let name = option.textContent;
+          let description = '';
+          let tagsHTML = '';
+    
+          if (station) {
+          name = station.name;
+          if (station.service === 'radioparadise') {
+              name = station.name.split(' - ')[1] || station.name;
+          }
+          description = station.description || '';
+        
+          // Agregar etiquetas si existen
+          if (station.tags && station.tags.length > 0) {
+              tagsHTML = '<div class="station-tags-container">';
+              station.tags.forEach(tag => {
+                  tagsHTML += `<span class="station-tag">${tag}</span>`;
+              });
+              tagsHTML += '</div>';
+          }
         }
-
+    
+        customOption.innerHTML = `
+         <span class="custom-option-name">${name}</span>
+          ${description ? `<span class="custom-option-description">${description}</span>` : ''}
+          ${tagsHTML}
+        `;
+        this.customOptions.appendChild(customOption);
+        }
+        
         initEvents() {
             this.customSelectTrigger.addEventListener('click', () => {
                 this.toggle();
