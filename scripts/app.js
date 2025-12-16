@@ -93,45 +93,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // NUEVO: Función para mostrar tags de la estación seleccionada
+// NUEVO: Función para mostrar tags de la estación seleccionada
     function showStationTags(stationId) {
-        stationTags.innerHTML = '';
+    stationTags.innerHTML = '';
+    
+    const selectedStation = stationsById[stationId];
+    if (selectedStation && selectedStation.tags && selectedStation.tags.length > 0) {
+        // Crear los tags
+        selectedStation.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'station-tag';
+            tagElement.textContent = tag;
+            stationTags.appendChild(tagElement);
+        });
         
-        const selectedStation = stationsById[stationId];
-        if (selectedStation && selectedStation.tags && selectedStation.tags.length > 0) {
-            // Crear los tags
-            selectedStation.tags.forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.className = 'station-tag';
-                tagElement.textContent = tag;
-                stationTags.appendChild(tagElement);
-            });
-            
-            // Forzar reflow ANTES de mostrar
-            stationTags.offsetHeight;
-            
-            // Mostrar con clase visible
-            stationTags.classList.add('visible');
-            stationTags.style.display = 'flex';
-            
-            // Asegurar opacidad después del reflow
-            requestAnimationFrame(() => {
-                stationTags.style.opacity = '1';
-            });
-        } else {
-            // Si no hay tags, ocultar completamente
-            stationTags.classList.remove('visible');
-            stationTags.style.display = 'none';
-            stationTags.style.opacity = '0';
-        }
+        // Forzar reflow ANTES de mostrar
+        stationTags.offsetHeight;
+        
+        // Mostrar con clase visible
+        stationTags.classList.add('visible');
+        stationTags.style.display = 'flex';
+        
+        // Asegurar opacidad después del reflow
+        requestAnimationFrame(() => {
+            stationTags.style.opacity = '1';
+        });
+    } else {
+        // Si no hay tags, ocultar completamente
+        stationTags.classList.remove('visible');
+        stationTags.style.display = 'none';
+        stationTags.style.opacity = '0';
+    }
     }
     
     function hideStationTags() {
-        stationTags.classList.remove('visible');
-        stationTags.style.opacity = '0';
-        setTimeout(() => {
-            stationTags.style.display = 'none';
-            stationTags.innerHTML = '';
-        }, 300); // Esperar a que termine la transición
+    stationTags.classList.remove('visible');
+    stationTags.style.opacity = '0';
+    setTimeout(() => {
+        stationTags.style.display = 'none';
+        stationTags.innerHTML = '';
+    }, 300); // Esperar a que termine la transición
     }                      
                           
     function startTimeStuckCheck() {
@@ -351,41 +352,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // Modifica la función createCustomOption en la clase CustomSelect
         createCustomOption(option) {
-          const customOption = document.createElement('div');
-          customOption.className = 'custom-option';
-          customOption.dataset.value = option.value;
-          const station = stationsById[option.value];
-          let name = option.textContent;
-          let description = '';
-          let tagsHTML = '';
-    
-          if (station) {
-          name = station.name;
-          if (station.service === 'radioparadise') {
-              name = station.name.split(' - ')[1] || station.name;
-          }
-          description = station.description || '';
-        
-          // Agregar etiquetas si existen
-          if (station.tags && station.tags.length > 0) {
-              tagsHTML = '<div class="station-tags-container">';
-              station.tags.forEach(tag => {
-                  tagsHTML += `<span class="station-tag">${tag}</span>`;
-              });
-              tagsHTML += '</div>';
-          }
+            const customOption = document.createElement('div');
+            customOption.className = 'custom-option';
+            customOption.dataset.value = option.value;
+            const station = stationsById[option.value];
+            let name = option.textContent;
+            let description = '';
+            if (station) {
+                name = station.name;
+                if (station.service === 'radioparadise') {
+                    name = station.name.split(' - ')[1] || station.name;
+                }
+                description = station.description || '';
+            }
+            customOption.innerHTML = `
+                <span class="custom-option-name">${name}</span>
+                ${description ? `<span class="custom-option-description">${description}</span>` : ''}
+            `;
+            this.customOptions.appendChild(customOption);
         }
-    
-        customOption.innerHTML = `
-         <span class="custom-option-name">${name}</span>
-          ${description ? `<span class="custom-option-description">${description}</span>` : ''}
-          ${tagsHTML}
-        `;
-        this.customOptions.appendChild(customOption);
-        }
-        
+
         initEvents() {
             this.customSelectTrigger.addEventListener('click', () => {
                 this.toggle();
@@ -491,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (station) {
                     currentStation = station;
                     let displayName = station.name;
-                    if (station.service === 'radioparise') {
+                    if (station.service === 'radioparadise') {
                         displayName = station.name.split(' - ')[1] || station.name;
                     }
                     stationName.textContent = displayName;
@@ -544,17 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadStations();
 
-    // Función para forzar el cambio de estación
-    function forceStationChange(stationId) {
-        stationSelect.value = stationId;
-        const event = new Event('change');
-        stationSelect.dispatchEvent(event);
-    }
-
     stationSelect.addEventListener('change', function() {
-        console.log('Evento change disparado');
-        console.log('Valor seleccionado:', this.value);
-        
         if (this.value) {
             localStorage.setItem('lastSelectedStation', this.value);
             const selectedStationId = this.value;
@@ -563,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Seleccionando estación:', selectedStationId);
             console.log('Estación encontrada:', station);
             
-            // Mostrar tags de la estación seleccionada
+            // NUEVO: Mostrar tags de la estación seleccionada
             showStationTags(selectedStationId);
             
             if (station) {
@@ -573,12 +550,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayName = station.name.split(' - ')[1] || station.name;
                 }
                 stationName.textContent = displayName;
+                // NUEVO: Mostrar pantalla de bienvenida al seleccionar una nueva estación
                 showWelcomeScreen();
-                
-                // Forzar una pequeña pausa antes de iniciar la reproducción
-                setTimeout(() => {
-                    playStation();
-                }, 100);
+                playStation();
             } else {
                 console.error('Error: No se encontró la estación con ID:', selectedStationId);
                 logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
