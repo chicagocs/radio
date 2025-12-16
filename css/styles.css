@@ -219,19 +219,16 @@ body {
 }
 
 .custom-option.selected {
-    // background-color: var(--primary-color);
-    // color: var(--background-dark);
-    background-color: rgba(255, 122, 0, 0.2);
+    background-color: rgba(255, 122, 0, 0.25);
     border-left: 3px solid #FF7A00;
 }
 
 .custom-option.selected .custom-option-description {
-    color: var(--background-dark);
+    color: rgba(255, 255, 255, 0.7);
 }
 
-.custom-option-name {
-    font-size: 15px;
-    font-weight: normal;
+.custom-option.selected .custom-option-name {
+    color: #ffffff;
 }
 
 .custom-option-description {
