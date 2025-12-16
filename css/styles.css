@@ -250,6 +250,80 @@ body {
     margin-bottom: 20px;
 }
 
+/* Estilos para los contenedores de información de la estación */
+.station-info {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+}
+
+/* Contenedor para los tags */
+.station-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+/* Estilos para los tags de estación */
+.station-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    background-color: rgba(255, 122, 0, 0.2);
+    color: #FF7A00;
+    transition: all 0.2s ease;
+}
+
+/* Estilo especial para tags en estaciones seleccionadas */
+.custom-option.selected .station-tag {
+    background-color: rgba(255, 122, 0, 0.4);
+    color: #fff;
+    box-shadow: 0 0 4px rgba(255, 122, 0, 0.3);
+}
+
+/* Efecto hover para los tags */
+.custom-option:hover .station-tag {
+    background-color: rgba(255, 122, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+.custom-option.selected:hover .station-tag {
+    background-color: rgba(255, 122, 0, 0.5);
+}
+
+/* Ajustes para el selector personalizado */
+.custom-option {
+    padding: 8px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.custom-option:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.custom-option.selected {
+    background-color: rgba(255, 122, 0, 0.1);
+    border-left: 3px solid #FF7A00;
+}
+
+/* Estilos para el nombre y descripción de la estación */
+.custom-option-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.custom-option-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 5px;
+}
+
 /* ==========================================================================
    ESTILOS DE "AHORA SONANDO"
    ========================================================================== */
