@@ -1032,14 +1032,21 @@ footer strong {
 
 /* Estilos para los tags de estación - Ajustes para Android */
 .station-tags {
-    display: flex;
+    display: none;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
     margin-top: 10px;
-    min-height: 30px; /* Altura mínima para asegurar visibilidad */
-    padding: 5px 0; /* Espaciado interno */
-    box-sizing: border-box; /* Incluir padding en el cálculo del tamaño */
+    min-height: 30px;
+    padding: 5px 0;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.station-tags.visible
+    display: flex;
+    opacity: 1;
 }
 
 .station-tag {
