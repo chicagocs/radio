@@ -518,31 +518,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     loadStations();
-
+    
     stationSelect.addEventListener('change', function() {
-        if (this.value) {
-            localStorage.setItem('lastSelectedStation', this.value);
-            const selectedStationId = this.value;
-            const station = stationsById[selectedStationId];
-            
-            console.log('Seleccionando estación:', selectedStationId);
-            console.log('Estación encontrada:', station);
-            
-            if (station) {
-                currentStation = station;
-                let displayName = station.name;
-                if (station.service === 'radioparadise') {
-                    displayName = station.name.split(' - ')[1] || station.name;
-                }
-                stationName.textContent = displayName;
-                // NUEVO: Mostrar pantalla de bienvenida al seleccionar una nueva estación
-                showWelcomeScreen();
-                // ELIMINADO: No llamar a playStation() aquí para evitar reproducción automática
-            } else {
-                console.error('Error: No se encontró la estación con ID:', selectedStationId);
-                logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
+    if (this.value) {
+        localStorage.setItem('lastSelectedStation', this.value);
+        const selectedStationId = this.value;
+        const station = stationsById[selectedStationId];
+               
+        if (station) {
+            currentStation = station;
+            let displayName = station.name;
+            if (station.service === 'radioparadise') {
+                displayName = station.name.split(' - ')[1] || station.name;
             }
+            stationName.textContent = displayName;
+            showWelcomeScreen();
+            playStation();
+        } else {
+            logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
         }
+    }
     });
 
     playBtn.addEventListener('click', function() {
