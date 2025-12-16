@@ -1,5 +1,7 @@
 // v3.2.0
-const CACHE_NAME = 'radiomax-v3.2.0';
+const CACHE_VERSION = 'v3.2.0';
+// const CACHE_NAME = 'radiomax-v3.2.0';
+const CACHE_NAME = `radiomax-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
   '/index.html',
