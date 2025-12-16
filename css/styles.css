@@ -251,6 +251,7 @@ body {
 }
 
 /* Estilos para los contenedores de información de la estación */
+/* Estilos para los contenedores de información de la estación */
 .station-info {
     display: flex;
     flex-direction: column;
