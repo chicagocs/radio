@@ -219,8 +219,10 @@ body {
 }
 
 .custom-option.selected {
-    background-color: var(--primary-color);
-    color: var(--background-dark);
+    // background-color: var(--primary-color);
+    // color: var(--background-dark);
+    background-color: rgba(255, 122, 0, 0.2);
+    border-left: 3px solid #FF7A00;
 }
 
 .custom-option.selected .custom-option-description {
