@@ -1000,12 +1000,13 @@ footer strong {
 }
 
 .station-tag {
-    color: white;
+    color: #000000;
+    background-color: #ffffff;
     font-weight: bold;
-    padding: 3px 7px;
+    padding: 2px 6px;
     font-size: 12px;
     white-space: nowrap;
-    transition: color var(--transition-speed) ease;
+    border-radius: 0;
     touch-action: manipulation;
     user-select: none;
     min-width: 30px;
@@ -1046,7 +1047,7 @@ footer strong {
     
     .station-tag {
         font-size: 11px; /* Reducir tamaño de fuente en móviles */
-        padding: 2px 5px; /* Reducir padding */
+        padding: 2px 4px; /* Reducir padding */
     }
 }
 
