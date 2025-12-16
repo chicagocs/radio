@@ -976,18 +976,23 @@ footer strong {
 /* ==========================================================================
    ESTILOS DE TAGS DE ESTACIÓN
    ========================================================================== */
+
 .station-tags {
     display: none;
     flex-wrap: wrap;
     gap: 6px;
     justify-content: center;
+    align-items: center;
     margin-top: 10px;
     min-height: 30px;
-    padding: 5px 0;
     box-sizing: border-box;
     opacity: 0;
     transition: opacity 0.3s ease;
-}
+    text-align: center;
+
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
 
 .station-tags.visible {
     display: flex;
