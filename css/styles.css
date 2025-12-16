@@ -1045,7 +1045,7 @@ footer strong {
     }
     
     .station-tag {
-        font-size: 10px; /* Reducir tamaño de fuente en móviles */
+        font-size: 11px; /* Reducir tamaño de fuente en móviles */
         padding: 2px 5px; /* Reducir padding */
     }
 }
