@@ -92,45 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (playbackInfo) playbackInfo.style.display = 'flex';
     }
 
-    // NUEVO: Función para mostrar tags de la estación seleccionada// NUEVO: Función para mostrar tags de la estación seleccionada
-function showStationTags(stationId) {
-    // Verificar si stationTags existe antes de intentar acceder a él
-    if (!stationTags) {
-        console.warn('Elemento stationTags no encontrado en el DOM');
-        return;
-    }
-    
-    stationTags.innerHTML = '';
-    
-    const selectedStation = stationsById[stationId];
-    if (selectedStation && selectedStation.tags && selectedStation.tags.length > 0) {
-        // Crear los tags
-        selectedStation.tags.forEach(tag => {
-            const tagElement = document.createElement('span');
-            tagElement.className = 'station-tag';
-            tagElement.textContent = tag;
-            stationTags.appendChild(tagElement);
-        });
-        
-        // Forzar reflow ANTES de mostrar
-        stationTags.offsetHeight;
-        
-        // Mostrar con clase visible
-        stationTags.classList.add('visible');
-        stationTags.style.display = 'flex';
-        
-        // Asegurar opacidad después del reflow
-        requestAnimationFrame(() => {
-            stationTags.style.opacity = '1';
-        });
-    } else {
-        // Si no hay tags, ocultar completamente
-        stationTags.classList.remove('visible');
-        stationTags.style.display = 'none';
-        stationTags.style.opacity = '0';
-    }
-    }
-    
     function hideStationTags() {
         stationTags.classList.remove('visible');
         stationTags.style.opacity = '0';
