@@ -541,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Estación encontrada:', station);
             
             // NUEVO: Mostrar tags de la estación seleccionada
-            showStationTags(selectedStationId);
+            // showStationTags(selectedStationId);
             
             if (station) {
                 currentStation = station;
