@@ -491,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (station) {
                     currentStation = station;
                     let displayName = station.name;
-                    if (station.service === 'radioparadise') {
+                    if (station.service === 'radioparise') {
                         displayName = station.name.split(' - ')[1] || station.name;
                     }
                     stationName.textContent = displayName;
@@ -544,7 +544,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadStations();
 
+    // Función para forzar el cambio de estación
+    function forceStationChange(stationId) {
+        stationSelect.value = stationId;
+        const event = new Event('change');
+        stationSelect.dispatchEvent(event);
+    }
+
     stationSelect.addEventListener('change', function() {
+        console.log('Evento change disparado');
+        console.log('Valor seleccionado:', this.value);
+        
         if (this.value) {
             localStorage.setItem('lastSelectedStation', this.value);
             const selectedStationId = this.value;
@@ -553,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Seleccionando estación:', selectedStationId);
             console.log('Estación encontrada:', station);
             
-            // NUEVO: Mostrar tags de la estación seleccionada
+            // Mostrar tags de la estación seleccionada
             showStationTags(selectedStationId);
             
             if (station) {
@@ -563,9 +573,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayName = station.name.split(' - ')[1] || station.name;
                 }
                 stationName.textContent = displayName;
-                // NUEVO: Mostrar pantalla de bienvenida al seleccionar una nueva estación
                 showWelcomeScreen();
-                playStation();
+                
+                // Forzar una pequeña pausa antes de iniciar la reproducción
+                setTimeout(() => {
+                    playStation();
+                }, 100);
             } else {
                 console.error('Error: No se encontró la estación con ID:', selectedStationId);
                 logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
