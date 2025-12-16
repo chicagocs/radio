@@ -302,7 +302,7 @@ body {
 /* --- Descripción de la estación --- */
 .custom-option-description {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.7); /* Gris claro por defecto */
+    color: rgba(255, 255, 255, 0.9); /* Gris claro por defecto */
     margin-bottom: 5px;
 }
 
