@@ -95,27 +95,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // NUEVO: Función para mostrar tags de la estación seleccionada
     function showStationTags(stationId) {
     stationTags.innerHTML = '';
-    stationTags.style.display = 'flex';
-    
-    // Forzar reflow para asegurar que el elemento esté visible
-    stationTags.offsetHeight;
     
     const selectedStation = stationsById[stationId];
-    if (selectedStation && selectedStation.tags) {
+    if (selectedStation && selectedStation.tags && selectedStation.tags.length > 0) {
+        // Crear los tags
         selectedStation.tags.forEach(tag => {
             const tagElement = document.createElement('span');
             tagElement.className = 'station-tag';
             tagElement.textContent = tag;
             stationTags.appendChild(tagElement);
         });
+        
+        // Forzar reflow ANTES de mostrar
+        stationTags.offsetHeight;
+        
+        // Mostrar con clase visible
+        stationTags.classList.add('visible');
+        stationTags.style.display = 'flex';
+        
+        // Asegurar opacidad después del reflow
+        requestAnimationFrame(() => {
+            stationTags.style.opacity = '1';
+        });
+    } else {
+        // Si no hay tags, ocultar completamente
+        stationTags.classList.remove('visible');
+        stationTags.style.display = 'none';
+        stationTags.style.opacity = '0';
     }
-    
+    }    
     // Añadir un pequeño retraso para asegurar la renderización en Android
     setTimeout(() => {
         stationTags.style.opacity = '1';
     }, 100);
     }
 
+    function hideStationTags() {
+    stationTags.classList.remove('visible');
+    stationTags.style.opacity = '0';
+    setTimeout(() => {
+        stationTags.style.display = 'none';
+        stationTags.innerHTML = '';
+    }, 300); // Esperar a que termine la transición
+    }                      
+                          
     function startTimeStuckCheck() {
         if (timeStuckCheckInterval) clearInterval(timeStuckCheckInterval);
         lastPlaybackTime = audioPlayer.currentTime;
@@ -947,6 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stopSongInfoUpdates();
         wasPlayingBeforeFocusLoss = false;
         stopPlaybackChecks();
+        hideStationTags();
         // NUEVO: Mostrar pantalla de bienvenida al detener la reproducción
         showWelcomeScreen();
     });
