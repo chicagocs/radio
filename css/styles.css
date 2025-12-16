@@ -250,14 +250,73 @@ body {
 }
 
 /* Estilos para los contenedores de información de la estación */
-/* Estilos para los contenedores de información de la estación */
+
 .station-info {
     display: flex;
     flex-direction: column;
     padding: 8px 0;
 }
 
-/* Contenedor para los tags */
+/* ==========================================================================
+   ESTILOS PARA EL SELECTOR DE ESTACIONES PERSONALIZADO
+   ========================================================================== */
+
+/* --- Contenedor principal de cada opción --- */
+.custom-option {
+    padding: 10px 15px; /* Un poco más de padding para respirar */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease; /* Transición suave para todos los cambios */
+    background-color: transparent; /* Fondo por defecto */
+}
+
+/* --- Estado Hover de la opción --- */
+.custom-option:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* --- Estado Seleccionado de la opción --- */
+.custom-option.selected {
+    background-color: rgba(255, 122, 0, 0.2); /* Fondo naranja más oscuro y visible */
+    border-left: 3px solid #FF7A00;
+}
+
+/* --- Estado Hover de la opción YA SELECCIONADA --- */
+.custom-option.selected:hover {
+    background-color: rgba(255, 122, 0, 0.25); /* Aún más oscuro al hacer hover */
+}
+
+
+/* ==========================================================================
+   ESTILOS PARA EL TEXTO DENTRO DE LAS OPCIONES
+   ========================================================================== */
+
+/* --- Nombre de la estación --- */
+.custom-option-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+    color: #ffffff; /* Siempre blanco para máximo contraste */
+}
+
+/* --- Descripción de la estación --- */
+.custom-option-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7); /* Gris claro por defecto */
+    margin-bottom: 5px;
+}
+
+/* --- Corrección: Color de la descripción cuando está seleccionada --- */
+.custom-option.selected .custom-option-description {
+    color: rgba(255, 255, 255, 0.9); /* Más brillante para contraste con el fondo naranja */
+}
+
+
+/* ==========================================================================
+   ESTILOS PARA LOS TAGS DE LA ESTACIÓN
+   ========================================================================== */
+
+/* --- Contenedor de los tags --- */
 .station-tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -265,34 +324,35 @@ body {
     margin-top: 5px;
 }
 
-/* Estilos para los tags de estación */
+/* --- Estilo base de cada tag --- */
 .station-tag {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 12px;
     font-size: 11px;
     font-weight: 500;
-    background-color: rgba(255, 122, 0, 0.2);
-    color: #FF7A00;
+    background-color: rgba(255, 122, 0, 0.2); /* Naranja semitransparente */
+    color: #FF7A00; /* Texto naranja */
     transition: all 0.2s ease;
 }
 
-/* Estilo especial para tags en estaciones seleccionadas */
-.custom-option.selected .station-tag {
-    background-color: rgba(255, 122, 0, 0.4);
-    color: #fff;
-    box-shadow: 0 0 4px rgba(255, 122, 0, 0.3);
-}
-
-/* Efecto hover para los tags */
+/* --- Tags en estado Hover de la opción --- */
 .custom-option:hover .station-tag {
     background-color: rgba(255, 122, 0, 0.3);
     transform: translateY(-1px);
 }
 
-.custom-option.selected:hover .station-tag {
-    background-color: rgba(255, 122, 0, 0.5);
+/* --- Tags en estado Seleccionado de la opción --- */
+.custom-option.selected .station-tag {
+    background-color: rgba(255, 122, 0, 0.5); /* Fondo naranja más opaco */
+    color: #fff; /* Texto blanco para contraste */
+    box-shadow: 0 0 4px rgba(255, 122, 0, 0.3);
 }
+
+/* --- Tags en estado Hover de la opción YA SELECCIONADA --- */
+.custom-option.selected:hover .station-tag {
+    background-color: rgba(255, 122, 0, 0.6); /* Aún más opaco */
+                        }
 
 /* Ajustes para el selector personalizado */
 .custom-option {
