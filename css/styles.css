@@ -994,6 +994,12 @@ footer strong {
     border: 1px solid rgba(255, 119, 0, 0.3);
 }
 
+.custom-option.selected .station-tag {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #ff7700;
+    border-color: #ff7700;
+}
+
 .custom-option .station-tag:first-child {
     margin-left: 0;
 }
