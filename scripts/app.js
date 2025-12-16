@@ -303,166 +303,138 @@ document.addEventListener('DOMContentLoaded', () => {
        // CLASE PARA EL SELECTOR DE ESTACIONES PERSONALIZADO
        // ==========================================================================
     class CustomSelect {
-    constructor(originalSelect) {
-        this.originalSelect = originalSelect;
-        this.customSelectWrapper = document.createElement('div');
-        this.customSelectWrapper.className = 'custom-select-wrapper';
-        this.customSelectTrigger = document.createElement('div');
-        this.customSelectTrigger.className = 'custom-select-trigger';
-        this.customOptions = document.createElement('div');
-        this.customOptions.className = 'custom-options';
-        
-        this.customSelectWrapper.appendChild(this.customSelectTrigger);
-        this.customSelectWrapper.appendChild(this.customOptions);
-        this.originalSelect.parentNode.insertBefore(this.customSelectWrapper, this.originalSelect.nextSibling);
-        this.originalSelect.style.display = 'none';
-        this.hasScrolledToSelection = false;
-        this.init();
-    }
-
-    init() {
-        this.populateOptions();
-        this.initEvents();
-        this.updateTriggerText();
-        this.updateSelectedOption();
-        
-        // Asegurar que la opción seleccionada sea visible al inicio
-        setTimeout(() => {
-            const selectedOption = this.customOptions.querySelector('.custom-option.selected');
-            if (selectedOption) {
-                selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }
-        }, 100);
-    }
-
-    populateOptions() {
-        this.customOptions.innerHTML = '';
-        const children = Array.from(this.originalSelect.children);
-        
-        children.forEach(child => {
-            if (child.tagName === 'OPTGROUP') {
-                const optgroupLabel = document.createElement('div');
-                optgroupLabel.className = 'custom-optgroup-label';
-                optgroupLabel.textContent = child.label;
-                this.customOptions.appendChild(optgroupLabel);
-                const groupOptions = child.querySelectorAll('option');
-                groupOptions.forEach(opt => this.createCustomOption(opt));
-            } else if (child.tagName === 'OPTION' && child.value) {
-                this.createCustomOption(child);
-            }
-        });
-    }
-    
-    createCustomOption(option) {
-        const customOption = document.createElement('div');
-        customOption.className = 'custom-option';
-        customOption.dataset.value = option.value;
-        const station = stationsById[option.value];
-        let name = option.textContent;
-        let description = '';
-        let tags = [];
-        
-        if (station) {
-            name = station.name;
-            if (station.service === 'radioparadise') {
-                name = station.name.split(' - ')[1] || station.name;
-            }
-            description = station.description || '';
-            tags = station.tags || [];
+        constructor(originalSelect) {
+            this.originalSelect = originalSelect;
+            this.customSelectWrapper = document.createElement('div');
+            this.customSelectWrapper.className = 'custom-select-wrapper';
+            this.customSelectTrigger = document.createElement('div');
+            this.customSelectTrigger.className = 'custom-select-trigger';
+            this.customOptions = document.createElement('div');
+            this.customOptions.className = 'custom-options';
+            
+            this.customSelectWrapper.appendChild(this.customSelectTrigger);
+            this.customSelectWrapper.appendChild(this.customOptions);
+            this.originalSelect.parentNode.insertBefore(this.customSelectWrapper, this.originalSelect.nextSibling);
+            this.originalSelect.style.display = 'none';
+            this.hasScrolledToSelection = false;
+            this.init();
         }
-        
-        customOption.innerHTML = `
-            <span class="custom-option-name">${name}</span>
-            ${description ? `<span class="custom-option-description">${description}</span>` : ''}
-            ${tags.length > 0 ? `
-                <div class="station-tags-container">
-                    ${tags.map(tag => `<span class="station-tag">${tag}</span>`).join(' ')}
-                </div>
-            ` : ''}
-        `;
-        
-        this.customOptions.appendChild(customOption);
-    }
 
-    initEvents() {
-        this.customSelectTrigger.addEventListener('click', () => {
-            this.toggle();
+        init() {
+            this.populateOptions();
+            this.initEvents();
+            this.updateTriggerText();
             this.updateSelectedOption();
             
-            // Asegurar que la opción seleccionada sea visible al abrir
-            if (!this.hasScrolledToSelection) {
+            setTimeout(() => {
                 const selectedOption = this.customOptions.querySelector('.custom-option.selected');
                 if (selectedOption) {
-                    setTimeout(() => {
-                        selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    }, 50);
+                    selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 }
-                this.hasScrolledToSelection = true;
-            }
-        });
-        
-        const customOptions = this.customOptions.querySelectorAll('.custom-option');
-        customOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const value = option.dataset.value;
-                this.originalSelect.value = value;
-                this.updateTriggerText();
-                this.updateSelectedOption();
-                this.close();
-                
-                // Disparar el evento de cambio con un pequeño retraso para asegurar que todo esté listo
-                setTimeout(() => {
-                    this.originalSelect.dispatchEvent(new Event('change'));
-                }, 100);
+            }, 100);
+        }
+
+        populateOptions() {
+            this.customOptions.innerHTML = '';
+            const children = Array.from(this.originalSelect.children);
+            
+            children.forEach(child => {
+                if (child.tagName === 'OPTGROUP') {
+                    const optgroupLabel = document.createElement('div');
+                    optgroupLabel.className = 'custom-optgroup-label';
+                    optgroupLabel.textContent = child.label;
+                    this.customOptions.appendChild(optgroupLabel);
+                    const groupOptions = child.querySelectorAll('option');
+                    groupOptions.forEach(opt => this.createCustomOption(opt));
+                } else if (child.tagName === 'OPTION' && child.value) {
+                     this.createCustomOption(child);
+                }
             });
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!this.customSelectWrapper.contains(e.target)) {
-                this.close();
-            }
-        });
-    }
-
-    toggle() { this.customSelectWrapper.classList.toggle('open'); }
-    open() { 
-        this.customSelectWrapper.classList.add('open');
-        // Asegurar que la opción seleccionada sea visible al abrir
-        const selectedOption = this.customOptions.querySelector('.custom-option.selected');
-        if (selectedOption) {
-            setTimeout(() => {
-                selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }, 50);
         }
-    }
-    close() { this.customSelectWrapper.classList.remove('open'); }
-
-    updateSelectedOption() {
-        const selectedValue = this.originalSelect.value;
-        const customOptions = this.customOptions.querySelectorAll('.custom-option');
         
-        customOptions.forEach(option => {
-            if (option.dataset.value === selectedValue) {
-                option.classList.add('selected');
-            } else {
-                option.classList.remove('selected');
+        createCustomOption(option) {
+            const customOption = document.createElement('div');
+            customOption.className = 'custom-option';
+            customOption.dataset.value = option.value;
+            const station = stationsById[option.value];
+            let name = option.textContent;
+            let description = '';
+            if (station) {
+                name = station.name;
+                if (station.service === 'radioparadise') {
+                    name = station.name.split(' - ')[1] || station.name;
+                }
+                description = station.description || '';
             }
-        });
-    }
-
-    updateTriggerText() {
-        const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
-        const station = stationsById[selectedOption.value];
-        let text = selectedOption.textContent;
-        if (station) {
-            text = station.name;
-            if (station.service === 'radioparadise') {
-                text = station.name.split(' - ')[1] || station.name;
-            }
+            customOption.innerHTML = `
+                <span class="custom-option-name">${name}</span>
+                ${description ? `<span class="custom-option-description">${description}</span>` : ''}
+            `;
+            this.customOptions.appendChild(customOption);
         }
-        this.customSelectTrigger.textContent = text || " Seleccionar Estación ";
-    }
+
+        initEvents() {
+            this.customSelectTrigger.addEventListener('click', () => {
+                this.toggle();
+                this.updateSelectedOption();
+                if (!this.hasScrolledToSelection) {
+                    const selectedOption = this.customOptions.querySelector('.custom-option.selected');
+                    if (selectedOption) {
+                        setTimeout(() => {
+                            selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }, 50);
+                    }
+                    this.hasScrolledToSelection = true;
+                }
+            });
+            const customOptions = this.customOptions.querySelectorAll('.custom-option');
+            customOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const value = option.dataset.value;
+                    this.originalSelect.value = value;
+                    this.updateTriggerText();
+                    this.updateSelectedOption();
+                    this.close();
+                    this.originalSelect.dispatchEvent(new Event('change'));
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!this.customSelectWrapper.contains(e.target)) {
+                    this.close();
+                }
+            });
+        }
+
+        toggle() { this.customSelectWrapper.classList.toggle('open'); }
+        open() { this.customSelectWrapper.classList.add('open'); }
+        close() { this.customSelectWrapper.classList.remove('open'); }
+
+        updateSelectedOption() {
+            const selectedValue = this.originalSelect.value;
+            const customOptions = this.customOptions.querySelectorAll('.custom-option');
+            
+            customOptions.forEach(option => {
+                if (option.dataset.value === selectedValue) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        updateTriggerText() {
+            const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
+            const station = stationsById[selectedOption.value];
+            let text = selectedOption.textContent;
+            if (station) {
+                text = station.name;
+                if (station.service === 'radioparadise') {
+                    text = station.name.split(' - ')[1] || station.name;
+                }
+            }
+            this.customSelectTrigger.textContent = text || " Seleccionar Estación ";
+        }
     }
     
     // ==========================================================================
