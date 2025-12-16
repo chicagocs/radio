@@ -976,7 +976,6 @@ footer strong {
 /* ==========================================================================
    ESTILOS DE TAGS DE ESTACIÓN
    ========================================================================== */
-
 .custom-option .station-tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -992,6 +991,7 @@ footer strong {
     font-size: 11px;
     font-weight: 500;
     border: 1px solid rgba(255, 119, 0, 0.3);
+    transition: all 0.2s ease;
 }
 
 .custom-option.selected .station-tag {
