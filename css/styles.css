@@ -279,7 +279,7 @@ body {
 /* --- Estado Seleccionado de la opción --- */
 .custom-option.selected {
     background-color: rgba(255, 122, 0, 0.2); /* Fondo naranja más oscuro y visible */
-    border-left: 3px solid #FF7A00;
+    // border-left: 3px solid #FF7A00;
 }
 
 /* --- Estado Hover de la opción YA SELECCIONADA --- */
@@ -369,7 +369,7 @@ body {
 
 .custom-option.selected {
     background-color: rgba(255, 122, 0, 0.1);
-    border-left: 3px solid #FF7A00;
+    // border-left: 3px solid #FF7A00;
 }
 
 /* Estilos para el nombre y descripción de la estación */
