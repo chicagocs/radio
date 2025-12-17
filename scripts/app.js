@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             yearSpan.textContent += ` (${data.albumTypeDescription})`;
         }
         const infoIcon = document.createElement('span');
-        infoIcon.className = 'tooltip-icon'; infoIcon.textContent = 'ⓘ';
+        infoIcon.className = 'tooltip-icon'; infoIcon.textContent = '\u24D8';
         const tooltip = document.createElement('span');
         tooltip.className = 'tooltip-text';
         tooltip.textContent = 'Spotify considera este lanzamiento el más relevante basándose principalmente en su popularidad actual.';
