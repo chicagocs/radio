@@ -765,13 +765,19 @@ document.addEventListener('DOMContentLoaded', () => {
             yearSpan.textContent += ` (${data.albumTypeDescription})`;
         }
         const infoIcon = document.createElement('span');
+         
         infoIcon.className = 'tooltip-icon';
-        infoIcon.textContent = 'ⓘ';
+        // infoIcon.textContent = 'ⓘ';
+        infoIcon.innerHTML = '&#9432;';
         const tooltip = document.createElement('span');
         tooltip.className = 'tooltip-text';
         tooltip.textContent = 'Spotify considera este lanzamiento el más relevante basándose principalmente en su popularidad actual.';
-        releaseDateContainer.appendChild(yearSpan); releaseDateContainer.appendChild(infoIcon); releaseDateContainer.appendChild(tooltip);
+         
+        releaseDateContainer.appendChild(yearSpan);
+        releaseDateContainer.appendChild(infoIcon);
+        releaseDateContainer.appendChild(tooltip);
         releaseDateElement.appendChild(releaseDateContainer);
+         
      } else { releaseDateElement.textContent = '----'; }
      if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
      if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
