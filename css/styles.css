@@ -904,7 +904,7 @@ audio {
     border-color: var(--primary-color) transparent transparent transparent;
 }
 
-.release-date-tooltip:hover .tooltip-text {
+.tooltip-icon:hover + .tooltip-text {
     visibility: visible;
     opacity: 1;
 }
