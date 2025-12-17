@@ -909,6 +909,13 @@ audio {
     opacity: 1;
 }
 
+// Tooltip Spotify
+
+.release-date-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
 .tooltip-icon {
     display: inline-block;
     margin-left: 6px;
@@ -916,7 +923,55 @@ audio {
     color: var(--primary-color);
     cursor: help;
     vertical-align: top;
+    font-weight: bold;
+    /* Opcional: fondo circular para el ícono */
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 50%;
+    border: 1px solid var(--primary-color);
 }
+
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.3s;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* Flecha del tooltip */
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Mostrar tooltip en hover */
+.release-date-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+// Tooltip Spotify
+
 
 .notification {
     position: fixed;
