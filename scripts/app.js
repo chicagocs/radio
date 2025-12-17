@@ -1151,8 +1151,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: 'RadioMax',
-            artist: 'Radio Online',
-            album: 'Las 24 horas',
+            artist: 'Una experiencia',
+            album: 'inmersiva',
             artwork: [
                 { src: '/images/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
                 { src: '/images/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }
