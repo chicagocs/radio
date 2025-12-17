@@ -753,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAlbumDetailsWithSpotifyData(data) {
+     console.log('🔵 updateAlbumDetailsWithSpotifyData ejecutándose', data);
      const releaseDateElement = document.getElementById('releaseDate');
      releaseDateElement.innerHTML = '';
      if (data.release_date) {
