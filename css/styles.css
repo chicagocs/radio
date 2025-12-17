@@ -322,7 +322,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-top: 5px;
+    margin-top: 0px;
 }
 
 /* --- Estilo base de cada tag --- */
