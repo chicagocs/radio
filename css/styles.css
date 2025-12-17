@@ -221,6 +221,7 @@ body {
 .custom-option.selected {
     background-color: rgba(255, 122, 0, 0.6);
     border-left: 3px solid #FF7A00;
+    border-right: 3px solid #FF7A00;
 }
 
 .custom-option.selected .custom-option-description {
