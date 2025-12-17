@@ -757,7 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
      releaseDateElement.innerHTML = '';
      if (data.release_date) {
         const year = data.release_date.substring(0, 4);
-        const releaseDateContainer = document.createElement('div');
+        const releaseDateContainer = document.createElement('span');
         releaseDateContainer.className = 'release-date-tooltip';
         const yearSpan = document.createElement('span');
         yearSpan.textContent = year;
