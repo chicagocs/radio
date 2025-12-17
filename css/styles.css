@@ -33,7 +33,7 @@
 body {
     background-color: var(--background-dark);
     color: var(--text-primary);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Arial Unicode MS';
     display: flex;
     justify-content: center;
     align-items: center;
