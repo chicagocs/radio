@@ -753,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAlbumDetailsWithSpotifyData(data) {
+     console.log('🔵 FUNCIÓN LLAMADA - release_date:', data.release_date, 'Tipo:', typeof data.release_date);   
      console.log('🔵 updateAlbumDetailsWithSpotifyData ejecutándose', data);
      const releaseDateElement = document.getElementById('releaseDate');
      releaseDateElement.innerHTML = '';
@@ -779,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
         releaseDateContainer.appendChild(tooltip);
         releaseDateElement.appendChild(releaseDateContainer);
          
-     } else { releaseDateElement.textContent = '----'; }
+     } else { console.log('❌ NO HAY release_date, data recibida:', data); releaseDateElement.textContent = '----'; }
      if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
      if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
      if (data.totalAlbumDuration) {
