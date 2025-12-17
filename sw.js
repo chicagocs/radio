@@ -1,0 +1,129 @@
+// v3.2.0
+const CACHE_VERSION = 'v3.2.0';
+const CACHE_NAME = `radiomax-${CACHE_VERSION}`;
+
+const STATIC_ASSETS = [
+  '/index.html',
+  '/offline.html',
+  '/stations.json',
+  '/site.webmanifest',
+  '/images/apple-touch-icon.png',
+  '/images/favicon-32x32.png',
+  '/images/favicon-16x16.png',
+  '/images/icon-192.png',
+  '/images/icon-512.png'
+];
+
+const API_CACHE_TTL = 5 * 60 * 1000;
+
+// INSTALL
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+// ACTIVATE
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys =>
+        Promise.all(
+          keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+// FETCH
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  // ✅ 0. EXCLUSIÓN: Ignorar solicitudes de Analytics (GoatCounter)
+  // Esto es CRÍTICO. Si la URL es para un dominio de estadísticas,
+  // no hacemos nada y dejamos que el navegador la maneje directamente.
+  if (url.hostname.includes('stats.max.com') || url.hostname.includes('stats.tramax.com.ar')) {
+    return; // Salimos del listener sin llamar a event.respondWith()
+  }
+
+  // ✅ 1. Navegación HTML (CRÍTICO PARA PWA)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  // ✅ 2. App Shell – Stale While Revalidate
+  if (STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        const fetchPromise = fetch(event.request).then(response => {
+          if (response.ok) {
+            caches.open(CACHE_NAME).then(c => c.put(event.request, response.clone()));
+          }
+          return response;
+        });
+        return cached || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // ✅ 3. APIs – Network First con TTL
+  if (
+    url.hostname.includes('api.somafm.com') ||
+    url.hostname.includes('musicbrainz.org') ||
+    url.hostname.includes('nrk.no') ||
+    url.hostname.includes('core.chcs.workers.dev')
+  ) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) {
+            const cachedTime = cached.headers.get('sw-cached-time');
+            if (cachedTime) {
+              const age = Date.now() - new Date(cachedTime).getTime();
+              if (age < API_CACHE_TTL) {
+                return cached;
+              }
+            }
+          }
+
+          return fetch(event.request)
+            .then(response => {
+              if (response.ok) {
+                const headers = new Headers(response.headers);
+                headers.set('sw-cached-time', new Date().toISOString());
+
+                const wrapped = new Response(response.clone().body, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers
+                });
+
+                cache.put(event.request, wrapped);
+              }
+              return response;
+            })
+            .catch(() => cached);
+        })
+      )
+    );
+    return;
+  }
+
+  // ✅ 4. Default
+  event.respondWith(fetch(event.request));
+});
+
+// SKIP WAITING
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
