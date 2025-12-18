@@ -708,6 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data && data.imageUrl) {
                 displayAlbumCoverFromUrl(data.imageUrl);
+                console.log('📍 Llamada 1 (línea 711) - data:', data);
                 updateAlbumDetailsWithSpotifyData(data);
                 
                 if (data.duration) { trackDuration = data.duration; trackStartTime = Date.now(); startCountdown(); }
@@ -753,11 +754,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAlbumDetailsWithSpotifyData(data) {
+     console.log('📍 Llamada 2 (línea 755) - data:', data);   
      console.log('🔵 FUNCIÓN LLAMADA - release_date:', data.release_date, 'Tipo:', typeof data.release_date);   
      console.log('🔵 updateAlbumDetailsWithSpotifyData ejecutándose', data);
      const releaseDateElement = document.getElementById('releaseDate');
      releaseDateElement.innerHTML = '';
      if (data.release_date) {
+        console.log('✅ ENTRANDO AL IF - Creando tooltip'); 
         const year = data.release_date.substring(0, 4);
         const releaseDateContainer = document.createElement('span');
         releaseDateContainer.className = 'release-date-tooltip';
