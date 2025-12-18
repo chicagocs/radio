@@ -759,52 +759,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (data.release_date) {
         const year = data.release_date.substring(0, 4);
-        const releaseDateContainer = document.createElement('span');
-        releaseDateContainer.className = 'release-date-tooltip';
+        let displayText = year;
         
-        const yearSpan = document.createElement('span');
-        yearSpan.textContent = year;
         if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
-            yearSpan.textContent += ` (${data.albumTypeDescription})`;
+            displayText += ` (${data.albumTypeDescription})`;
         }
         
-        const infoIcon = document.createElement('span');
-        infoIcon.className = 'tooltip-icon';
-        infoIcon.textContent = 'ⓘ';
-        
-        const tooltip = document.createElement('span');
-        tooltip.className = 'tooltip-text';
-        tooltip.textContent = 'Spotify considera este lanzamiento el más relevante basándose principalmente en su popularidad actual.';
-        
-        releaseDateContainer.appendChild(yearSpan);
-        releaseDateContainer.appendChild(infoIcon);
-        releaseDateContainer.appendChild(tooltip);
-        releaseDateElement.appendChild(releaseDateContainer);
-        
-        // SOLUCIÓN: Event listeners en el CONTENEDOR
-        setTimeout(() => {
-            const container = document.querySelector('.release-date-tooltip');
-            const tooltipEl = document.querySelector('.tooltip-text');
-            
-            if (container && tooltipEl) {
-                container.addEventListener('mouseenter', function() {
-                    tooltipEl.style.visibility = 'visible';
-                    tooltipEl.style.opacity = '1';
-                });
-                
-                container.addEventListener('mouseleave', function() {
-                    tooltipEl.style.visibility = 'hidden';
-                    tooltipEl.style.opacity = '0';
-                });
-            }
-        }, 0);
-        
+        releaseDateElement.textContent = displayText;
     } else { 
         releaseDateElement.textContent = '----'; 
     }
     
-    if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
-    if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
+    if (data.label && data.label.trim() !== '') { 
+        recordLabel.textContent = data.label; 
+    } else { 
+        recordLabel.textContent = '----'; 
+    }
+    
+    if (data.totalTracks) { 
+        albumTrackCount.textContent = data.totalTracks; 
+    } else { 
+        albumTrackCount.textContent = '--'; 
+    }
+    
     if (data.totalAlbumDuration) {
         let durationInSeconds = data.totalAlbumDuration;
         if (durationInSeconds > 10000) {
@@ -814,14 +791,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalMinutes = Math.floor(durationInSeconds / 60);
         const totalSeconds = Math.floor(durationInSeconds % 60);
         albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-    } else { albumTotalDuration.textContent = '--:--'; }
+    } else { 
+        albumTotalDuration.textContent = '--:--'; 
+    }
+    
     if (data.genres && data.genres.length > 0) {
         const displayGenres = data.genres.slice(0, 2).join(', ');
         trackGenre.textContent = displayGenres;
-    } else { trackGenre.textContent = '--'; }
+    } else { 
+        trackGenre.textContent = '--'; 
+    }
+    
     if (data.trackNumber && data.totalTracks) {
         trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
-    } else { trackPosition.textContent = '--/--'; }
+    } else { 
+        trackPosition.textContent = '--/--'; 
+    }
     }
     
     function updateUIWithTrackInfo(trackInfo) {
