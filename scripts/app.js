@@ -786,6 +786,22 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('   - Container:', document.querySelector('.release-date-tooltip'));
         console.log('   - Icon:', document.querySelector('.tooltip-icon'));
         console.log('   - Tooltip:', document.querySelector('.tooltip-text')); 
+         
+        const tooltipElement = document.querySelector('.tooltip-text');
+        const iconElement = document.querySelector('.tooltip-icon');
+        if (tooltipElement && iconElement) {
+            iconElement.addEventListener('mouseenter', () => {
+            tooltipElement.style.visibility = 'visible';
+            tooltipElement.style.opacity = '1';
+        });
+        iconElement.addEventListener('mouseleave', () => {
+        tooltipElement.style.visibility = 'hidden';
+        tooltipElement.style.opacity = '0';
+            
+    });
+    console.log('✅ Event listeners del tooltip agregados');
+}
+         
      } else { console.log('❌ NO HAY release_date, data recibida:', data); releaseDateElement.textContent = '----'; }
      if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
      if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
