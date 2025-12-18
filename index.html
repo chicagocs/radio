@@ -259,17 +259,9 @@
 
     <div class="notification" id="notification"></div>
 
-    <script>
-       window.goatcounter = {
-       endpoint: 'https://stats.tramax.com.ar/count'
-    };
-    window.addEventListener('load', function () {
-      var s = document.createElement('script');
-      s.src = '/scripts/count.js';
-      s.defer = true;
-      document.body.appendChild(s);
-    });
-    </script>
+    <script src="scripts/app.js" defer></script>
+    <script data-goatcounter="https://stats.tramax.com.ar/count"
+        async src="scripts/count.js"></script>   
     
 </body>
 </html>
