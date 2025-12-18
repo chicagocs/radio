@@ -782,7 +782,10 @@ document.addEventListener('DOMContentLoaded', () => {
         releaseDateContainer.appendChild(infoIcon);
         releaseDateContainer.appendChild(tooltip);
         releaseDateElement.appendChild(releaseDateContainer);
-         
+        console.log('✅ TODO CREADO - Verificando en DOM:');
+        console.log('   - Container:', document.querySelector('.release-date-tooltip'));
+        console.log('   - Icon:', document.querySelector('.tooltip-icon'));
+        console.log('   - Tooltip:', document.querySelector('.tooltip-text')); 
      } else { console.log('❌ NO HAY release_date, data recibida:', data); releaseDateElement.textContent = '----'; }
      if (data.label && data.label.trim() !== '') { recordLabel.textContent = data.label; } else { recordLabel.textContent = '----'; }
      if (data.totalTracks) { albumTrackCount.textContent = data.totalTracks; } else { albumTrackCount.textContent = '--'; }
@@ -867,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetAlbumDetails() {
+        console.log('🔴 resetAlbumDetails LLAMADA - BORRANDO TODO');
         releaseDate.textContent = '----'; recordLabel.textContent = '----';
         albumTrackCount.textContent = '--'; albumTotalDuration.textContent = '--:--';
         trackGenre.textContent = '--'; trackPosition.textContent = '--/--';
