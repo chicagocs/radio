@@ -95,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         timeStuckCheckInterval = setInterval(() => {
             if (isPlaying) {
                 if (audioPlayer.currentTime === lastPlaybackTime) {
-                    console.warn('Playback time is frozen. Handling as a network error.');
                     handlePlaybackError();
                     return;
                 }
@@ -188,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         startTimeStuckCheck();
                         showNotification('Reproducción reanudada automáticamente');
                     }).catch(error => {
-                        console.error('Error al reanudar la reproducción:', error);
                         showNotification('Toca para reanudar la reproducción');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
@@ -487,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return groupedStations;
         } catch (error) {
-            console.error('Error al cargar las estaciones:', error);
             loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
             logErrorForAnalysis('Station loading error', { error: error.message, timestamp: new Date().toISOString() });
             return [];
@@ -625,7 +622,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 2000);
             })
             .catch(error => {
-                console.error('Error al reproducir (promise rejected):', error);
                 handlePlaybackError();
             });
     }
@@ -667,7 +663,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else { resetUI(); }
         } catch (error) { 
-            console.error('Error al obtener info de SomaFM:', error); resetUI(); 
             logErrorForAnalysis('SomaFM API error', { error: error.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
         }
     }
@@ -708,7 +703,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data && data.imageUrl) {
                 displayAlbumCoverFromUrl(data.imageUrl);
-                console.log('📍 Llamada 1 (línea 711) - data:', data);
                 updateAlbumDetailsWithSpotifyData(data);
                 
                 if (data.duration) { trackDuration = data.duration; trackStartTime = Date.now(); startCountdown(); }
@@ -871,7 +865,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetAlbumDetails() {
-    console.log('🔴 resetAlbumDetails LLAMADA - BORRANDO TODO');
     
     // Solo resetear si NO hay tooltip (para preservar tooltips creados por Spotify)
     if (!document.querySelector('.release-date-tooltip')) {
@@ -992,7 +985,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             startTimeStuckCheck();
                             showNotification('Reproducción reanudada automáticamente');
                         }).catch(error => {
-                            console.error('Error al reanudar la reproducción:', error);
                             showNotification('Toca para reanudar la reproducción');
                             playBtn.style.animation = 'pulse 2s infinite';
                         });
@@ -1017,7 +1009,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         startTimeStuckCheck();
                         showNotification('Reproducción reanudada automáticamente');
                     }).catch(error => {
-                        console.error('Error al reanudar la reproducción:', error);
                         showNotification('Toca para reanudar la reproducción');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
@@ -1119,9 +1110,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                console.error('ConnectionManager: Max reconnection attempts reached.');
                 songTitle.textContent = 'Error de conexión: no se pudo restaurar';
-                songArtist.textContent = 'Intenta reproducir manualmente';
+                songArtist.textContent = 'Presionar SONAR para intentar manualmente';
                 this.stop();
                 return;
             }
@@ -1157,7 +1147,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateSongInfo().then(() => {
                             updateInterval = setInterval(updateSongInfo, 30000);
                         }).catch(error => {
-                            console.error('Error al actualizar información de la canción:', error);
                             // Si hay un error, intentamos de nuevo después de un tiempo
                             setTimeout(() => {
                                 updateSongInfo().then(() => {
@@ -1170,7 +1159,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                 } catch (error) {
-                    console.error(`ConnectionManager: Reconnection attempt ${this.reconnectAttempts} failed:`, error);
                     // Si falla, intentamos de nuevo con un nuevo delay
                     this.attemptReconnect();
                 }
@@ -1502,7 +1490,6 @@ if ('serviceWorker' in navigator) {
 
     navigator.serviceWorker.register('/sw.js')
       .then(reg => {
-        // console.log('SW registrado:', reg.scope);
 
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
