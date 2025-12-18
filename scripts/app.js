@@ -265,15 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
         facebookVideoDetected = false;
     }
 
-    // NUEVO: Función para limpiar tooltips activos
+    // Función para limpiar tooltips activos
     function cleanupTooltips() {
-        activeTooltips.forEach(tooltipId => {
-            const tooltip = document.getElementById(tooltipId);
-            if (tooltip) {
-                tooltip.remove();
-            }
-        });
-        activeTooltips.clear();
+    activeTooltips.forEach(tooltipId => {
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.remove();
+        }
+    });
+    activeTooltips.clear();
     }
 
     // ==========================================================================
@@ -782,130 +782,168 @@ document.addEventListener('DOMContentLoaded', () => {
         img.src = imageUrl;
     }
 
-    // MODIFICADO: Función updateAlbumDetailsWithSpotifyData mejorada para gestionar tooltips
-    function updateAlbumDetailsWithSpotifyData(data) {
-        console.log('📍 Llamada 2 (línea 755) - data:', data);   
-        console.log('🔵 FUNCIÓN LLAMADA - release_date:', data.release_date, 'Tipo:', typeof data.release_date);   
-        console.log('🔵 updateAlbumDetailsWithSpotifyData ejecutándose', data);
+// Función updateAlbumDetailsWithSpotifyData mejorada
+function updateAlbumDetailsWithSpotifyData(data) {
+    console.log('📍 Llamada 2 (línea 755) - data:', data);   
+    console.log('🔵 FUNCIÓN LLAMADA - release_date:', data.release_date, 'Tipo:', typeof data.release_date);   
+    console.log('🔵 updateAlbumDetailsWithSpotifyData ejecutándose', data);
+    
+    // Limpiar tooltips anteriores antes de crear nuevos
+    cleanupTooltips();
+    
+    const releaseDateElement = document.getElementById('releaseDate');
+    if (!releaseDateElement) {
+        console.error('Elemento releaseDate no encontrado');
+        return;
+    }
+    
+    releaseDateElement.innerHTML = '';
+    if (data.release_date) {
+        console.log('✅ ENTRANDO AL IF - Creando tooltip'); 
+        const year = data.release_date.substring(0, 4);
+        const releaseDateContainer = document.createElement('span');
+        releaseDateContainer.className = 'release-date-tooltip';
+        releaseDateContainer.style.position = 'relative'; // Asegurar posicionamiento relativo
         
-        // Limpiar tooltips anteriores antes de crear nuevos
-        cleanupTooltips();
-        
-        const releaseDateElement = document.getElementById('releaseDate');
-        if (!releaseDateElement) {
-            console.error('Elemento releaseDate no encontrado');
-            return;
+        const yearSpan = document.createElement('span');
+        yearSpan.textContent = year;
+        if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
+            yearSpan.textContent += ` (${data.albumTypeDescription})`;
         }
         
-        releaseDateElement.innerHTML = '';
-        if (data.release_date) {
-            console.log('✅ ENTRANDO AL IF - Creando tooltip'); 
-            const year = data.release_date.substring(0, 4);
-            const releaseDateContainer = document.createElement('span');
-            releaseDateContainer.className = 'release-date-tooltip';
-            
-            const yearSpan = document.createElement('span');
-            yearSpan.textContent = year;
-            if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
-                yearSpan.textContent += ` (${data.albumTypeDescription})`;
-            }
-            
-            const infoIcon = document.createElement('span');
-            infoIcon.className = 'tooltip-icon';
-            infoIcon.textContent = 'ⓘ';
-            
-            const tooltip = document.createElement('span');
-            tooltip.className = 'tooltip-text';
-            tooltip.textContent = 'Spotify considera este lanzamiento el más relevante basándose principalmente en su popularidad actual.';
-            
-            // Generar un ID único para este tooltip
-            const tooltipId = `tooltip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            tooltip.id = tooltipId;
-            activeTooltips.add(tooltipId);
-            
-            releaseDateContainer.appendChild(yearSpan);
-            releaseDateContainer.appendChild(infoIcon);
-            releaseDateContainer.appendChild(tooltip);
-            releaseDateElement.appendChild(releaseDateContainer);
-            
-            console.log('✅ TODO CREADO - Verificando en DOM:');
-            console.log('   - Container:', document.querySelector('.release-date-tooltip'));
-            console.log('   - Icon:', document.querySelector('.tooltip-icon'));
-            console.log('   - Tooltip:', document.querySelector('.tooltip-text')); 
-            
-            // MODIFICADO: Mejora en la gestión de eventos del tooltip
-            const handleMouseEnter = () => {
-                tooltip.style.visibility = 'visible';
-                tooltip.style.opacity = '1';
-            };
-            
-            const handleMouseLeave = () => {
-                tooltip.style.visibility = 'hidden';
-                tooltip.style.opacity = '0';
-            };
-            
-            // Añadir event listeners con referencia para poder eliminarlos después
-            infoIcon.addEventListener('mouseenter', handleMouseEnter);
-            infoIcon.addEventListener('mouseleave', handleMouseLeave);
-            
-            // Guardar referencias a las funciones para poder eliminar los event listeners más tarde
-            infoIcon._tooltipMouseEnter = handleMouseEnter;
-            infoIcon._tooltipMouseLeave = handleMouseLeave;
-            
-            console.log('✅ Event listeners del tooltip agregados');
+        const infoIcon = document.createElement('span');
+        infoIcon.className = 'tooltip-icon';
+        infoIcon.textContent = 'ⓘ';
+        infoIcon.style.cursor = 'pointer'; // Indicar que es interactivo
+        infoIcon.style.marginLeft = '5px'; // Separación del texto
+        
+        const tooltip = document.createElement('span');
+        tooltip.className = 'tooltip-text';
+        tooltip.textContent = 'Spotify considera este lanzamiento el más relevante basándose principalmente en su popularidad actual.';
+        
+        // Estilos CSS para el tooltip
+        tooltip.style.position = 'absolute';
+        tooltip.style.bottom = '125%'; // Posicionar arriba del icono
+        tooltip.style.left = '50%';
+        tooltip.style.transform = 'translateX(-50%)';
+        tooltip.style.backgroundColor = '#333';
+        tooltip.style.color = '#fff';
+        tooltip.style.padding = '8px 12px';
+        tooltip.style.borderRadius = '6px';
+        tooltip.style.fontSize = '14px';
+        tooltip.style.whiteSpace = 'nowrap';
+        tooltip.style.zIndex = '1000';
+        tooltip.style.opacity = '0';
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.transition = 'opacity 0.3s, visibility 0.3s';
+        tooltip.style.maxWidth = '300px'; // Ancho máximo
+        tooltip.style.whiteSpace = 'normal'; // Permitir múltiples líneas
+        tooltip.style.textAlign = 'center';
+        
+        // Generar un ID único para este tooltip
+        const tooltipId = `tooltip-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        tooltip.id = tooltipId;
+        activeTooltips.add(tooltipId);
+        
+        // Crear una pequeña flecha para el tooltip
+        const arrow = document.createElement('span');
+        arrow.style.position = 'absolute';
+        arrow.style.top = '100%';
+        arrow.style.left = '50%';
+        arrow.style.marginLeft = '-5px';
+        arrow.style.borderWidth = '5px';
+        arrow.style.borderStyle = 'solid';
+        arrow.style.borderColor = '#333 transparent transparent transparent';
+        tooltip.appendChild(arrow);
+        
+        releaseDateContainer.appendChild(yearSpan);
+        releaseDateContainer.appendChild(infoIcon);
+        releaseDateContainer.appendChild(tooltip);
+        releaseDateElement.appendChild(releaseDateContainer);
+        
+        console.log('✅ TODO CREADO - Verificando en DOM:');
+        console.log('   - Container:', document.querySelector('.release-date-tooltip'));
+        console.log('   - Icon:', document.querySelector('.tooltip-icon'));
+        console.log('   - Tooltip:', document.querySelector('.tooltip-text')); 
+        
+        // MODIFICADO: Mejora en la gestión de eventos del tooltip
+        const handleMouseEnter = () => {
+            tooltip.style.opacity = '1';
+            tooltip.style.visibility = 'visible';
+        };
+        
+        const handleMouseLeave = () => {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+        };
+        
+        // Añadir event listeners con referencia para poder eliminarlos después
+        infoIcon.addEventListener('mouseenter', handleMouseEnter);
+        infoIcon.addEventListener('mouseleave', handleMouseLeave);
+        
+        // También mostrar/ocultar el tooltip al pasar sobre el propio tooltip
+        tooltip.addEventListener('mouseenter', handleMouseEnter);
+        tooltip.addEventListener('mouseleave', handleMouseLeave);
+        
+        // Guardar referencias a las funciones para poder eliminar los event listeners más tarde
+        infoIcon._tooltipMouseEnter = handleMouseEnter;
+        infoIcon._tooltipMouseLeave = handleMouseLeave;
+        
+        console.log('✅ Event listeners del tooltip agregados');
+    } else { 
+        console.log('❌ NO HAY release_date, data recibida:', data); 
+        releaseDateElement.textContent = '----'; 
+    }
+    
+    if (recordLabel) {
+        if (data.label && data.label.trim() !== '') { 
+            recordLabel.textContent = data.label; 
         } else { 
-            console.log('❌ NO HAY release_date, data recibida:', data); 
-            releaseDateElement.textContent = '----'; 
-        }
-        
-        if (recordLabel) {
-            if (data.label && data.label.trim() !== '') { 
-                recordLabel.textContent = data.label; 
-            } else { 
-                recordLabel.textContent = '----'; 
-            }
-        }
-        
-        if (albumTrackCount) {
-            if (data.totalTracks) { 
-                albumTrackCount.textContent = data.totalTracks; 
-            } else { 
-                albumTrackCount.textContent = '--'; 
-            }
-        }
-        
-        if (albumTotalDuration) {
-            if (data.totalAlbumDuration) {
-                let durationInSeconds = data.totalAlbumDuration;
-                if (durationInSeconds > 10000) {
-                    durationInSeconds = Math.floor(durationInSeconds / 1000);
-                }
-                
-                const totalMinutes = Math.floor(durationInSeconds / 60);
-                const totalSeconds = Math.floor(durationInSeconds % 60);
-                albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-            } else { 
-                albumTotalDuration.textContent = '--:--'; 
-            }
-        }
-        
-        if (trackGenre) {
-            if (data.genres && data.genres.length > 0) {
-                const displayGenres = data.genres.slice(0, 2).join(', ');
-                trackGenre.textContent = displayGenres;
-            } else { 
-                trackGenre.textContent = '--'; 
-            }
-        }
-        
-        if (trackPosition) {
-            if (data.trackNumber && data.totalTracks) {
-                trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
-            } else { 
-                trackPosition.textContent = '--/--'; 
-            }
+            recordLabel.textContent = '----'; 
         }
     }
+    
+    if (albumTrackCount) {
+        if (data.totalTracks) { 
+            albumTrackCount.textContent = data.totalTracks; 
+        } else { 
+            albumTrackCount.textContent = '--'; 
+        }
+    }
+    
+    if (albumTotalDuration) {
+        if (data.totalAlbumDuration) {
+            let durationInSeconds = data.totalAlbumDuration;
+            if (durationInSeconds > 10000) {
+                durationInSeconds = Math.floor(durationInSeconds / 1000);
+            }
+            
+            const totalMinutes = Math.floor(durationInSeconds / 60);
+            const totalSeconds = Math.floor(durationInSeconds % 60);
+            albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+        } else { 
+            albumTotalDuration.textContent = '--:--'; 
+        }
+    }
+    
+    if (trackGenre) {
+        if (data.genres && data.genres.length > 0) {
+            const displayGenres = data.genres.slice(0, 2).join(', ');
+            trackGenre.textContent = displayGenres;
+        } else { 
+            trackGenre.textContent = '--'; 
+        }
+    }
+    
+    if (trackPosition) {
+        if (data.trackNumber && data.totalTracks) {
+            trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
+        } else { 
+            trackPosition.textContent = '--/--'; 
+        }
+    }
+}
+    
 
     function updateUIWithTrackInfo(trackInfo) {
         if (songTitle) songTitle.textContent = trackInfo.title;
