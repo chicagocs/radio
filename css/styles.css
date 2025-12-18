@@ -820,7 +820,7 @@ audio {
 }
 
 /* ==========================================================================
-   TOOLTIP SPOTIFY - FIX
+   TOOLTIP SPOTIFY - FIX DEFINITIVO
    ========================================================================== */
 .release-date-tooltip {
     position: relative;
@@ -853,14 +853,13 @@ audio {
     border-radius: 6px;
     padding: 8px;
     position: absolute;
-    z-index: 9999;
+    z-index: 1000;
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
-    transition: opacity 0.3s;
+    transition: opacity 0.3s, visibility 0.3s;
     font-size: 12px;
     line-height: 1.4;
-    pointer-events: none;
 }
 
 .tooltip-text::after {
@@ -874,11 +873,11 @@ audio {
     border-color: #333 transparent transparent transparent;
 }
 
-.tooltip-icon:hover + .tooltip-text {
+/* Mostrar tooltip al pasar sobre CUALQUIER parte del contenedor */
+.release-date-tooltip:hover .tooltip-text {
     visibility: visible !important;
     opacity: 1 !important;
 }
-
 
 /* ==========================================================================
    ESTILOS DE NOTIFICACIONES
