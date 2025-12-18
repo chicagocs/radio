@@ -1050,4 +1050,30 @@ footer strong {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-decoration: none
+    text-decoration: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 10px;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    min-width: 80px;
+}
+
+.install-logo-btn:not(.disabled):hover {
+    transform: scale(1.1);
+    background-color: rgba(255, 102, 0, 0.1);
+}
+
+.install-logo-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: #555555;
+    border-color: #555555;
+}
+
+/* Media queries */
+@media (max-width: 480px) {
+    /* tus media queries actuales */
+}
