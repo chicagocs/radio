@@ -853,7 +853,7 @@ audio {
     border-radius: 6px;
     padding: 8px;
     position: absolute;
-    z-index: 1000;
+    z-index: 9999;
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
