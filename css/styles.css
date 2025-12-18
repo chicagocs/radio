@@ -1073,7 +1073,73 @@ footer strong {
     border-color: #555555;
 }
 
-/* Media queries */
+/* ==========================================================================
+   MEDIA QUERIES PARA RESPONSIVIDAD
+   ========================================================================== */
 @media (max-width: 480px) {
-    /* tus media queries actuales */
+    footer {
+        font-size: 11px;
+    }
+    
+    .countdown-container {
+        padding: 5px 10px 5px 5px;
+    }
+    
+    .countdown-timer-column {
+        width: 100px;
+    }
+
+    .details-value {
+        font-size: 11px;
+    }
+   
+    .song-title, .song-artist, .song-album {
+        font-size: 14px;
+    }
+    
+    .station-selector {
+        margin-bottom: 25px; /* Ajuste para móviles */
+    }
+
+    .station-tags {
+        gap: 4px; /* Reducir espacio entre tags en móviles */
+        margin-top: 8px; /* Reducir margen superior */
+    }
+    
+    .station-tag {
+        font-size: 11px; /* Reducir tamaño de fuente en móviles */
+        padding: 1px 4px; /* Reducir padding */
+    }
+}
+
+@media (max-width: 400px) {
+    footer {
+        font-size: 11px;
+    }
+    
+    .countdown-container {
+        padding: 5px 10px 5px 5px;
+    }
+    
+    .countdown-timer-column {
+        width: 100px;
+    }
+
+    .details-value {
+        font-size: 11px;
+    }
+   
+    .song-title, .song-artist, .song-album {
+        font-size: 14px;
+    }
+}
+
+.genre-value {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.now-playing, .album-cover {
+    height: auto;
+    min-height: 120px;
 }
