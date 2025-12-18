@@ -870,10 +870,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetAlbumDetails() {
-        console.log('🔴 resetAlbumDetails LLAMADA - BORRANDO TODO');
-        releaseDate.textContent = '----'; recordLabel.textContent = '----';
-        albumTrackCount.textContent = '--'; albumTotalDuration.textContent = '--:--';
-        trackGenre.textContent = '--'; trackPosition.textContent = '--/--';
+    console.log('🔴 resetAlbumDetails LLAMADA - BORRANDO TODO');
+    
+    // Solo resetear si NO hay tooltip (para preservar tooltips creados por Spotify)
+    if (!document.querySelector('.release-date-tooltip')) {
+        releaseDate.textContent = '----';
+    }
+    
+    recordLabel.textContent = '----';
+    albumTrackCount.textContent = '--';
+    albumTotalDuration.textContent = '--:--';
+    trackGenre.textContent = '--';
+    trackPosition.textContent = '--/--';
     }
 
     // MODIFICADO: Nueva versión optimizada con requestAnimationFrame
