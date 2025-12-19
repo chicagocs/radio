@@ -738,6 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // CORREGIDO: Añadido un mecanismo de fallback robusto.
     async function fetchSongDetails(artist, title, album) {
         if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { resetCountdown(); return; }
         const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
@@ -755,10 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (data.duration) { 
                     trackDuration = data.duration; 
-                    startCountdown(); // Iniciar contador aquí con la duración real
                 }
-                else { await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); }
-                return;
             }
         } catch (error) {
             logErrorForAnalysis('Spotify API error', { 
@@ -768,7 +766,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: new Date().toISOString() 
             });
         }
-        await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+        
+        // Si Spotify no dio duración, intentar con MusicBrainz
+        if (trackDuration === 0) {
+            await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+        }
+
+        // NUEVO: Fallback final si todo lo demás falla
+        if (trackDuration === 0 && trackStartTime > 0) {
+            const now = Date.now();
+            const elapsed = (now - trackStartTime) / 1000;
+            
+            // Solo estimar si la canción ha estado sonando por un tiempo razonable
+            if (elapsed > 30) {
+                // Estimar una duración total. Asumamos que faltan 90 segundos.
+                trackDuration = elapsed + 90;
+                
+                // Establecer un máximo razonable para la estimación (ej. 7 minutos)
+                if (trackDuration > 420) {
+                    trackDuration = 420;
+                }
+                console.log(`APIs de duración fallaron. Estimando duración como ${trackDuration}s basado en ${elapsed}s transcurridos.`);
+            } else {
+                // Demasiado pronto para estimar, esperamos al siguiente ciclo de actualización.
+                console.log("Canción demasiado nueva para estimar duración. Esperando siguiente actualización.");
+                trackDuration = 0; // Asegurarse de que no se inicie el contador aún
+            }
+        }
+
+        // Iniciar el contador si tenemos una duración (real o estimada)
+        if (trackDuration > 0) {
+            startCountdown();
+        }
     }
 
     async function getMusicBrainzDuration(artist, title) {
@@ -782,13 +811,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
                 if (bestRecording && bestRecording.length) {
                     trackDuration = Math.floor(bestRecording.length / 1000);
-                    startCountdown(); // Iniciar contador aquí con la duración de MusicBrainz
-                    return;
+                    return; // Salir si se encontró la duración
                 }
             }
-            resetCountdown(); // Si no se encuentra duración, resetear contador
         } catch (error) { 
-            resetCountdown(); // Si hay error, resetear contador
             logErrorForAnalysis('MusicBrainz API error', { 
                 error: error.message, 
                 artist, 
@@ -796,6 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: new Date().toISOString() 
             });
         }
+        // No hacer nada aquí, el fallback en fetchSongDetails se encargará del resto.
     }
     
     function displayAlbumCoverFromUrl(imageUrl) {
@@ -1004,9 +1031,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = Date.now();
             const elapsed = (now - trackStartTime) / 1000;
             const remaining = Math.max(0, trackDuration - elapsed);
-
-            // ELIMINADO: El ajuste dinámico de duración para SomaFM.
-            // Ya no es necesario y era la causa del bug.
 
             const minutes = Math.floor(remaining / 60);
             const seconds = Math.floor(remaining % 60);
@@ -1652,5 +1676,5 @@ if ('serviceWorker' in navigator) {
     });
 
   });
-}   
+}
 });
