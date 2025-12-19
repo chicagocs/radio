@@ -38,7 +38,7 @@
              },
              {
                "text": "🎟️ Consultas para CHICAGO",
-               "url": "https://tienda.chicagocomputers.com.ar",
+               "url": "https://api.whatsapp.com/send/?text=Hola, tengo una consulta&type=custom_url&app_absent=0",
                "type": "giveaway"
              }
          ]
