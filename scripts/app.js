@@ -689,12 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('✅ Nuevo track detectado, trackStartTime asignado:', trackStartTime);
                     console.log('🚀 Llamando a fetchSongDetails con:', { artist: newTrackInfo.artist, title: newTrackInfo.title, album: newTrackInfo.album });
                     
-                    try {
-                        await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                        console.log('✅ fetchSongDetails completado');
-                    } catch (error) {
-                        console.error('❌ Error en fetchSongDetails:', error);
-                    }
+                    // Llamar sin try-catch para que los errores se propaguen y sean visibles
+                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                    console.log('✅ fetchSongDetails completado exitosamente');
                 }
             } else { resetUI(); }
         } catch (error) { 
