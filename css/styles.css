@@ -1082,3 +1082,54 @@ footer strong {
     height: auto;
     min-height: 120px;
 }
+
+/* Contenedor para los enlaces de promoción */
+.station-promotions-container {
+    margin-top: 8px;
+    border-top: 1px dashed #444;
+    padding-top: 8px;
+}
+
+/* Estilo base para todos los enlaces de promoción */
+.station-promotion-link {
+    display: block;
+    font-size: 12px;
+    color: #ccc;
+    text-decoration: none;
+    padding: 4px 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+    border-radius: 4px;
+}
+
+.station-promotion-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(3px);
+}
+
+/* Estilos específicos según el tipo de promoción */
+.station-promotion-link-support {
+    color: #4CAF50; /* Verde */
+    font-weight: bold;
+}
+
+.station-promotion-link-event {
+    color: #2196F3; /* Azul */
+}
+
+.station-promotion-link-merch {
+    color: #FF9800; /* Naranja */
+}
+
+.station-promotion-link-giveaway {
+    color: #E91E63; /* Rosa */
+    font-weight: bold;
+    animation: pulse-giveaway 2s infinite;
+}
+
+/* Animación opcional para sorteos */
+@keyframes pulse-giveaway {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
