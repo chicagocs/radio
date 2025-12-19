@@ -823,7 +823,8 @@ document.addEventListener('DOMContentLoaded', () => {
             timestamp: new Date().toISOString() 
     });
     }
-        
+    }
+    
     function displayAlbumCoverFromUrl(imageUrl) {
         if (!imageUrl) return;
         albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
