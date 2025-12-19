@@ -648,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
     }
 
-    // MEJORADO: Actualizar updateSomaFmInfo para aprovechar el timestamp de SomaFM
+    // CORREGIDO: La lógica ahora separa la hora de inicio de la duración total.
     async function updateSomaFmInfo(bypassRateLimit = false) {
         if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
         try {
@@ -673,21 +673,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUIWithTrackInfo(newTrackInfo); 
                     resetAlbumCover();
                     
-                    // MEJORA: Para SomaFM, usar el timestamp exacto proporcionado por la API
+                    // CORRECCIÓN: Usar el timestamp de SomaFM como hora de inicio.
+                    // No calcular la duración aquí.
                     if (currentSong.date) {
-                        trackStartTime = currentSong.date * 1000; // Convertir a milisegundos
-                        
-                        // Calcular duración estimada basada en el timestamp y la hora actual
-                        const estimatedDuration = (Date.now() - trackStartTime) / 1000;
-                        
-                        // Solo actualizar si la duración estimada es razonable (entre 1 y 15 minutos)
-                        if (estimatedDuration > 60 && estimatedDuration < 900) {
-                            trackDuration = estimatedDuration;
-                        }
+                        trackStartTime = currentSong.date * 1000;
                     } else {
+                        // Fallback si no hay fecha
                         trackStartTime = Date.now();
                     }
                     
+                    // Obtener la duración real desde otras APIs.
+                    // startCountdown() se llamará desde dentro de fetchSongDetails
                     await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                     
                     // MEJORA: Programar verificación proactiva para SomaFM
@@ -757,7 +753,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayAlbumCoverFromUrl(data.imageUrl);
                 updateAlbumDetailsWithSpotifyData(data);
                 
-                if (data.duration) { trackDuration = data.duration; trackStartTime = Date.now(); startCountdown(); }
+                if (data.duration) { 
+                    trackDuration = data.duration; 
+                    startCountdown(); // Iniciar contador aquí con la duración real
+                }
                 else { await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); }
                 return;
             }
@@ -783,14 +782,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
                 if (bestRecording && bestRecording.length) {
                     trackDuration = Math.floor(bestRecording.length / 1000);
-                    trackStartTime = Date.now();
-                    startCountdown();
+                    startCountdown(); // Iniciar contador aquí con la duración de MusicBrainz
                     return;
                 }
             }
-            resetCountdown();
+            resetCountdown(); // Si no se encuentra duración, resetear contador
         } catch (error) { 
-            resetCountdown();
+            resetCountdown(); // Si hay error, resetear contador
             logErrorForAnalysis('MusicBrainz API error', { 
                 error: error.message, 
                 artist, 
@@ -985,7 +983,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // MEJORADO: Nueva versión optimizada con requestAnimationFrame y detección mejorada
+    // CORREGIDO: Eliminada la lógica de ajuste dinámico que causaba el bug.
     function startCountdown() {
         // Limpiar intervalos existentes
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -1007,13 +1005,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const elapsed = (now - trackStartTime) / 1000;
             const remaining = Math.max(0, trackDuration - elapsed);
 
-            // MEJORA: Para SomaFM, ajustar dinámicamente la duración si es necesario
-            if (currentStation && currentStation.service === 'somafm' && elapsed > trackDuration && elapsed < 900) {
-                trackDuration = elapsed;
-                const totalMinutes = Math.floor(trackDuration / 60);
-                const totalSeconds = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-            }
+            // ELIMINADO: El ajuste dinámico de duración para SomaFM.
+            // Ya no es necesario y era la causa del bug.
 
             const minutes = Math.floor(remaining / 60);
             const seconds = Math.floor(remaining % 60);
