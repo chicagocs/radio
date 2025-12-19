@@ -682,16 +682,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateUIWithTrackInfo(newTrackInfo); 
                     resetAlbumCover();
                     
-                    // CRÍTICO: Asignar trackStartTime DESPUÉS de resetear para que no se borre
                     trackStartTime = apiStartTime;
-                    trackDuration = 0; // Resetear solo la duración, no el startTime
+                    trackDuration = 0;
                     
                     console.log('✅ Nuevo track detectado, trackStartTime asignado:', trackStartTime);
-                    console.log('🚀 Llamando a fetchSongDetails con:', { artist: newTrackInfo.artist, title: newTrackInfo.title, album: newTrackInfo.album });
+                    console.log('🚀 PRE-CALL fetchSongDetails');
                     
-                    // Llamar sin try-catch para que los errores se propaguen y sean visibles
                     await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                    console.log('✅ fetchSongDetails completado exitosamente');
+                    
+                    console.log('✅ POST-CALL fetchSongDetails');
                 }
             } else { resetUI(); }
         } catch (error) { 
