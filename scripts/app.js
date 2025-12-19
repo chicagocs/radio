@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title !== 'A sonar' &&
             title !== 'Reproduciendo...' &&
             title !== 'Error de reproducción' &&
+            title !== 'Reconectando...' && // NUEVO: No mostrar botón de compartir mientras se reconecta
             artist !== '') {
             shareButton.classList.add('visible');
         } else {
@@ -610,9 +611,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         showWelcomeScreen();
 
-        songTitle.textContent = 'Conexión perdida.';
+        // CAMBIO: Mensaje más simple y estático mientras se reconecta en segundo plano
+        songTitle.textContent = 'Reconectando...';
         songArtist.textContent = 'La reproducción se reanudará automáticamente.';
         songAlbum.textContent = '';
+        updateShareButtonVisibility();
 
         logErrorForAnalysis('Playback error', { 
             station: currentStation ? currentStation.id : 'unknown', 
@@ -1383,8 +1386,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                // Mensaje final solo si falla definitivamente
                 songTitle.textContent = 'Error de conexión: no se pudo restaurar';
                 songArtist.textContent = 'Presionar SONAR para intentar manualmente';
+                songAlbum.textContent = '';
+                updateShareButtonVisibility();
                 this.stop();
                 return;
             }
@@ -1392,17 +1398,16 @@ document.addEventListener('DOMContentLoaded', () => {
             this.reconnectAttempts++;
             const delay = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
             
-            songTitle.textContent = `Intentando reconectar... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`;
-            songArtist.textContent = `Próximo intento en ${Math.ceil(delay / 1000)}s.`;
-            songAlbum.textContent = '';
-
+            // CAMBIO: Se eliminan los mensajes intermedios de la UI para una experiencia más limpia.
+            // La UI permanecerá con el mensaje "Reconectando..." hasta el éxito o el fallo final.
+            
             this.reconnectTimeoutId = setTimeout(async () => {
                 try {
                     // Forzamos una recarga del stream para asegurar una conexión fresca
                     audioPlayer.src = currentStation.url; 
                     await audioPlayer.play();
                     
-                    // Si la reproducción es exitosa, el gestor se detiene
+                    // Si la reproducción es exitosa, el gestor se detiene y el evento 'playing' se encarga del resto
                     isPlaying = true;
                     updateStatus(true);
                     startTimeStuckCheck();
