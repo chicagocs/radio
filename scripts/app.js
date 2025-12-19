@@ -1,11 +1,15 @@
 // Caché
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
-      registration.unregister();
-    }
-    // Recargar la página para limpiar la caché
-    window.location.reload();
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none' // Forzar la actualización del Service Worker
+    })
+    .then(registration => {
+      // Forzar la comprobación de actualizaciones
+      registration.update();
+    })
+    .catch(err => console.error('SW error:', err));
   });
 }
 
