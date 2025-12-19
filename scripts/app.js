@@ -667,6 +667,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                   currentTrackInfo.title !== newTrackInfo.title || 
                                   currentTrackInfo.artist !== newTrackInfo.artist;
                 
+                console.log('🔍 DEBUG SomaFM:', {
+                    isNewTrack,
+                    apiStartTime,
+                    currentTrackStartTime: trackStartTime,
+                    currentTrackDuration: trackDuration,
+                    songTitle: newTrackInfo.title,
+                    elapsed: trackStartTime ? (Date.now() - trackStartTime) / 1000 : 0
+                });
+                
                 if (isNewTrack) {
                     resetCountdown(); 
                     resetAlbumDetails(); 
@@ -675,6 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     resetAlbumCover();
                     // CRÍTICO: Usar siempre el timestamp de la API
                     trackStartTime = apiStartTime;
+                    
+                    console.log('✅ Nuevo track detectado, trackStartTime asignado:', trackStartTime);
                     
                     await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                 }
