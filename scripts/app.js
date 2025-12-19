@@ -1,3 +1,14 @@
+// Caché
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
+    // Recargar la página para limpiar la caché
+    window.location.reload();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
        // SELECCIÓN DE ELEMENTOS DEL DOM
