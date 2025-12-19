@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
         trackPosition.textContent = '--/--';
     }
 
-    // MEJORADO: Nueva versión optimizada con requestAnimationFrame y detección mejorada
+    // CORREGIDO: Se eliminó la llamada a startEnhancedSongDetection y la variable relacionada
     function startCountdown() {
         // Limpiar intervalos existentes
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -1025,7 +1025,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalSeconds = Math.floor(trackDuration % 60);
         totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
 
-        let enhancedCheckInterval = null;
         let lastCheckTime = 0;
 
         function updateTimer() {
@@ -1045,11 +1044,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (remaining > 0) {
-                // Iniciar verificación mejorada cuando quedan 15 segundos
-                if (remaining <= 15 && !enhancedCheckInterval) {
-                    enhancedCheckInterval = startEnhancedSongDetection();
-                }
-                
                 // NUEVO: Para SomaFM, verificar más frecuentemente durante los últimos 5 segundos
                 if (currentStation && currentStation.service === 'somafm' && remaining <= 5) {
                     // Verificar cada segundo, pero limitar las llamadas a la API
@@ -1061,12 +1055,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 animationFrameId = requestAnimationFrame(updateTimer);
             } else {
-                // Limpiar el intervalo de verificación mejorada si existe
-                if (enhancedCheckInterval) {
-                    clearInterval(enhancedCheckInterval);
-                    enhancedCheckInterval = null;
-                }
-                
                 // La canción ha terminado - actualización inmediata
                 countdownTimer.textContent = '00:00';
                 countdownTimer.classList.remove('ending');
