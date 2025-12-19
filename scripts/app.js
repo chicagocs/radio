@@ -1553,67 +1553,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 500);
         }
     });
-
-    // Añadir animación CSS para el botón de reproducción cuando se necesita atención
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-        
-        /* NUEVO: Estilos para las promociones de estaciones */
-        .station-promotions-container {
-            margin-top: 8px;
-            border-top: 1px dashed #444;
-            padding-top: 8px;
-        }
-        
-        .station-promotion-link {
-            display: block;
-            font-size: 12px;
-            color: #ccc;
-            text-decoration: none;
-            padding: 4px 0;
-            transition: color 0.2s ease, transform 0.2s ease;
-            border-radius: 4px;
-        }
-        
-        .station-promotion-link:hover {
-            color: #fff;
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(3px);
-        }
-        
-        .station-promotion-link-support {
-            color: #4CAF50; /* Verde */
-            font-weight: bold;
-        }
-        
-        .station-promotion-link-event {
-            color: #2196F3; /* Azul */
-        }
-        
-        .station-promotion-link-merch {
-            color: #FF9800; /* Naranja */
-        }
-        
-        .station-promotion-link-giveaway {
-            color: #E91E63; /* Rosa */
-            font-weight: bold;
-            animation: pulse-giveaway 2s infinite;
-        }
-        
-        @keyframes pulse-giveaway {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-            100% { transform: scale(1); }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // ==========================================================================
+  
+ // ==========================================================================
        // LÓGICA DE INSTALACIÓN PWA - MEJORADA PARA COMPATIBILIDAD CON BRAVE
        // ==========================================================================
     let deferredPrompt;
