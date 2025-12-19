@@ -742,39 +742,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
-        if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
-        try {
-            const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
-            const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
-            const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
-            const response = await fetch(finalUrl);
-            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-            const data = await response.json();
-            const newTrackInfo = { 
-                title: data.title || 'Título desconocido', 
-                artist: data.artist || 'Artista desconocido', 
-                album: data.album || '', 
-            };
-            const isNewTrack = !currentTrackInfo || 
-                              currentTrackInfo.title !== newTrackInfo.title || 
-                              currentTrackInfo.artist !== newTrackInfo.artist;
-            if (isNewTrack) {
-                resetCountdown(); 
-                resetAlbumDetails(); 
-                currentTrackInfo = newTrackInfo;
-                updateUIWithTrackInfo(newTrackInfo); 
-                resetAlbumCover();
-                trackStartTime = Date.now();
-                
-                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-            }
-        } catch (error) {
-            logErrorForAnalysis('Radio Paradise API error', { 
-                error: error.message, 
-                stationId: currentStation.id, 
-                timestamp: new Date().toISOString() 
-            });
+    if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
+    try {
+        const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
+        const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
+        const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
+        const response = await fetch(finalUrl);
+        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+        const data = await response.json();
+        const newTrackInfo = { 
+            title: data.title || 'Título desconocido', 
+            artist: data.artist || 'Artista desconocido', 
+            album: data.album || '', 
+        };
+        const isNewTrack = !currentTrackInfo || 
+                          currentTrackInfo.title !== newTrackInfo.title || 
+                          currentTrackInfo.artist !== newTrackInfo.artist;
+        if (isNewTrack) {
+            resetCountdown(); 
+            resetAlbumDetails(); 
+            currentTrackInfo = newTrackInfo;
+            updateUIWithTrackInfo(newTrackInfo); 
+            resetAlbumCover();
+            
+            // En lugar de asumir que la canción comenzó AHORA, estimamos que comenzó
+            // hace 15 segundos. Esto da una cuenta regresiva mucho más precisa
+            // justo después de un refresh o al cambiar de estación.
+            trackStartTime = Date.now() - 15000; // Estimación de 15 segundos de retraso
+            
+            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
         }
+    } catch (error) {
+        logErrorForAnalysis('Radio Paradise API error', { 
+            error: error.message, 
+            stationId: currentStation.id, 
+            timestamp: new Date().toISOString() 
+        });
+    }
     }
     
     async function fetchSongDetails(artist, title, album) {
