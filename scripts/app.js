@@ -584,17 +584,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // MODIFICADO: Ahora solo se encarga de limpiar la UI y delega la reconexión
+    // MEJORADO: Función para manejar errores de reproducción
     function handlePlaybackError() {
+        // Si el gestor de reconexión ya está activo, no hacer nada
         if (connectionManager.isReconnecting) { return; }
         
-        isPlaying = false; updateStatus(false);
+        // Si el audio está reproduciéndose, no iniciar el gestor de reconexión
+        if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
+            console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
+            return;
+        }
+        
+        isPlaying = false; 
+        updateStatus(false);
         audioPlayer.pause();
         if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
         if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
         
-        currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
-        resetCountdown(); resetAlbumCover(); resetAlbumDetails();
+        currentTrackInfo = null; 
+        trackDuration = 0; 
+        trackStartTime = 0;
+        resetCountdown(); 
+        resetAlbumCover(); 
+        resetAlbumDetails();
         
         showWelcomeScreen();
 
@@ -602,7 +614,11 @@ document.addEventListener('DOMContentLoaded', () => {
         songArtist.textContent = 'La reproducción se reanudará automáticamente.';
         songAlbum.textContent = '';
 
-        logErrorForAnalysis('Playback error', { station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
+        logErrorForAnalysis('Playback error', { 
+            station: currentStation ? currentStation.id : 'unknown', 
+            timestamp: new Date().toISOString(), 
+            userAgent: navigator.userAgent 
+        });
         
         // Iniciar el gestor de reconexión
         connectionManager.start();
@@ -1263,11 +1279,40 @@ document.addEventListener('DOMContentLoaded', () => {
         else { playBtn.textContent = '▶ SONAR'; }
     }
 
+    // MEJORADO: Evento 'playing' para detectar cuando el audio se reanuda después de una interrupción
     audioPlayer.addEventListener('playing', () => { 
         isPlaying = true; 
         updateStatus(true); 
         wasPlayingBeforeFocusLoss = true;
+        
+        // NUEVO: Detener el gestor de reconexión si está activo
+        if (connectionManager.isReconnecting) {
+            connectionManager.stop();
+            showNotification('Conexión restaurada con éxito.');
+            
+            // Reiniciar la actualización de información de la canción
+            if (currentStation && currentStation.service !== 'nrk') {
+                // Limpiar cualquier intervalo existente
+                if (updateInterval) clearInterval(updateInterval);
+                
+                // Actualizar inmediatamente y luego establecer el intervalo
+                updateSongInfo(true).then(() => {
+                    updateInterval = setInterval(updateSongInfo, 30000);
+                }).catch(error => {
+                    console.error('Error al actualizar información de la canción:', error);
+                    // Si hay un error, intentamos de nuevo después de un tiempo
+                    setTimeout(() => {
+                        updateSongInfo(true).then(() => {
+                            updateInterval = setInterval(updateSongInfo, 30000);
+                        }).catch(err => {
+                            console.error('Error al actualizar información de la canción (reintento):', err);
+                        });
+                    }, 5000);
+                });
+            }
+        }
     });
+    
     audioPlayer.addEventListener('ended', () => { 
         isPlaying = false; 
         updateStatus(false);
@@ -1275,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================================================
-       // NUEVO: GESTOR DE CONEXIÓN CENTRALIZADO
+       // NUEVO: GESTOR DE CONEXIÓN CENTRALIZADO MEJORADO
        // ==========================================================================
     const connectionManager = {
         isReconnecting: false,
@@ -1284,12 +1329,14 @@ document.addEventListener('DOMContentLoaded', () => {
         initialReconnectDelay: 1000, // 1 segundo
         maxReconnectDelay: 30000,   // 30 segundos máximo
         reconnectTimeoutId: null,
+        audioCheckInterval: null,
 
         start() {
             if (this.isReconnecting) return;
             this.isReconnecting = true;
             this.reconnectAttempts = 0;
             this.attemptReconnect();
+            this.startAudioCheck();
         },
 
         stop() {
@@ -1299,6 +1346,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(this.reconnectTimeoutId);
                 this.reconnectTimeoutId = null;
             }
+            if (this.audioCheckInterval) {
+                clearInterval(this.audioCheckInterval);
+                this.audioCheckInterval = null;
+            }
+        },
+
+        startAudioCheck() {
+            // Verificar cada segundo si el audio se ha reanudado
+            this.audioCheckInterval = setInterval(() => {
+                if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
+                    // El audio se ha reanudado, detener el gestor de reconexión
+                    this.stop();
+                    isPlaying = true;
+                    updateStatus(true);
+                    showPlaybackInfo();
+                    showNotification('Conexión restaurada con éxito.');
+                    
+                    // Reiniciar la actualización de información de la canción
+                    if (currentStation && currentStation.service !== 'nrk') {
+                        if (updateInterval) clearInterval(updateInterval);
+                        updateSongInfo(true).then(() => {
+                            updateInterval = setInterval(updateSongInfo, 30000);
+                        }).catch(error => {
+                            console.error('Error al actualizar información de la canción:', error);
+                        });
+                    }
+                }
+            }, 1000);
         },
 
         attemptReconnect() {
@@ -1331,28 +1406,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     isPlaying = true;
                     updateStatus(true);
                     startTimeStuckCheck();
-                    showPlaybackInfo(); // Mostrar UI de reproducción
+                    showPlaybackInfo();
                     this.stop();
                     showNotification('Conexión restaurada con éxito.');
                     
-                    // NUEVO: Reiniciar la actualización de información de la canción
-                    // Limpiar cualquier intervalo existente
-                    if (updateInterval) clearInterval(updateInterval);
-                    
-                    // Iniciar la actualización de la información de la canción
+                    // Reiniciar la actualización de la información de la canción
                     if (currentStation.service !== 'nrk') {
-                        // Para estaciones que no son NRK, actualizamos inmediatamente y luego establecemos el intervalo
+                        if (updateInterval) clearInterval(updateInterval);
                         updateSongInfo(true).then(() => {
                             updateInterval = setInterval(updateSongInfo, 30000);
                         }).catch(error => {
-                            // Si hay un error, intentamos de nuevo después de un tiempo
-                            setTimeout(() => {
-                                updateSongInfo(true).then(() => {
-                                    updateInterval = setInterval(updateSongInfo, 30000);
-                                }).catch(err => {
-                                    console.error('Error al actualizar información de la canción (reintento):', err);
-                                });
-                            }, 5000);
+                            console.error('Error al actualizar información de la canción:', error);
                         });
                     }
                     
