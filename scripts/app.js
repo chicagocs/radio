@@ -738,7 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // CORREGIDO: Añadido un mecanismo de fallback robusto.
+    // CORREGIDO: Fallback robusto y definitivo para asegurar que el contador siempre se muestre.
     async function fetchSongDetails(artist, title, album) {
         if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { resetCountdown(); return; }
         const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
@@ -772,29 +772,39 @@ document.addEventListener('DOMContentLoaded', () => {
             await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
         }
 
-        // NUEVO: Fallback final si todo lo demás falla
-        if (trackDuration === 0 && trackStartTime > 0) {
-            const now = Date.now();
-            const elapsed = (now - trackStartTime) / 1000;
-            
-            // Solo estimar si la canción ha estado sonando por un tiempo razonable
-            if (elapsed > 30) {
-                // Estimar una duración total. Asumamos que faltan 90 segundos.
-                trackDuration = elapsed + 90;
+        // NUEVO: Fallback final robusto si todo lo demás falla
+        if (trackDuration === 0) {
+            console.log("Spotify y MusicBrainz no proporcionaron duración. Intentando fallback robusto.");
+            let durationEstimated = false;
+
+            // Intentar estimar basándose en el timestamp de SomaFM
+            if (trackStartTime > 0 && !isNaN(trackStartTime)) {
+                const now = Date.now();
+                const elapsed = (now - trackStartTime) / 1000;
                 
-                // Establecer un máximo razonable para la estimación (ej. 7 minutos)
-                if (trackDuration > 420) {
-                    trackDuration = 420;
+                // Umbral más bajo para que el contador aparezca antes
+                if (elapsed > 10) {
+                    // Estimar una duración total. Asumamos que faltan 90 segundos.
+                    trackDuration = elapsed + 90;
+                    
+                    // Establecer un máximo razonable para la estimación (ej. 7 minutos)
+                    if (trackDuration > 420) {
+                        trackDuration = 420;
+                    }
+                    durationEstimated = true;
+                    console.log(`Duración estimada como ${trackDuration}s basado en ${elapsed}s transcurridos.`);
                 }
-                console.log(`APIs de duración fallaron. Estimando duración como ${trackDuration}s basado en ${elapsed}s transcurridos.`);
-            } else {
-                // Demasiado pronto para estimar, esperamos al siguiente ciclo de actualización.
-                console.log("Canción demasiado nueva para estimar duración. Esperando siguiente actualización.");
-                trackDuration = 0; // Asegurarse de que no se inicie el contador aún
+            }
+
+            // Si la estimación basada en timestamp falló (no hay timestamp o es muy nueva),
+            // establecer una duración por defecto para que la UI no se rompa.
+            if (!durationEstimated) {
+                trackDuration = 240; // 4 minutos por defecto
+                console.log(`Timestamp no disponible o muy nuevo. Usando duración por defecto de ${trackDuration}s.`);
             }
         }
 
-        // Iniciar el contador si tenemos una duración (real o estimada)
+        // Iniciar el contador si tenemos una duración (real, estimada o por defecto)
         if (trackDuration > 0) {
             startCountdown();
         }
@@ -1676,5 +1686,5 @@ if ('serviceWorker' in navigator) {
     });
 
   });
-}
+}   
 });
