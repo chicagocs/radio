@@ -1,18 +1,3 @@
-// Caché
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', {
-      scope: '/',
-      updateViaCache: 'none' // Forzar la actualización del Service Worker
-    })
-    .then(registration => {
-      // Forzar la comprobación de actualizaciones
-      registration.update();
-    })
-    .catch(err => console.error('SW error:', err));
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
        // SELECCIÓN DE ELEMENTOS DEL DOM
