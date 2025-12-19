@@ -659,12 +659,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     album: currentSong.album || '', 
                     date: currentSong.date || null 
                 };
+                
+                // CORREGIDO: Siempre usar el timestamp de la API cuando está disponible
+                const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+                
                 const isNewTrack = !currentTrackInfo || 
                                   currentTrackInfo.title !== newTrackInfo.title || 
                                   currentTrackInfo.artist !== newTrackInfo.artist;
-                
-                // CORREGIDO: Siempre usar el timestamp de la API si está disponible
-                const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : null;
                 
                 if (isNewTrack) {
                     resetCountdown(); 
@@ -672,18 +673,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentTrackInfo = newTrackInfo;
                     updateUIWithTrackInfo(newTrackInfo); 
                     resetAlbumCover();
-                    trackStartTime = apiStartTime || Date.now();
-                    
-                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                } else if (apiStartTime && trackStartTime === 0) {
-                    // NUEVO: Si es la misma canción pero trackStartTime no está inicializado
-                    // (ej: después de F5), usar el timestamp de la API
+                    // CRÍTICO: Usar siempre el timestamp de la API
                     trackStartTime = apiStartTime;
                     
-                    // Si ya tenemos duración pero no había countdown, iniciarlo
-                    if (trackDuration > 0) {
-                        startCountdown();
-                    }
+                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
                 }
             } else { resetUI(); }
         } catch (error) { 
