@@ -677,17 +677,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (isNewTrack) {
-                    resetCountdown(); 
                     resetAlbumDetails(); 
                     currentTrackInfo = newTrackInfo;
                     updateUIWithTrackInfo(newTrackInfo); 
                     resetAlbumCover();
-                    // CRÍTICO: Usar siempre el timestamp de la API
+                    
+                    // CRÍTICO: Asignar trackStartTime DESPUÉS de resetear para que no se borre
                     trackStartTime = apiStartTime;
+                    trackDuration = 0; // Resetear solo la duración, no el startTime
                     
                     console.log('✅ Nuevo track detectado, trackStartTime asignado:', trackStartTime);
+                    console.log('🚀 Llamando a fetchSongDetails con:', { artist: newTrackInfo.artist, title: newTrackInfo.title, album: newTrackInfo.album });
                     
-                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                    try {
+                        await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                        console.log('✅ fetchSongDetails completado');
+                    } catch (error) {
+                        console.error('❌ Error en fetchSongDetails:', error);
+                    }
                 }
             } else { resetUI(); }
         } catch (error) { 
@@ -699,7 +706,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // MODIFICADO: Actualizar updateRadioParadiseInfo para consistencia
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
         if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
         try {
