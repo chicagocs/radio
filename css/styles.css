@@ -1109,12 +1109,12 @@ footer strong {
 
 /* Estilos específicos según el tipo de promoción */
 .station-promotion-link-support {
-    color: #4CAF50; /* Verde */
+    color: #FF9800; /* Naranja */
     font-weight: bold;
 }
 
 .station-promotion-link-event {
-    color: #2196F3; /* Azul */
+    color: #FF9800; /* Naranja */
 }
 
 .station-promotion-link-merch {
@@ -1122,7 +1122,7 @@ footer strong {
 }
 
 .station-promotion-link-giveaway {
-    color: #E91E63; /* Rosa */
+    color: #FF9800; /* Naranja */
     font-weight: bold;
     animation: pulse-giveaway 2s infinite;
 }
