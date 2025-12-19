@@ -646,60 +646,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateSomaFmInfo(bypassRateLimit = false) {
-        if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
-        try {
-            const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            if (data.songs && data.songs.length > 0) {
-                const currentSong = data.songs[0];
-                const newTrackInfo = { 
-                    title: currentSong.title || 'Título desconocido', 
-                    artist: currentSong.artist || 'Artista desconocido', 
-                    album: currentSong.album || '', 
-                    date: currentSong.date || null 
-                };
-                
-                // CORREGIDO: Siempre usar el timestamp de la API cuando está disponible
-                const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
-                
-                const isNewTrack = !currentTrackInfo || 
-                                  currentTrackInfo.title !== newTrackInfo.title || 
-                                  currentTrackInfo.artist !== newTrackInfo.artist;
-                
-                console.log('🔍 DEBUG SomaFM:', {
-                    isNewTrack,
-                    apiStartTime,
-                    currentTrackStartTime: trackStartTime,
-                    currentTrackDuration: trackDuration,
-                    songTitle: newTrackInfo.title,
-                    elapsed: trackStartTime ? (Date.now() - trackStartTime) / 1000 : 0
-                });
-                
-                if (isNewTrack) {
-                    resetAlbumDetails(); 
-                    currentTrackInfo = newTrackInfo;
-                    updateUIWithTrackInfo(newTrackInfo); 
-                    resetAlbumCover();
-                    
-                    trackStartTime = apiStartTime;
-                    trackDuration = 0;
-                    
-                    console.log('✅ Nuevo track detectado, trackStartTime asignado:', trackStartTime);
-                    console.log('🚀 PRE-CALL fetchSongDetails');
-                    
-                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-                    
-                    console.log('✅ POST-CALL fetchSongDetails');
-                }
-            } else { resetUI(); }
-        } catch (error) { 
-            logErrorForAnalysis('SomaFM API error', { 
-                error: error.message, 
-                stationId: currentStation.id, 
-                timestamp: new Date().toISOString() 
+    if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
+    
+    try {
+        const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        
+        if (data.songs && data.songs.length > 0) {
+            const currentSong = data.songs[0];
+            const newTrackInfo = { 
+                title: currentSong.title || 'Título desconocido', 
+                artist: currentSong.artist || 'Artista desconocido', 
+                album: currentSong.album || '', 
+                date: currentSong.date || null 
+            };
+            
+            // Usar timestamp de la API
+            const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+            
+            const isNewTrack = !currentTrackInfo || 
+                              currentTrackInfo.title !== newTrackInfo.title || 
+                              currentTrackInfo.artist !== newTrackInfo.artist;
+            
+            console.log('🔍 DEBUG SomaFM:', {
+                isNewTrack,
+                apiStartTime,
+                currentTrackStartTime: trackStartTime,
+                songTitle: newTrackInfo.title
             });
+            
+            if (isNewTrack) {
+                // NO llamar resetCountdown() aquí
+                resetAlbumDetails();
+                currentTrackInfo = newTrackInfo;
+                updateUIWithTrackInfo(newTrackInfo);
+                resetAlbumCover();
+                
+                // Asignar trackStartTime ANTES de fetchSongDetails
+                trackStartTime = apiStartTime;
+                trackDuration = 0;
+                
+                console.log('✅ Nuevo track, trackStartTime:', trackStartTime);
+                console.log('🚀 PRE-CALL fetchSongDetails');
+                
+                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                
+                console.log('✅ POST-CALL fetchSongDetails');
+            }
+        } else { 
+            resetUI(); 
         }
+    } catch (error) { 
+        logErrorForAnalysis('SomaFM API error', { 
+            error: error.message, 
+            stationId: currentStation.id, 
+            timestamp: new Date().toISOString() 
+        });
+    }
     }
     
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
@@ -739,35 +744,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function fetchSongDetails(artist, title, album) {
-        if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { resetCountdown(); return; }
-        const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-        const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-        const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
-        resetCountdown();
-        try {
-            const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify'; 
-            const response = await fetch(`${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`);
-            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-            const data = await response.json();
-            if (data && data.imageUrl) {
-                displayAlbumCoverFromUrl(data.imageUrl);
-                updateAlbumDetailsWithSpotifyData(data);
-                
-                if (data.duration) { trackDuration = data.duration; trackStartTime = Date.now(); startCountdown(); }
-                else { await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); }
-                return;
-            }
-        } catch (error) {
-            logErrorForAnalysis('Spotify API error', { 
-                error: error.message, 
-                artist: sanitizedArtist, 
-                title: sanitizedTitle, 
-                timestamp: new Date().toISOString() 
-            });
-        }
-        await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+    console.log('🎯 ENTRADA fetchSongDetails:', { artist, title, album });
+    
+    if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { 
+        console.log('⚠️ Datos inválidos, saliendo');
+        return; 
     }
-
+    
+    const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+    const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+    const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
+    
+    console.log('🔎 Datos sanitizados:', { sanitizedArtist, sanitizedTitle, currentTrackStartTime: trackStartTime });
+    
+    try {
+        const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify'; 
+        const fullUrl = `${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`;
+        console.log('🌐 Llamando a Spotify:', fullUrl);
+        
+        const response = await fetch(fullUrl);
+        console.log('📥 Respuesta HTTP:', response.status);
+        
+        if (!response.ok) { 
+            throw new Error(`HTTP error! status: ${response.status}`); 
+        }
+        
+        const data = await response.json();
+        console.log('📡 Datos de Spotify:', { hasImage: !!data?.imageUrl, hasDuration: !!data?.duration, duration: data?.duration });
+        
+        if (data && data.imageUrl) {
+            displayAlbumCoverFromUrl(data.imageUrl);
+            updateAlbumDetailsWithSpotifyData(data);
+            
+            if (data.duration) { 
+                trackDuration = data.duration;
+                
+                // CRÍTICO: Solo asignar Date.now() si trackStartTime no existe
+                if (!trackStartTime || trackStartTime === 0) {
+                    trackStartTime = Date.now();
+                    console.log('⚠️ trackStartTime vacío, usando Date.now():', trackStartTime);
+                } else {
+                    console.log('✅ Respetando trackStartTime de la API:', trackStartTime);
+                }
+                
+                console.log('🎵 Iniciando countdown:', { trackDuration, trackStartTime, elapsed: (Date.now() - trackStartTime) / 1000 });
+                startCountdown(); 
+            } else { 
+                console.log('⚠️ Sin duración de Spotify, probando MusicBrainz');
+                await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); 
+            }
+            return;
+        } else {
+            console.log('⚠️ Sin imagen de Spotify, probando MusicBrainz');
+        }
+    } catch (error) {
+        console.error('❌ Error en Spotify:', error);
+        logErrorForAnalysis('Spotify API error', { 
+            error: error.message, 
+            artist: sanitizedArtist, 
+            title: sanitizedTitle, 
+            timestamp: new Date().toISOString() 
+        });
+    }
+    
+    console.log('🔄 Fallback a MusicBrainz');
+    await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+    }
+    
     async function getMusicBrainzDuration(artist, title) {
         if (!canMakeApiCall('musicBrainz')) { return; }
         try {
