@@ -65,6 +65,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // NUEVO: Variable para requestAnimationFrame del contador
     let animationFrameId = null;
+    
+    // NUEVO: Variables para mejorar la detección de nuevas canciones en SomaFM
+    let lastSongCheckTime = 0;
+    let rapidCheckInterval = null;
+    let songTransitionDetected = false;
 
     audioPlayer.volume = 0.5;
 
@@ -645,55 +650,96 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
     }
 
+    // MEJORADO: Mejor detección de nuevas canciones para SomaFM
     async function updateSomaFmInfo(bypassRateLimit = false) {
-    if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
-    
-    try {
-        const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
         
-        const data = await response.json();
-        
-        if (data.songs && data.songs.length > 0) {
-            const currentSong = data.songs[0];
-            const newTrackInfo = { 
-                title: currentSong.title || 'Título desconocido', 
-                artist: currentSong.artist || 'Artista desconocido', 
-                album: currentSong.album || '', 
-                date: currentSong.date || null 
-            };
+        try {
+            const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
-            // Usar timestamp de la API
-            const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+            const data = await response.json();
             
-            const isNewTrack = !currentTrackInfo || 
-                              currentTrackInfo.title !== newTrackInfo.title || 
-                              currentTrackInfo.artist !== newTrackInfo.artist;
-            
-            if (isNewTrack) {
-                // NO llamar resetCountdown() aquí
-                resetAlbumDetails();
-                currentTrackInfo = newTrackInfo;
-                updateUIWithTrackInfo(newTrackInfo);
-                resetAlbumCover();
+            if (data.songs && data.songs.length > 0) {
+                const currentSong = data.songs[0];
+                const newTrackInfo = { 
+                    title: currentSong.title || 'Título desconocido', 
+                    artist: currentSong.artist || 'Artista desconocido', 
+                    album: currentSong.album || '', 
+                    date: currentSong.date || null 
+                };
                 
-                // Asignar trackStartTime ANTES de fetchSongDetails
-                trackStartTime = apiStartTime;
-                trackDuration = 0;
+                // Usar timestamp de la API
+                const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
                 
-                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                const isNewTrack = !currentTrackInfo || 
+                                  currentTrackInfo.title !== newTrackInfo.title || 
+                                  currentTrackInfo.artist !== newTrackInfo.artist;
+                
+                if (isNewTrack) {
+                    // NUEVO: Limpiar intervalos de verificación rápida si existen
+                    if (rapidCheckInterval) {
+                        clearInterval(rapidCheckInterval);
+                        rapidCheckInterval = null;
+                    }
+                    
+                    resetAlbumDetails();
+                    currentTrackInfo = newTrackInfo;
+                    updateUIWithTrackInfo(newTrackInfo);
+                    resetAlbumCover();
+                    
+                    // Asignar trackStartTime ANTES de fetchSongDetails
+                    trackStartTime = apiStartTime;
+                    trackDuration = 0;
+                    
+                    await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                    
+                    // NUEVO: Iniciar verificación rápida para detectar transiciones de canciones
+                    startRapidSongCheck();
+                }
+            } else { 
+                resetUI(); 
             }
-        } else { 
-            resetUI(); 
+        } catch (error) { 
+            logErrorForAnalysis('SomaFM API error', { 
+                error: error.message, 
+                stationId: currentStation.id, 
+                timestamp: new Date().toISOString() 
+            });
         }
-    } catch (error) { 
-        logErrorForAnalysis('SomaFM API error', { 
-            error: error.message, 
-            stationId: currentStation.id, 
-            timestamp: new Date().toISOString() 
-        });
     }
-   }
+    
+    // NUEVO: Función para verificar rápidamente nuevas canciones en SomaFM
+    function startRapidSongCheck() {
+        if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+        
+        // Solo para estaciones SomaFM
+        if (!currentStation || currentStation.service !== 'somafm') return;
+        
+        // Verificar cada 2 segundos durante los primeros 30 segundos de una nueva canción
+        let checkCount = 0;
+        rapidCheckInterval = setInterval(() => {
+            checkCount++;
+            
+            // Después de 15 verificaciones (30 segundos), reducir la frecuencia
+            if (checkCount >= 15) {
+                clearInterval(rapidCheckInterval);
+                rapidCheckInterval = null;
+                return;
+            }
+            
+            // Si ya se detectó una transición, detener la verificación
+            if (songTransitionDetected) {
+                clearInterval(rapidCheckInterval);
+                rapidCheckInterval = null;
+                songTransitionDetected = false;
+                return;
+            }
+            
+            // Verificar si hay una nueva canción
+            updateSongInfo(true);
+        }, 2000);
+    }
     
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
         if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
@@ -732,97 +778,97 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function fetchSongDetails(artist, title, album) {
-    if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { 
-        return; 
-    }
-    
-    const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-    const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-    const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
-    
-    try {
-        const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify'; 
-        const fullUrl = `${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`;
-        
-        const response = await fetch(fullUrl);
-        
-        if (!response.ok) { 
-            throw new Error(`HTTP error! status: ${response.status}`); 
+        if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') { 
+            return; 
         }
         
-        const data = await response.json();
+        const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+        const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+        const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
         
-        if (data && data.imageUrl) {
-            displayAlbumCoverFromUrl(data.imageUrl);
-            updateAlbumDetailsWithSpotifyData(data);
+        try {
+            const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify'; 
+            const fullUrl = `${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`;
             
-            if (data.duration) { 
-                trackDuration = data.duration;
-                
-                // CRÍTICO: Solo asignar Date.now() si trackStartTime no existe
-                if (!trackStartTime || trackStartTime === 0) {
-                    trackStartTime = Date.now();
-                }
-                
-                startCountdown(); 
-            } else { 
-                await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); 
+            const response = await fetch(fullUrl);
+            
+            if (!response.ok) { 
+                throw new Error(`HTTP error! status: ${response.status}`); 
             }
-            return;
+            
+            const data = await response.json();
+            
+            if (data && data.imageUrl) {
+                displayAlbumCoverFromUrl(data.imageUrl);
+                updateAlbumDetailsWithSpotifyData(data);
+                
+                if (data.duration) { 
+                    trackDuration = data.duration;
+                    
+                    // CRÍTICO: Solo asignar Date.now() si trackStartTime no existe
+                    if (!trackStartTime || trackStartTime === 0) {
+                        trackStartTime = Date.now();
+                    }
+                    
+                    startCountdown(); 
+                } else { 
+                    await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle); 
+                }
+                return;
+            }
+        } catch (error) {
+            logErrorForAnalysis('Spotify API error', { 
+                error: error.message, 
+                artist: sanitizedArtist, 
+                title: sanitizedTitle, 
+                timestamp: new Date().toISOString() 
+            });
         }
-    } catch (error) {
-        logErrorForAnalysis('Spotify API error', { 
-            error: error.message, 
-            artist: sanitizedArtist, 
-            title: sanitizedTitle, 
-            timestamp: new Date().toISOString() 
-        });
-    }
-    
-    await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+        
+        await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
     }
     
     async function getMusicBrainzDuration(artist, title) {
-    if (!canMakeApiCall('musicBrainz')) { 
-        return; 
-    }
-    
-    try {
-        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-        const response = await fetch(searchUrl, { 
-            headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } 
-        });
-        
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
-        
-        if (data.recordings && data.recordings.length > 0) {
-            const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
-            
-            if (bestRecording && bestRecording.length) {
-                trackDuration = Math.floor(bestRecording.length / 1000);
-                
-                // CRÍTICO: Solo asignar Date.now() si trackStartTime no existe
-                if (!trackStartTime || trackStartTime === 0) {
-                    trackStartTime = Date.now();
-                }
-                
-                startCountdown();
-                return;
-            }
+        if (!canMakeApiCall('musicBrainz')) { 
+            return; 
         }
         
-        resetCountdown();
-    } catch (error) { 
-        resetCountdown();
-        logErrorForAnalysis('MusicBrainz API error', { 
-            error: error.message, 
-            artist, 
-            title, 
-            timestamp: new Date().toISOString() 
-    });
-    }
+        try {
+            const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+            const response = await fetch(searchUrl, { 
+                headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } 
+            });
+            
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const data = await response.json();
+            
+            if (data.recordings && data.recordings.length > 0) {
+                const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
+                
+                if (bestRecording && bestRecording.length) {
+                    trackDuration = Math.floor(bestRecording.length / 1000);
+                    
+                    // CRÍTICO: Solo asignar Date.now() si trackStartTime no existe
+                    if (!trackStartTime || trackStartTime === 0) {
+                        trackStartTime = Date.now();
+                    }
+                    
+                    startCountdown();
+                    return;
+                }
+            }
+            
+            resetCountdown();
+        } catch (error) { 
+            resetCountdown();
+            logErrorForAnalysis('MusicBrainz API error', { 
+                error: error.message, 
+                artist, 
+                title, 
+                timestamp: new Date().toISOString() 
+        });
+        }
     }
     
     function displayAlbumCoverFromUrl(imageUrl) {
@@ -835,59 +881,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateAlbumDetailsWithSpotifyData(data) {
-    const releaseDateElement = document.getElementById('releaseDate');
-    releaseDateElement.innerHTML = '';
-    
-    if (data.release_date) {
-        const year = data.release_date.substring(0, 4);
-        let displayText = year;
+        const releaseDateElement = document.getElementById('releaseDate');
+        releaseDateElement.innerHTML = '';
         
-        if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
-            displayText += ` (${data.albumTypeDescription})`;
+        if (data.release_date) {
+            const year = data.release_date.substring(0, 4);
+            let displayText = year;
+            
+            if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
+                displayText += ` (${data.albumTypeDescription})`;
+            }
+            
+            releaseDateElement.textContent = displayText;
+        } else { 
+            releaseDateElement.textContent = '----'; 
         }
         
-        releaseDateElement.textContent = displayText;
-    } else { 
-        releaseDateElement.textContent = '----'; 
-    }
-    
-    if (data.label && data.label.trim() !== '') { 
-        recordLabel.textContent = data.label; 
-    } else { 
-        recordLabel.textContent = '----'; 
-    }
-    
-    if (data.totalTracks) { 
-        albumTrackCount.textContent = data.totalTracks; 
-    } else { 
-        albumTrackCount.textContent = '--'; 
-    }
-    
-    if (data.totalAlbumDuration) {
-        let durationInSeconds = data.totalAlbumDuration;
-        if (durationInSeconds > 10000) {
-            durationInSeconds = Math.floor(durationInSeconds / 1000);
+        if (data.label && data.label.trim() !== '') { 
+            recordLabel.textContent = data.label; 
+        } else { 
+            recordLabel.textContent = '----'; 
         }
         
-        const totalMinutes = Math.floor(durationInSeconds / 60);
-        const totalSeconds = Math.floor(durationInSeconds % 60);
-        albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-    } else { 
-        albumTotalDuration.textContent = '--:--'; 
-    }
-    
-    if (data.genres && data.genres.length > 0) {
-        const displayGenres = data.genres.slice(0, 2).join(', ');
-        trackGenre.textContent = displayGenres;
-    } else { 
-        trackGenre.textContent = '--'; 
-    }
-    
-    if (data.trackNumber && data.totalTracks) {
-        trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
-    } else { 
-        trackPosition.textContent = '--/--'; 
-    }
+        if (data.totalTracks) { 
+            albumTrackCount.textContent = data.totalTracks; 
+        } else { 
+            albumTrackCount.textContent = '--'; 
+        }
+        
+        if (data.totalAlbumDuration) {
+            let durationInSeconds = data.totalAlbumDuration;
+            if (durationInSeconds > 10000) {
+                durationInSeconds = Math.floor(durationInSeconds / 1000);
+            }
+            
+            const totalMinutes = Math.floor(durationInSeconds / 60);
+            const totalSeconds = Math.floor(durationInSeconds % 60);
+            albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+        } else { 
+            albumTotalDuration.textContent = '--:--'; 
+        }
+        
+        if (data.genres && data.genres.length > 0) {
+            const displayGenres = data.genres.slice(0, 2).join(', ');
+            trackGenre.textContent = displayGenres;
+        } else { 
+            trackGenre.textContent = '--'; 
+        }
+        
+        if (data.trackNumber && data.totalTracks) {
+            trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
+        } else { 
+            trackPosition.textContent = '--/--'; 
+        }
     }
     
     function updateUIWithTrackInfo(trackInfo) {
@@ -952,42 +998,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function resetAlbumDetails() {
-    
-    // Solo resetear si NO hay tooltip (para preservar tooltips creados por Spotify)
-    if (!document.querySelector('.release-date-tooltip')) {
-        releaseDate.textContent = '----';
-    }
-    
-    recordLabel.textContent = '----';
-    albumTrackCount.textContent = '--';
-    albumTotalDuration.textContent = '--:--';
-    trackGenre.textContent = '--';
-    trackPosition.textContent = '--/--';
-    }
-
-    // NUEVO: Función para verificación mejorada durante los últimos segundos de una canción
-    function startEnhancedSongDetection() {
-        // Verificar más frecuentemente cuando la canción está por terminar
-        const enhancedCheckInterval = setInterval(() => {
-            if (!isPlaying || !currentStation || currentStation.service !== 'somafm') {
-                clearInterval(enhancedCheckInterval);
-                return;
-            }
-            
-            const now = Date.now();
-            const elapsed = (now - trackStartTime) / 1000;
-            const remaining = Math.max(0, trackDuration - elapsed);
-            
-            // Durante los últimos 10 segundos, verificar cada 2 segundos
-            if (remaining <= 10 && remaining > 0) {
-                updateSongInfo(true);
-            }
-        }, 2000);
+        // Solo resetear si NO hay tooltip (para preservar tooltips creados por Spotify)
+        if (!document.querySelector('.release-date-tooltip')) {
+            releaseDate.textContent = '----';
+        }
         
-        return enhancedCheckInterval;
+        recordLabel.textContent = '----';
+        albumTrackCount.textContent = '--';
+        albumTotalDuration.textContent = '--:--';
+        trackGenre.textContent = '--';
+        trackPosition.textContent = '--/--';
     }
 
-    // MODIFICADO: Nueva versión optimizada con requestAnimationFrame y detección mejorada
+    // MEJORADO: Nueva versión optimizada con requestAnimationFrame y detección mejorada
     function startCountdown() {
         // Limpiar intervalos existentes
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
@@ -1003,6 +1026,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
 
         let enhancedCheckInterval = null;
+        let lastCheckTime = 0;
 
         function updateTimer() {
             const now = Date.now();
@@ -1026,6 +1050,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     enhancedCheckInterval = startEnhancedSongDetection();
                 }
                 
+                // NUEVO: Para SomaFM, verificar más frecuentemente durante los últimos 5 segundos
+                if (currentStation && currentStation.service === 'somafm' && remaining <= 5) {
+                    // Verificar cada segundo, pero limitar las llamadas a la API
+                    if (now - lastCheckTime >= 1000) {
+                        lastCheckTime = now;
+                        updateSongInfo(true);
+                    }
+                }
+                
                 animationFrameId = requestAnimationFrame(updateTimer);
             } else {
                 // Limpiar el intervalo de verificación mejorada si existe
@@ -1041,8 +1074,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentStation && currentStation.service === 'nrk') {
                     stopBtn.click();
                 } else {
-                    // CAMBIO: Llamar con bypassRateLimit=true para actualización inmediata
-                    updateSongInfo(true);
+                    // MEJORADO: Para SomaFM, iniciar verificación inmediata y continua
+                    if (currentStation && currentStation.service === 'somafm') {
+                        songTransitionDetected = true;
+                        updateSongInfo(true);
+                        
+                        // Verificar cada 2 segundos durante 10 segundos para asegurar la detección
+                        let checkCount = 0;
+                        const transitionInterval = setInterval(() => {
+                            checkCount++;
+                            updateSongInfo(true);
+                            
+                            if (checkCount >= 5 || currentTrackInfo) {
+                                clearInterval(transitionInterval);
+                            }
+                        }, 2000);
+                    } else {
+                        updateSongInfo(true);
+                    }
                     
                     // Reiniciar el intervalo regular de actualización
                     if (updateInterval) clearInterval(updateInterval);
@@ -1055,10 +1104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTimer();
     }
 
-    // MODIFICADO: Ahora también limpia el animationFrameId
+    // MODIFICADO: Ahora también limpia el animationFrameId y los intervalos de verificación rápida
     function resetCountdown() {
         if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
         if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+        if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
         
         trackDuration = 0; 
         trackStartTime = 0;
@@ -1066,6 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         totalDuration.textContent = '(--:--)';
         trackPosition.textContent = '--/--';
         countdownTimer.classList.remove('ending');
+        songTransitionDetected = false;
     }
 
     function startSongInfoUpdates() {
@@ -1076,6 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function stopSongInfoUpdates() {
         if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
+        if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
         resetCountdown(); resetAlbumCover(); resetAlbumDetails();
         currentTrackInfo = null;
         songTitle.textContent = 'Seleccionar estación';
