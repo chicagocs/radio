@@ -645,7 +645,6 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
     }
 
-    // MODIFICADO: Actualizar updateSomaFmInfo para aceptar el parámetro
     async function updateSomaFmInfo(bypassRateLimit = false) {
         if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
         try {
@@ -663,15 +662,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isNewTrack = !currentTrackInfo || 
                                   currentTrackInfo.title !== newTrackInfo.title || 
                                   currentTrackInfo.artist !== newTrackInfo.artist;
+                
+                // CORREGIDO: Siempre usar el timestamp de la API si está disponible
+                const apiStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : null;
+                
                 if (isNewTrack) {
                     resetCountdown(); 
                     resetAlbumDetails(); 
                     currentTrackInfo = newTrackInfo;
                     updateUIWithTrackInfo(newTrackInfo); 
                     resetAlbumCover();
-                    trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+                    trackStartTime = apiStartTime || Date.now();
                     
                     await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+                } else if (apiStartTime && trackStartTime === 0) {
+                    // NUEVO: Si es la misma canción pero trackStartTime no está inicializado
+                    // (ej: después de F5), usar el timestamp de la API
+                    trackStartTime = apiStartTime;
+                    
+                    // Si ya tenemos duración pero no había countdown, iniciarlo
+                    if (trackDuration > 0) {
+                        startCountdown();
+                    }
                 }
             } else { resetUI(); }
         } catch (error) { 
@@ -682,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-
+    
     // MODIFICADO: Actualizar updateRadioParadiseInfo para consistencia
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
         if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
