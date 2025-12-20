@@ -1110,7 +1110,7 @@ footer strong {
 /* Estilos específicos según el tipo de promoción */
 .station-promotion-link-support {
     color: #FF9800; /* Naranja */
-    font-weight: bold;
+    font-weight: normal;
 }
 
 .station-promotion-link-event {
@@ -1123,7 +1123,7 @@ footer strong {
 
 .station-promotion-link-giveaway {
     color: #FF9800; /* Naranja */
-    font-weight: bold;
+    font-weight: normal;
     animation: pulse-giveaway 2s infinite;
 }
 
