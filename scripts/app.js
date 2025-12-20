@@ -1453,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: 'RadioMax',
-            artist: 'Una experiencia',
+            artist: 'Una experiencia inmersiva',
             album: 'inmersiva',
             artwork: [
                 { src: '/images/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
