@@ -29,19 +29,7 @@
         "description": "Synthpop británico de los 80s y un poco de New Wave",
         "url": "https://ice5.somafm.com/u80s-128-mp3",
         "service": "somafm",
-        "tags": ["80s", "synthpop", "new wave", "alternativo", "británico", "retro"],
-        "promotions": [
-             {
-               "text": "👕 ¡Nuevos productos en CHICAGO!",
-               "url": "https://tienda.chicagocomputers.com.ar",
-               "type": "merch"
-             },
-             {
-               "text": "🎟️ Consultas para CHICAGO",
-               "url": "https://api.whatsapp.com/send/?text=Hola, tengo una consulta&type=custom_url&app_absent=0",
-               "type": "giveaway"
-             }
-         ]
+        "tags": ["80s", "synthpop", "new wave", "alternativo", "británico", "retro"]
     },
     {
         "id": "groovesalad",
