@@ -116,12 +116,11 @@ body {
     box-shadow: var(--shadow-primary);
 }
 
-/* MODIFICADO: Usar Flexbox para alinear el nombre y el nuevo botón */
-.station-info {
+/* NUEVO: Contenedor para el nombre y el filtro de favoritos */
+.player-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-align: center;
     margin-bottom: 20px;
 }
 
@@ -129,7 +128,31 @@ body {
     font-size: 24px;
     font-weight: bold;
     color: var(--primary-color);
-    /* El margen inferior ya no es necesario con Flexbox */
+    flex-grow: 1;
+    text-align: center;
+}
+
+/* NUEVO: Estilo para la estrella de filtro en la parte superior */
+.filter-toggle-star {
+    background: none;
+    border: none;
+    font-size: 1.8em; /* Tamaño de la estrella */
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color var(--transition-speed) ease, transform 0.2s ease;
+    flex-shrink: 0; /* Evita que la estrella se encoja */
+}
+
+.filter-toggle-star:hover {
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.filter-toggle-star.active {
+    /* Estilo cuando el filtro de favoritos está activo */
+    color: var(--primary-color);
 }
 
 /* ==========================================================================
@@ -238,11 +261,15 @@ body {
     font-size: 14px;
     margin-bottom: 2px;
     color: #ffffff;
+    display: block; /* Asegura que ocupe su propia línea */
 }
 
+/* MODIFICADO: Añadido margen superior para crear el salto de línea */
 .custom-option-description {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.9);
+    margin-top: 6px; /* Salto de línea respecto al nombre */
+    display: block; /* Asegura que ocupe su propia línea */
     margin-bottom: 5px;
 }
 
@@ -1148,6 +1175,11 @@ footer strong {
         font-size: 0.6em;
         padding: 3px 6px;
     }
+    
+    /* Ajuste para la estrella de filtro en móviles */
+    .filter-toggle-star {
+        font-size: 1.5em;
+    }
 }
 
 @media (max-width: 400px) {
@@ -1169,6 +1201,11 @@ footer strong {
    
     .song-title, .song-artist, .song-album {
         font-size: 14px;
+    }
+    
+    /* Ajuste para la estrella de filtro en pantallas muy pequeñas */
+    .filter-toggle-star {
+        font-size: 1.3em;
     }
 }
 
