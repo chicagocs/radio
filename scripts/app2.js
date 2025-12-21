@@ -287,16 +287,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // MODIFICADO: Función para actualizar la UI del botón de favoritos
     function updateFavoriteButtonUI(stationId, isFavorite) {
         const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
         if (btn) {
+            // El texto es siempre "Favoritos", solo cambia el estilo
+            btn.innerHTML = 'Favoritos';
             if (isFavorite) {
-                btn.innerHTML = '★'; // Estrella rellena
                 btn.classList.add('is-favorite');
                 const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
                 btn.setAttribute('aria-label', `Quitar ${stationName} de favoritos`);
             } else {
-                btn.innerHTML = '☆'; // Estrella vacía
                 btn.classList.remove('is-favorite');
                 const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
                 btn.setAttribute('aria-label', `Añadir ${stationName} a favoritos`);
@@ -468,7 +469,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // ======== AÑADIR BOTÓN DE FAVORITOS ========
             const favoriteBtn = document.createElement('button');
             favoriteBtn.className = 'favorite-btn';
-            favoriteBtn.innerHTML = '☆'; // Estrella vacía por defecto
+            // MODIFICADO: Texto "Favoritos" en lugar de icono de estrella
+            favoriteBtn.innerHTML = 'Favoritos';
             favoriteBtn.dataset.stationId = option.value;
             favoriteBtn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
 
@@ -562,7 +564,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // MODIFICADO: Método para actualizar el texto del selector
         updateTriggerText() {
+            const selectedValue = this.originalSelect.value;
+            
+            // NUEVO: Manejar las nuevas opciones de vista
+            if (selectedValue === 'view_all') {
+                this.customSelectTrigger.textContent = 'Todas las estaciones';
+                return;
+            }
+            if (selectedValue === 'view_favorites') {
+                this.customSelectTrigger.textContent = 'Estaciones favoritas';
+                return;
+            }
+
             const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
             const station = stationsById[selectedOption.value];
             let text = selectedOption.textContent;
@@ -704,6 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     }
     
+    // MODIFICADO: Función para poblar el selector de estaciones
     function populateStationSelect(groupedStations) {
         while (stationSelect.firstChild) stationSelect.removeChild(stationSelect.firstChild);
         const defaultOption = document.createElement('option');
@@ -712,6 +728,18 @@ document.addEventListener('DOMContentLoaded', () => {
         defaultOption.disabled = true; 
         defaultOption.selected = true;
         stationSelect.appendChild(defaultOption);
+        
+        // NUEVO: Añadir opción para ver todas las estaciones
+        const allStationsOption = document.createElement('option');
+        allStationsOption.value = "view_all";
+        allStationsOption.textContent = "Todas las estaciones";
+        stationSelect.appendChild(allStationsOption);
+
+        // NUEVO: Añadir opción para ver solo las favoritas
+        const favStationsOption = document.createElement('option');
+        favStationsOption.value = "view_favorites";
+        favStationsOption.textContent = "Estaciones favoritas";
+        stationSelect.appendChild(favStationsOption);
         
         stationsById = {};
         for (const serviceName in groupedStations) {
@@ -729,25 +757,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadStations();
     
+    // MODIFICADO: Event listener para el cambio en el selector de estaciones
     stationSelect.addEventListener('change', function() {
-    if (this.value) {
-        localStorage.setItem('lastSelectedStation', this.value);
-        const selectedStationId = this.value;
-        const station = stationsById[selectedStationId];
-               
-        if (station) {
-            currentStation = station;
-            let displayName = station.name;
-            if (station.service === 'radioparadise') {
-                displayName = station.name.split(' - ')[1] || station.name;
-            }
-            stationName.textContent = displayName;
-            showWelcomeScreen();
-            playStation();
-        } else {
-            logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
+        // Manejar las nuevas opciones de filtrado
+        if (this.value === 'view_all') {
+            isFilteringFavorites = false;
+            updateFavoritesToggleButtonUI();
+            filterStationsList();
+            return; // Detener la ejecución aquí
         }
-    }
+
+        if (this.value === 'view_favorites') {
+            isFilteringFavorites = true;
+            updateFavoritesToggleButtonUI();
+            filterStationsList();
+            return; // Detener la ejecución aquí
+        }
+
+        // Lógica original para seleccionar una estación
+        if (this.value) {
+            localStorage.setItem('lastSelectedStation', this.value);
+            const selectedStationId = this.value;
+            const station = stationsById[selectedStationId];
+                   
+            if (station) {
+                currentStation = station;
+                let displayName = station.name;
+                if (station.service === 'radioparadise') {
+                    displayName = station.name.split(' - ')[1] || station.name;
+                }
+                stationName.textContent = displayName;
+                showWelcomeScreen();
+                playStation();
+            } else {
+                logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
+            }
+        }
     });
 
     playBtn.addEventListener('click', function() {
