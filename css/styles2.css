@@ -262,7 +262,7 @@ body {
 }
 
 /* ==========================================================================
-   ESTILOS PARA FAVORITOS EN EL SELECTOR
+   ESTILOS PARA FAVORITOS EN EL SELECTOR (MODIFICADO)
    ========================================================================== */
 .station-info {
     display: flex;
@@ -275,27 +275,34 @@ body {
 .station-details {
     flex-grow: 1;
     padding-right: 10px;
+    text-align: center; /* Centra el texto del nombre de la estación */
 }
 
+/* MODIFICADO: Botón de favoritos más pequeño con texto en lugar de icono */
 .favorite-btn {
-    background: none;
-    border: none;
-    font-size: 1.5em;
+    font-size: 0.7em;       /* Reduce el tamaño de la fuente (aproximadamente un 30% del original) */
+    padding: 4px 8px;       /* Padding reducido para hacerlo más compacto */
+    border: 1px solid #ccc; /* Borde por defecto (estado no favorito) */
+    background-color: transparent;
     color: #888;
+    border-radius: 4px;
     cursor: pointer;
-    padding: 5px;
-    line-height: 1;
-    transition: color 0.2s ease, transform 0.2s ease;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Evita que el botón se encoja si el contenedor es pequeño */
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap; /* Evita que el texto se divida */
 }
 
+/* Estilo para el estado "hover" del botón */
 .favorite-btn:hover {
-    color: #FFD700;
-    transform: scale(1.1);
+    border-color: #007bff;
+    color: #007bff;
 }
 
+/* Estilo para el estado "favorito" (fondo pleno) */
 .favorite-btn.is-favorite {
-    color: #FFD700;
+    background-color: #007bff; /* Color de fondo cuando es favorito */
+    border-color: #007bff;     /* El borde coincide con el fondo */
+    color: white;             /* Texto blanco para contraste */
 }
 
 /* ==========================================================================
@@ -1134,6 +1141,12 @@ footer strong {
     .btn-favorites {
         padding: 3px 8px;
         font-size: 13px;
+    }
+    
+    /* Ajuste para el botón de favoritos en el selector */
+    .favorite-btn {
+        font-size: 0.6em;
+        padding: 3px 6px;
     }
 }
 
