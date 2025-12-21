@@ -579,79 +579,131 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
        // LÓGICA DE LA APLICACIÓN
        // ==========================================================================
+    // Variable para controlar los intentos de carga
+    let loadAttempts = 0;
+    const MAX_LOAD_ATTEMPTS = 3;
+
     async function loadStations() {
-        try {
-            const response = await fetch('stations.json');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const allStations = await response.json();
-            const groupedStations = allStations.reduce((acc, station) => {
-                const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
-                if (!acc[serviceName]) acc[serviceName] = [];
-                acc[serviceName].push(station);
-                return acc;
-            }, {});
-            for (const serviceName in groupedStations) {
-                groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
-            }
-            loadingStations.style.display = 'none';
-            stationSelect.style.display = 'block';
-            stationName.textContent = 'RadioMax';
-            populateStationSelect(groupedStations);
-            
-            const customSelect = new CustomSelect(stationSelect);
-            
-            // Cargar el estado de los favoritos después de crear el selector
-            const favoriteIds = getFavorites();
-            favoriteIds.forEach(id => {
-                updateFavoriteButtonUI(id, true);
-            });
-            
-            // NUEVO: Establecer el estado inicial del botón de filtro
-            updateFavoritesToggleButtonUI();
-            
-            const lastSelectedStation = localStorage.getItem('lastSelectedStation');
-            if (lastSelectedStation && stationsById[lastSelectedStation]) {
-                stationSelect.value = lastSelectedStation;
-                customSelect.updateTriggerText();
-                customSelect.updateSelectedOption();
-                
-                setTimeout(() => {
-                    const selectedOption = customSelect.customOptions.querySelector('.custom-option.selected');
-                    if (selectedOption) {
-                        selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    }
-                }, 100);
-                
-                const station = stationsById[lastSelectedStation];
-                if (station) {
-                    currentStation = station;
-                    let displayName = station.name;
-                    if (station.service === 'radioparadise') {
-                        displayName = station.name.split(' - ')[1] || station.name;
-                    }
-                    stationName.textContent = displayName;
-                }
-            }
-            
-            if (currentStation) {
-                audioPlayer.src = currentStation.url;
-                songTitle.textContent = 'A sonar';
-                songArtist.textContent = '';
-                songAlbum.textContent = '';
-                updateShareButtonVisibility();
-                updateStatus(false);
-            }
-            
-            showWelcomeScreen();
-            
-            return groupedStations;
-        } catch (error) {
-            loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
-            logErrorForAnalysis('Station loading error', { error: error.message, timestamp: new Date().toISOString() });
+    try {
+        // Incrementar contador de intentos
+        loadAttempts++;
+        
+        // Verificar si hemos superado el número máximo de intentos
+        if (loadAttempts > MAX_LOAD_ATTEMPTS) {
+            loadingStations.textContent = 'Error: No se pudieron cargar las estaciones después de varios intentos. Por favor, recarga la página.';
+            logErrorForAnalysis('Max load attempts exceeded', { attempts: loadAttempts, timestamp: new Date().toISOString() });
             return [];
         }
+        
+        const response = await fetch('stations.json');
+        
+        // Verificar si la respuesta es exitosa
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Verificar si la respuesta contiene datos válidos
+        const allStations = await response.json();
+        
+        if (!allStations || !Array.isArray(allStations) || allStations.length === 0) {
+            throw new Error('Invalid station data: empty or not an array');
+        }
+        
+        // Resto del código original para procesar las estaciones...
+        const groupedStations = allStations.reduce((acc, station) => {
+            const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
+            if (!acc[serviceName]) acc[serviceName] = [];
+            acc[serviceName].push(station);
+            return acc;
+        }, {});
+        
+        for (const serviceName in groupedStations) {
+            groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
+        }
+        
+        loadingStations.style.display = 'none';
+        stationSelect.style.display = 'block';
+        stationName.textContent = 'RadioMax';
+        populateStationSelect(groupedStations);
+        
+        const customSelect = new CustomSelect(stationSelect);
+        
+        // Cargar el estado de los favoritos después de crear el selector
+        const favoriteIds = getFavorites();
+        favoriteIds.forEach(id => {
+            updateFavoriteButtonUI(id, true);
+        });
+        
+        // Establecer el estado inicial del botón de filtro
+        updateFavoritesToggleButtonUI();
+        
+        const lastSelectedStation = localStorage.getItem('lastSelectedStation');
+        if (lastSelectedStation && stationsById[lastSelectedStation]) {
+            stationSelect.value = lastSelectedStation;
+            customSelect.updateTriggerText();
+            customSelect.updateSelectedOption();
+            
+            setTimeout(() => {
+                const selectedOption = customSelect.customOptions.querySelector('.custom-option.selected');
+                if (selectedOption) {
+                    selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 100);
+            
+            const station = stationsById[lastSelectedStation];
+            if (station) {
+                currentStation = station;
+                let displayName = station.name;
+                if (station.service === 'radioparadise') {
+                    displayName = station.name.split(' - ')[1] || station.name;
+                }
+                stationName.textContent = displayName;
+            }
+        }
+        
+        if (currentStation) {
+            audioPlayer.src = currentStation.url;
+            songTitle.textContent = 'A sonar';
+            songArtist.textContent = '';
+            songAlbum.textContent = '';
+            updateShareButtonVisibility();
+            updateStatus(false);
+        }
+        
+        showWelcomeScreen();
+        
+        return groupedStations;
+    } catch (error) {
+        console.error('Error loading stations:', error);
+        
+        // Mostrar mensaje de error específico
+        loadingStations.textContent = `Error al cargar las estaciones: ${error.message}. Intento ${loadAttempts} de ${MAX_LOAD_ATTEMPTS}.`;
+        
+        // Intentar cargar de nuevo si no hemos superado el máximo de intentos
+        if (loadAttempts <= MAX_LOAD_ATTEMPTS) {
+            setTimeout(() => {
+                loadStations();
+            }, 2000); // Esperar 2 segundos antes de reintentar
+        } else {
+            loadingStations.textContent = 'Error: No se pudieron cargar las estaciones después de varios intentos. Por favor, recarga la página.';
+            
+            // Añadir un botón de recarga
+            const reloadButton = document.createElement('button');
+            reloadButton.textContent = 'Recargar página';
+            reloadButton.className = 'reload-button';
+            reloadButton.addEventListener('click', () => {
+                window.location.reload();
+            });
+            
+            loadingStations.appendChild(document.createElement('br'));
+            loadingStations.appendChild(reloadButton);
+        }
+        
+        logErrorForAnalysis('Station loading error', { error: error.message, attempts: loadAttempts, timestamp: new Date().toISOString() });
+        return [];
     }
-  
+    }
+    
     function populateStationSelect(groupedStations) {
         while (stationSelect.firstChild) stationSelect.removeChild(stationSelect.firstChild);
         const defaultOption = document.createElement('option');
