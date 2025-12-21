@@ -258,14 +258,45 @@ body {
 }
 
 /* ==========================================================================
-   ESTILOS DE TAGS DE ESTACIÓN
+   NUEVOS ESTILOS PARA FAVORITOS EN EL SELECTOR
    ========================================================================== */
 .station-info {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
     padding: 8px 0;
 }
 
+.station-details {
+    flex-grow: 1;
+    padding-right: 10px;
+}
+
+.favorite-btn {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #888;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.favorite-btn:hover {
+    color: #FFD700;
+    transform: scale(1.1);
+}
+
+.favorite-btn.is-favorite {
+    color: #FFD700;
+}
+
+/* ==========================================================================
+   ESTILOS DE TAGS DE ESTACIÓN
+   ========================================================================== */
 .station-tags-container {
     display: flex;
     flex-wrap: wrap;
