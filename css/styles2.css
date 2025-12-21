@@ -1219,3 +1219,17 @@ footer strong {
     50% { transform: scale(1.03); }
     100% { transform: scale(1); }
 }
+
+.reload-button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.reload-button:hover {
+    background-color: #45a049;
+}
