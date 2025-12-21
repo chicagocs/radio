@@ -7,8 +7,8 @@
     --primary-dark: #cc5200;
     --background-dark: #000000;
     --background-medium: #0a0a0a;
-    --background-light: #0a0a0a; /* #1a1a0a; */
-    --background-lighter: #0a0a0a; /* #222222; */
+    --background-light: #0a0a0a;
+    --background-lighter: #0a0a0a;
     --text-primary: #ffffff;
     --text-secondary: #cccccc;
     --text-muted: #888888;
@@ -132,7 +132,7 @@ body {
    ESTILOS DEL SELECTOR DE ESTACIONES
    ========================================================================== */
 .station-selector {
-    margin-bottom: 30px; /* Aumentado para mejor espaciado en móviles */
+    margin-bottom: 30px;
     position: relative;
 }
 
@@ -199,13 +199,8 @@ body {
     display: block;
 }
 
-.custom-option, .custom-optgroup-label {
-    padding: 12px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
 .custom-optgroup-label {
+    padding: 12px;
     font-weight: bold;
     color: var(--primary-color);
     font-size: 13px;
@@ -214,29 +209,41 @@ body {
     cursor: default;
 }
 
+.custom-option {
+    padding: 10px 10px 0px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: transparent;
+}
+
 .custom-option:hover {
-    background-color: var(--border-color);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .custom-option.selected {
-    background-color: rgba(255, 122, 0, 0.6);
-    // border-left: 3px solid #FF7A00;
-    // border-right: 8px solid #FF7A00;
+    background-color: rgba(255, 122, 0, 0.2);
 }
 
-.custom-option.selected .custom-option-description {
-    color: rgba(255, 255, 255, 0.7);
+.custom-option.selected:hover {
+    background-color: rgba(255, 122, 0, 0.25);
 }
 
-.custom-option.selected .custom-option-name {
+.custom-option-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
     color: #ffffff;
 }
 
 .custom-option-description {
     font-size: 12px;
-    color: var(--text-muted);
-    display: block;
-    margin-top: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 5px;
+}
+
+.custom-option.selected .custom-option-description {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .loading-stations {
@@ -250,74 +257,15 @@ body {
     margin-bottom: 20px;
 }
 
-/* Estilos para los contenedores de información de la estación */
-
+/* ==========================================================================
+   ESTILOS DE TAGS DE ESTACIÓN
+   ========================================================================== */
 .station-info {
     display: flex;
     flex-direction: column;
     padding: 8px 0;
 }
 
-/* ==========================================================================
-   ESTILOS PARA EL SELECTOR DE ESTACIONES PERSONALIZADO
-   ========================================================================== */
-
-/* --- Contenedor principal de cada opción --- */
-.custom-option {
-    padding: 10px 10px 0px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: all 0.2s ease; /* Transición suave para todos los cambios */
-    background-color: transparent; /* Fondo por defecto */
-}
-
-/* --- Estado Hover de la opción --- */
-.custom-option:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* --- Estado Seleccionado de la opción --- */
-.custom-option.selected {
-    background-color: rgba(255, 122, 0, 0.2); /* Fondo naranja más oscuro y visible */
-    // border-left: 3px solid #FF7A00;
-}
-
-/* --- Estado Hover de la opción YA SELECCIONADA --- */
-.custom-option.selected:hover {
-    background-color: rgba(255, 122, 0, 0.25); /* Aún más oscuro al hacer hover */
-}
-
-
-/* ==========================================================================
-   ESTILOS PARA EL TEXTO DENTRO DE LAS OPCIONES
-   ========================================================================== */
-
-/* --- Nombre de la estación --- */
-.custom-option-name {
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 2px;
-    color: #ffffff; /* Siempre blanco para máximo contraste */
-}
-
-/* --- Descripción de la estación --- */
-.custom-option-description {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9); /* Gris claro por defecto */
-    margin-bottom: 5px;
-}
-
-/* --- Corrección: Color de la descripción cuando está seleccionada --- */
-.custom-option.selected .custom-option-description {
-    color: rgba(255, 255, 255, 0.9); /* Más brillante para contraste con el fondo naranja */
-}
-
-
-/* ==========================================================================
-   ESTILOS PARA LOS TAGS DE LA ESTACIÓN
-   ========================================================================== */
-
-/* --- Contenedor de los tags --- */
 .station-tags-container {
     display: flex;
     flex-wrap: wrap;
@@ -325,64 +273,65 @@ body {
     margin-top: 12px;
 }
 
-/* --- Estilo base de cada tag --- */
 .station-tag {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 12px;
     font-size: 11px;
     font-weight: 500;
-    background-color: rgba(255, 122, 0, 0.2); /* Naranja semitransparente */
-    color: #FF7A00; /* Texto naranja */
+    background-color: rgba(255, 122, 0, 0.2);
+    color: #FF7A00;
     transition: all 0.2s ease;
 }
 
-/* --- Tags en estado Hover de la opción --- */
 .custom-option:hover .station-tag {
     background-color: rgba(255, 122, 0, 0.3);
     transform: translateY(-1px);
 }
 
-/* --- Tags en estado Seleccionado de la opción --- */
 .custom-option.selected .station-tag {
-    background-color: rgba(255, 122, 0, 0.5); /* Fondo naranja más opaco */
-    color: #fff; /* Texto blanco para contraste */
+    background-color: rgba(255, 122, 0, 0.5);
+    color: #fff;
     box-shadow: 0 0 4px rgba(255, 122, 0, 0.3);
 }
 
-/* --- Tags en estado Hover de la opción YA SELECCIONADA --- */
 .custom-option.selected:hover .station-tag {
-    background-color: rgba(255, 122, 0, 0.6); /* Aún más opaco */
-                        }
-
-/* Ajustes para el selector personalizado */
-.custom-option {
-    padding: 8px 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    background-color: rgba(255, 122, 0, 0.6);
 }
 
-.custom-option:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+.station-tags {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    min-height: 30px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-align: center;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 8px 12px;
 }
 
-.custom-option.selected {
-    background-color: rgba(255, 122, 0, 0.1);
-    // border-left: 3px solid #FF7A00;
+.station-tags.visible {
+    display: flex;
+    opacity: 1;
 }
 
-/* Estilos para el nombre y descripción de la estación */
-.custom-option-name {
-    font-weight: 600;
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-
-.custom-option-description {
+.station-tags .station-tag {
+    color: #000000;
+    background-color: rgba(255, 102, 0, 0.6);
+    font-weight: bold;
+    padding: 1px 6px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 5px;
+    white-space: nowrap;
+    border-radius: 0;
+    touch-action: manipulation;
+    user-select: none;
+    min-width: 30px;
 }
 
 /* ==========================================================================
@@ -472,7 +421,8 @@ body {
     border-radius: 15px;
     padding: 15px;
     flex: 1;
-    height: 120px;
+    height: auto;
+    min-height: 120px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -741,6 +691,11 @@ body {
     max-width: 100%;
 }
 
+.genre-value {
+    white-space: normal;
+    word-break: break-word;
+}
+
 /* ==========================================================================
    ESTILOS DE LA PANTALLA DE BIENVENIDA Y REPRODUCCIÓN
    ========================================================================== */
@@ -865,72 +820,8 @@ audio {
 }
 
 /* ==========================================================================
-   ESTILOS DE TOOLTIPS Y NOTIFICACIONES
-========================================================================== */
-
-/* ==========================================================================
-   TOOLTIP PARA INFORMACIÓN DE SPOTIFY
+   ESTILOS DE NOTIFICACIONES
    ========================================================================== */
-.release-date-tooltip {
-    position: relative;
-    display: inline-block;
-}
-
-.tooltip-icon {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    display: inline-block;
-    margin-left: 6px;
-    font-size: 12px;
-    color: var(--primary-color);
-    cursor: help;
-    vertical-align: top;
-    font-weight: bold;
-    width: 16px;
-    height: 16px;
-    line-height: 16px;
-    text-align: center;
-    border-radius: 50%;
-    border: 1px solid var(--primary-color);
-}
-
-.tooltip-text {
-    visibility: hidden;
-    opacity: 0;
-    width: 250px;
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px;
-    position: absolute;
-    z-index: 1000;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    transition: opacity 0.3s;
-    font-size: 12px;
-    line-height: 1.4;
-    pointer-events: none;
-}
-
-.tooltip-text::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
-}
-
-/* Mostrar tooltip SOLO al pasar sobre el ícono */
-.tooltip-icon:hover + .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-
 .notification {
     position: fixed;
     bottom: 20px;
@@ -1122,45 +1013,6 @@ footer strong {
 }
 
 /* ==========================================================================
-   ESTILOS DE TAGS DE ESTACIÓN
-   ========================================================================== */
-
-.station-tags {
-    display: none;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    align-items: center;
-    margin-top: 10px;
-    min-height: 30px;
-    box-sizing: border-box;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    text-align: center;
-
-    border: 2px solid var(--primary-color);
-    border-radius: var(--border-radius);
-    padding: 8px 12px;
-
-.station-tags.visible {
-    display: flex;
-    opacity: 1;
-}
-
-.station-tag {
-    color: #000000;
-    background-color: rgba(255, 102, 0, 0.6);
-    font-weight: bold;
-    padding: 1px 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    border-radius: 0;
-    touch-action: manipulation;
-    user-select: none;
-    min-width: 30px;
-}
-
-/* ==========================================================================
    MEDIA QUERIES PARA RESPONSIVIDAD
    ========================================================================== */
 @media (max-width: 480px) {
@@ -1229,4 +1081,55 @@ footer strong {
 .now-playing, .album-cover {
     height: auto;
     min-height: 120px;
+}
+
+/* Contenedor para los enlaces de promoción */
+.station-promotions-container {
+    margin-top: 8px;
+    border-top: 1px dashed #444;
+    padding-top: 8px;
+}
+
+/* Estilo base para todos los enlaces de promoción */
+.station-promotion-link {
+    display: block;
+    font-size: 12px;
+    color: #ccc;
+    text-decoration: none;
+    padding: 4px 0;
+    transition: color 0.2s ease, transform 0.2s ease;
+    border-radius: 4px;
+}
+
+.station-promotion-link:hover {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateX(3px);
+}
+
+/* Estilos específicos según el tipo de promoción */
+.station-promotion-link-support {
+    color: #FF9800; /* Naranja */
+    font-weight: normal;
+}
+
+.station-promotion-link-event {
+    color: #FF9800; /* Naranja */
+}
+
+.station-promotion-link-merch {
+    color: #FF9800; /* Naranja */
+}
+
+.station-promotion-link-giveaway {
+    color: #FF9800; /* Naranja */
+    font-weight: normal;
+    animation: pulse-giveaway 2s infinite;
+}
+
+/* Animación opcional para sorteos */
+@keyframes pulse-giveaway {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
 }
