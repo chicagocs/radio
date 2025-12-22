@@ -1831,8 +1831,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
         let refreshing = false;
         const updateNotification = document.getElementById('update-notification');
         const updateReloadBtn = document.getElementById('update-reload-btn');
@@ -1840,7 +1840,6 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.register('/sw.js')
             .then(reg => {
                 if (reg.waiting) {
-                    // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
                     reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     if (updateNotification) updateNotification.style.display = 'block';
                 }
@@ -1865,14 +1864,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (updateReloadBtn) {
             updateReloadBtn.addEventListener('click', () => {
                 if (updateNotification) updateNotification.style.display = 'none';
-                // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
                 navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
                 setTimeout(() => window.location.reload(), 100);
             });
-        }    
+        }
     });
     }
-
+        
     // =======================================================================
     // FIN DEL BLOQUE TRY...CATCH
     // =======================================================================
