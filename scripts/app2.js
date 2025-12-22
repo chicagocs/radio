@@ -926,11 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
             const response = await fetch(finalUrl);
             if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-            const data = await response.json();
-            
-            // MEJORA: Registrar la respuesta completa para depuración
-            console.log("Respuesta de Radio Paradise API:", data);
-
+            const data = await response.json();         
             const newTrackInfo = { 
                 title: data.title || 'Título desconocido', 
                 artist: data.artist || 'Artista desconocido', 
@@ -954,7 +950,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Si no hay duración en la API de RP, estimamos un tiempo de inicio
                     trackStartTime = Date.now() - 15000; 
                     trackDuration = 0; // Forzar a buscar en otras APIs
-                    console.log("Duración no encontrada en RP API, buscando en Spotify/MusicBrainz.");
                 }
                 
                 // Iniciar el contador con la duración que tengamos (0 si no se encontró)
