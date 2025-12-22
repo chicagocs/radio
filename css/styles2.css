@@ -117,18 +117,31 @@ body {
 }
 
 /* ==========================================================================
-   ESTILOS DEL ENCABEZADO DEL REPRODUCTOR (NUEVO)
+   ESTILOS DEL ENCABEZADO DEL REPRODUCTOR
    ========================================================================== */
+
 .player-header {
+    position: relative; /* Crea un contexto de posicionamiento para el botón */
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Centra el nombre de la estación */
     align-items: center;
     margin-bottom: 20px;
     padding: 10px 0;
-    background-color: transparent; /* Asegura que no haya fondo blanco */
+    background-color: transparent;
+}
+
+.station-name {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+    /* Ya no necesita márgenes, el contenedor padre lo centra */
 }
 
 .filter-toggle-star {
+    position: absolute; /* Saca el botón del flujo y lo posiciona de forma independiente */
+    right: 0; /* Lo ancla a la derecha del contenedor padre (.player-header) */
+    top: 50%; /* Lo alinea verticalmente al centro */
+    transform: translateY(-50%); /* Ajuste fino para un centrado vertical perfecto */
     background: none;
     border: none;
     font-size: 1.5em;
@@ -137,28 +150,15 @@ body {
     padding: 5px;
     line-height: 1;
     transition: color 0.2s ease, transform 0.2s ease;
-    flex-shrink: 0;
 }
 
 .filter-toggle-star:hover {
     color: #FFD700;
-    transform: scale(1.1);
+    transform: translateY(-50%) scale(1.1); /* Mantiene el centrado vertical al hacer hover */
 }
 
 .filter-toggle-star.active {
     color: #FFD700;
-}
-
-.station-info {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.station-name {
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-bottom: 5px;
 }
 
 /* ==========================================================================
