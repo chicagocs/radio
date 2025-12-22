@@ -1,22 +1,3 @@
-
-
-Aquí tienes el archivo completo **app.js** modificado.
-
-He realizado los siguientes cambios de forma segura:
-
-1.  **Línea 38:** Agregué `const trackIsrc = document.getElementById('trackIsrc');` para capturar el elemento del HTML.
-2.  **Función `resetAlbumDetails`:** Agregué el código para limpiar el ISRC cuando cambia de canción (con una comprobación de seguridad para evitar errores si el elemento HTML no existe).
-3.  **Función `updateAlbumDetailsWithSpotifyData`:** Agregué la lógica para leer `data.isrc` (que viene de tu Worker) y mostrarlo en pantalla (también con comprobación de seguridad).
-
-**IMPORTANTE:** Recuerda que para que esto funcione visualmente, debes tener el siguiente elemento en tu archivo HTML (como acordamos en el paso anterior):
-
-```html
-<span id="trackIsrc" class="detail-value">--</span>
-```
-
-Aquí tienes el código completo de `app.js`:
-
-```javascript
 // app.js - v3.2.3
 document.addEventListener('DOMContentLoaded', () => {
     // =======================================================================
@@ -1877,4 +1858,3 @@ if ('serviceWorker' in navigator) {
         }
     }
 });
-```
