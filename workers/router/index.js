@@ -25,12 +25,14 @@ export default {
         // 2. Disparador Secreto para Pruebas Manuales
         // Esta es una URL secreta que nos permite probar la lógica del backup manualmente,
         // sin tener que esperar al cron. Es como un "botón de prueba" en la nube.
+        /*
         const secretTriggerPath = '/secret-trigger-backup-12345'; // Usa una cadena difícil de adivinar.
         if (path === secretTriggerPath) {
             console.log("🔥 Backup disparado MANUALMENTE via URL secreta.");
             // Ejecutamos la misma lógica que se ejecutaría con el evento programado (cron).
             return orchestratorHandler.scheduled(request, env, ctx);
         }
+        */
         
         // 3. Servir Archivos Estáticos (SPA)
         // Si la petición no es para la API ni el disparador secreto, intentamos servir un archivo estático.
