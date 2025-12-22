@@ -945,7 +945,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // NUEVO: Intentar obtener la duración desde la propia API de Radio Paradise
                 if (data.song_duration && typeof data.song_duration === 'number') {
                     trackDuration = data.song_duration;
-                    console.log(`Duración obtenida desde Radio Paradise API: ${trackDuration} segundos`);
                 } else {
                     // Si no hay duración en la API de RP, estimamos un tiempo de inicio
                     trackStartTime = Date.now() - 15000; 
