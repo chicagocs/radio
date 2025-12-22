@@ -110,10 +110,43 @@ body {
     background-color: var(--background-medium);
     border: 2px solid var(--primary-color);
     border-radius: var(--border-radius-large);
-    padding: 15px 30px;
+    padding: 25px 30px;
     max-width: 500px;
     width: 100%;
     box-shadow: var(--shadow-primary);
+}
+
+/* ==========================================================================
+   ESTILOS DEL ENCABEZADO DEL REPRODUCTOR (NUEVO)
+   ========================================================================== */
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px 0;
+    background-color: transparent; /* Asegura que no haya fondo blanco */
+}
+
+.filter-toggle-star {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #888;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.filter-toggle-star:hover {
+    color: #FFD700;
+    transform: scale(1.1);
+}
+
+.filter-toggle-star.active {
+    color: #FFD700;
 }
 
 .station-info {
@@ -271,7 +304,6 @@ body {
 .station-details {
     flex-grow: 1;
     padding-right: 10px;
-    /* CORRECCIÓN: Centrar el contenido del bloque de detalles */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -307,7 +339,7 @@ body {
     flex-wrap: wrap;
     gap: 5px;
     margin-top: 12px;
-    justify-content: center; /* Centrar los tags también */
+    justify-content: center;
 }
 
 .station-tag {
@@ -1074,17 +1106,17 @@ footer strong {
     }
     
     .station-selector {
-        margin-bottom: 25px; /* Ajuste para móviles */
+        margin-bottom: 25px;
     }
 
     .station-tags {
-        gap: 4px; /* Reducir espacio entre tags en móviles */
-        margin-top: 8px; /* Reducir margen superior */
+        gap: 4px;
+        margin-top: 8px;
     }
     
     .station-tag {
-        font-size: 11px; /* Reducir tamaño de fuente en móviles */
-        padding: 1px 4px; /* Reducir padding */
+        font-size: 11px;
+        padding: 1px 4px;
     }
 }
 
@@ -1146,20 +1178,20 @@ footer strong {
 
 /* Estilos específicos según el tipo de promoción */
 .station-promotion-link-support {
-    color: #FF9800; /* Naranja */
+    color: #FF9800;
     font-weight: normal;
 }
 
 .station-promotion-link-event {
-    color: #FF9800; /* Naranja */
+    color: #FF9800;
 }
 
 .station-promotion-link-merch {
-    color: #FF9800; /* Naranja */
+    color: #FF9800;
 }
 
 .station-promotion-link-giveaway {
-    color: #FF9800; /* Naranja */
+    color: #FF9800;
     font-weight: normal;
     animation: pulse-giveaway 2s infinite;
 }
@@ -1169,37 +1201,4 @@ footer strong {
     0% { transform: scale(1); }
     50% { transform: scale(1.03); }
     100% { transform: scale(1); }
-}
-
-/* ==========================================================================
-   ESTILOS DEL ENCABEZADO DEL REPRODUCTOR
-   ========================================================================== */
-.player-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 10px 0;
-    background-color: transparent; /* Asegura que no haya fondo blanco */
-}
-
-.filter-toggle-star {
-    background: none;
-    border: none;
-    font-size: 1.5em;
-    color: #888;
-    cursor: pointer;
-    padding: 5px;
-    line-height: 1;
-    transition: color 0.2s ease, transform 0.2s ease;
-    flex-shrink: 0;
-}
-
-.filter-toggle-star:hover {
-    color: #FFD700;
-    transform: scale(1.1);
-}
-
-.filter-toggle-star.active {
-    color: #FFD700;
 }
