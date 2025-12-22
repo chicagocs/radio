@@ -161,7 +161,8 @@ async function handleSpotifyRequest(request, env) {
         totalTracks: albumData.total_tracks ?? null,
         totalAlbumDuration: 0,
         trackNumber: null,
-        albumTypeDescription: getAlbumTypeDescription(albumData)
+        albumTypeDescription: getAlbumTypeDescription(albumData),
+        isrc: track.external_ids?.isrc ?? null
       };
 
       // Datos completos del álbum
@@ -220,7 +221,8 @@ async function handleSpotifyRequest(request, env) {
         totalTracks: null,
         totalAlbumDuration: 0,
         trackNumber: null,
-        albumTypeDescription: null
+        albumTypeDescription: null,
+        isrc: null
       }),
       {
         status: 404,
