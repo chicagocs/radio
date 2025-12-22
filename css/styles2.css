@@ -110,7 +110,7 @@ body {
     background-color: var(--background-medium);
     border: 2px solid var(--primary-color);
     border-radius: var(--border-radius-large);
-    padding: 25px 30px;
+    padding: 15px 30px;
     max-width: 500px;
     width: 100%;
     box-shadow: var(--shadow-primary);
