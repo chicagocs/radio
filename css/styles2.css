@@ -1089,7 +1089,7 @@ footer strong {
 .countdown-timer-column .detail-row {
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Mantiene la etiqueta y el valor separados pero alineados */
+    justify-content: center;
     
     background-color: #ffffff;      /* Fondo blanco */
     border: 1px solid #000000;       /* Borde negro para marcar los límites rectos */
@@ -1105,7 +1105,7 @@ footer strong {
 .countdown-timer-column .detail-row .detail-label,
 .countdown-timer-column .detail-row .detail-value {
     color: #000000;           /* Texto negro */
-    font-weight: normal;       /* No negrita */
+    font-weight: bold;       /* negrita */
     font-size: 11px;          /* Tamaño legible para el código */
 }
 
