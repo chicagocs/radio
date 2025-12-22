@@ -1869,7 +1869,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
                 setTimeout(() => window.location.reload(), 100);
             });
-        });
+        }    
+    });
     }
 
     // =======================================================================
