@@ -882,7 +882,7 @@ audio {
 }
 
 .track-position-info {
-    font-size:13px;
+    font-size:11px;
     color: var(--text-dimmed);
     font-family: 'Courier New', monospace;
     margin-top: 4px;
