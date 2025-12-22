@@ -1,5 +1,10 @@
 // app.js - v3.2.3 - Con sistema de favoritos integrado
 document.addEventListener('DOMContentLoaded', () => {
+    // =======================================================================
+    // MANEJO DE ERRORES GLOBAL PARA CAPTURAR CUALQUIER FALLO
+    // =======================================================================
+    try {
+
     // ==========================================================================
        // SELECCIÓN DE ELEMENTOS DEL DOM
        // ==========================================================================
@@ -156,12 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showNotification(message) {
-        notification.textContent = message;
-        notification.classList.add('show');
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+        if (notification) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
     }
 
     function showInstallInvitation() {
@@ -596,9 +603,9 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const serviceName in groupedStations) {
                 groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
             }
-            loadingStations.style.display = 'none';
-            stationSelect.style.display = 'block';
-            stationName.textContent = 'RadioMax';
+            if (loadingStations) loadingStations.style.display = 'none';
+            if (stationSelect) stationSelect.style.display = 'block';
+            if (stationName) stationName.textContent = 'RadioMax';
             populateStationSelect(groupedStations);
             
             const customSelect = new CustomSelect(stationSelect);
@@ -646,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return groupedStations;
         } catch (error) {
-            loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
+            if (loadingStations) loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
             logErrorForAnalysis('Station loading error', { error: error.message, timestamp: new Date().toISOString() });
             return [];
         }
@@ -704,46 +711,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    stationSelect.addEventListener('change', function() {
-    if (this.value) {
-        localStorage.setItem('lastSelectedStation', this.value);
-        const selectedStationId = this.value;
-        const station = stationsById[selectedStationId];
-               
-        if (station) {
-            currentStation = station;
-            let displayName = station.name;
-            if (station.service === 'radioparadise') {
-                displayName = station.name.split(' - ')[1] || station.name;
+    if (stationSelect) {
+        stationSelect.addEventListener('change', function() {
+            if (this.value) {
+                localStorage.setItem('lastSelectedStation', this.value);
+                const selectedStationId = this.value;
+                const station = stationsById[selectedStationId];
+                    
+                if (station) {
+                    currentStation = station;
+                    let displayName = station.name;
+                    if (station.service === 'radioparadise') {
+                        displayName = station.name.split(' - ')[1] || station.name;
+                    }
+                    stationName.textContent = displayName;
+                    showWelcomeScreen();
+                    playStation();
+                } else {
+                    logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
+                }
             }
-            stationName.textContent = displayName;
-            showWelcomeScreen();
-            playStation();
-        } else {
-            logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
-        }
+        });
     }
-    });
 
-    playBtn.addEventListener('click', function() {
-        this.style.animation = '';
-        
-        if (isPlaying) {
-            audioPlayer.pause(); 
-            isPlaying = false; 
-            updateStatus(false);
-            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-            if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-             wasPlayingBeforeFocusLoss = false;
-             stopPlaybackChecks();            
-        } else {
-            if (currentStation) {
-                playStation();
+    if (playBtn) {
+        playBtn.addEventListener('click', function() {
+            this.style.animation = '';
+            
+            if (isPlaying) {
+                audioPlayer.pause(); 
+                isPlaying = false; 
+                updateStatus(false);
+                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+                if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
+                wasPlayingBeforeFocusLoss = false;
+                stopPlaybackChecks();            
             } else {
-                alert('Por favor, seleccionar una estación');
+                if (currentStation) {
+                    playStation();
+                } else {
+                    alert('Por favor, seleccionar una estación');
+                }
             }
-        }
-    });
+        });
+    }
 
     function handlePlaybackError() {
         if (connectionManager.isReconnecting) { return; }
@@ -1040,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateAlbumDetailsWithSpotifyData(data) {
         const releaseDateElement = document.getElementById('releaseDate');
-        releaseDateElement.innerHTML = '';
+        if (releaseDateElement) releaseDateElement.innerHTML = '';
         
         if (data.release_date) {
             const year = data.release_date.substring(0, 4);
@@ -1052,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             releaseDateElement.textContent = displayText;
         } else { 
-            releaseDateElement.textContent = '----'; 
+            if (releaseDateElement) releaseDateElement.textContent = '----'; 
         }
         
         if (data.label && data.label.trim() !== '') { 
@@ -1256,28 +1267,54 @@ document.addEventListener('DOMContentLoaded', () => {
         updateShareButtonVisibility();
     }
 
-    stopBtn.addEventListener('click', function() {
-        connectionManager.stop();
-        audioPlayer.pause(); audioPlayer.src = '';
-        isPlaying = false; updateStatus(false);
-        stopSongInfoUpdates();
-        wasPlayingBeforeFocusLoss = false;
-        stopPlaybackChecks();
-        showWelcomeScreen();
-    });
+    if (stopBtn) {
+        stopBtn.addEventListener('click', function() {
+            connectionManager.stop();
+            audioPlayer.pause(); audioPlayer.src = '';
+            isPlaying = false; updateStatus(false);
+            stopSongInfoUpdates();
+            wasPlayingBeforeFocusLoss = false;
+            stopPlaybackChecks();
+            showWelcomeScreen();
+        });
+    }
 
-    audioPlayer.addEventListener('error', (e) => {
-        const error = audioPlayer.error;
-        if (error) {
-            if (error.code == 1 || error.code == 4) { return; }
-            logErrorForAnalysis('Audio element error', { 
-                errorCode: error.code, 
-                errorMessage: error.message, 
-                station: currentStation ? currentStation.id : 'unknown', 
-                timestamp: new Date().toISOString() 
-            });
-            
-            if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for the media resource was aborted')) {
+    if (audioPlayer) {
+        audioPlayer.addEventListener('error', (e) => {
+            const error = audioPlayer.error;
+            if (error) {
+                if (error.code == 1 || error.code == 4) { return; }
+                logErrorForAnalysis('Audio element error', { 
+                    errorCode: error.code, 
+                    errorMessage: error.message, 
+                    station: currentStation ? currentStation.id : 'unknown', 
+                    timestamp: new Date().toISOString() 
+                });
+                
+                if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for the media resource was aborted')) {
+                    wasPlayingBeforeFocusLoss = true;
+                    
+                    setTimeout(() => {
+                        if (wasPlayingBeforeFocusLoss && currentStation) {
+                            audioPlayer.play().then(() => {
+                                isPlaying = true;
+                                updateStatus(true);
+                                startTimeStuckCheck();
+                                showNotification('Reproducción reanudada automáticamente');
+                            }).catch(error => {
+                                showNotification('Toca para reanudar la reproducción');
+                                playBtn.style.animation = 'pulse 2s infinite';
+                            });
+                        }
+                    }, 2000);
+                } else {
+                    handlePlaybackError();
+                }
+            }
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            if (isPlaying && !document.hidden) {
                 wasPlayingBeforeFocusLoss = true;
                 
                 setTimeout(() => {
@@ -1292,113 +1329,99 @@ document.addEventListener('DOMContentLoaded', () => {
                             playBtn.style.animation = 'pulse 2s infinite';
                         });
                     }
-                }, 2000);
+                }, 1000);
             } else {
-                handlePlaybackError();
+                isPlaying = false;
+                updateStatus(false);
             }
-        }
-    });
+        });
 
-    audioPlayer.addEventListener('pause', () => {
-        if (isPlaying && !document.hidden) {
-            wasPlayingBeforeFocusLoss = true;
-            
-            setTimeout(() => {
-                if (wasPlayingBeforeFocusLoss && currentStation) {
-                    audioPlayer.play().then(() => {
-                        isPlaying = true;
-                        updateStatus(true);
-                        startTimeStuckCheck();
-                        showNotification('Reproducción reanudada automáticamente');
-                    }).catch(error => {
-                        showNotification('Toca para reanudar la reproducción');
-                        playBtn.style.animation = 'pulse 2s infinite';
-                    });
-                }
-            }, 1000);
-        } else {
-            isPlaying = false;
-            updateStatus(false);
-        }
-    });
-
-    audioPlayer.addEventListener('stalled', () => {
-        if (isPlaying) {
-            wasPlayingBeforeFocusLoss = true;
-            
-            setTimeout(() => {
-                if (wasPlayingBeforeFocusLoss && currentStation) {
-                    audioPlayer.play().then(() => {
-                        isPlaying = true;
-                        updateStatus(true);
-                        startTimeStuckCheck();
-                    }).catch(error => {
-                        console.error('Error al reanudar la reproducción:', error);
-                    });
-                }
-            }, 2000);
-        }
-    });
-
-    volumeSlider.addEventListener('input', function() {
-        const volume = this.value / 100;
-        audioPlayer.volume = volume;
-        updateVolumeIconPosition();
-        if (this.value == 0) { volumeIcon.classList.add('muted'); isMuted = true; }
-        else { volumeIcon.classList.remove('muted'); isMuted = false; previousVolume = this.value; }
-    });
-
-    volumeIcon.addEventListener('click', function() {
-        if (isMuted) {
-            volumeSlider.value = previousVolume;
-            audioPlayer.volume = previousVolume / 100;
-            volumeIcon.classList.remove('muted'); isMuted = false;
-        } else {
-            previousVolume = volumeSlider.value;
-            volumeSlider.value = 0;
-            audioPlayer.volume = 0;
-            volumeIcon.classList.add('muted'); isMuted = true;
-        }
-        updateVolumeIconPosition();
-    });
-
-    function updateStatus(isPlayingNow) {
-        if (isPlayingNow) { playBtn.textContent = '⏸ PAUSAR'; }
-        else { playBtn.textContent = '▶ SONAR'; }
+        audioPlayer.addEventListener('stalled', () => {
+            if (isPlaying) {
+                wasPlayingBeforeFocusLoss = true;
+                
+                setTimeout(() => {
+                    if (wasPlayingBeforeFocusLoss && currentStation) {
+                        audioPlayer.play().then(() => {
+                            isPlaying = true;
+                            updateStatus(true);
+                            startTimeStuckCheck();
+                        }).catch(error => {
+                            console.error('Error al reanudar la reproducción:', error);
+                        });
+                    }
+                }, 2000);
+            }
+        });
     }
 
-    audioPlayer.addEventListener('playing', () => { 
-        isPlaying = true; 
-        updateStatus(true); 
-        wasPlayingBeforeFocusLoss = true;
-        
-        if (connectionManager.isReconnecting) {
-            connectionManager.stop();
-            showNotification('Conexión restaurada con éxito.');
-            
-            if (currentStation && currentStation.service !== 'nrk') {
-                if (updateInterval) clearInterval(updateInterval);
-                updateSongInfo(true).then(() => {
-                    updateInterval = setInterval(updateSongInfo, 30000);
-                }).catch(error => {
-                    console.error('Error al actualizar información de la canción:', error);
-                    setTimeout(() => {
-                        updateSongInfo(true).then(() => {
-                            updateInterval = setInterval(updateSongInfo, 30000);
-                        }).catch(err => {
-                            console.error('Error al actualizar información de la canción (reintento):', err);
-                        });
-                    }, 5000);
-                });
+    if (volumeSlider) {
+        volumeSlider.addEventListener('input', function() {
+            const volume = this.value / 100;
+            audioPlayer.volume = volume;
+            updateVolumeIconPosition();
+            if (this.value == 0) { volumeIcon.classList.add('muted'); isMuted = true; }
+            else { volumeIcon.classList.remove('muted'); isMuted = false; previousVolume = this.value; }
+        });
+    }
+
+    if (volumeIcon) {
+        volumeIcon.addEventListener('click', function() {
+            if (isMuted) {
+                volumeSlider.value = previousVolume;
+                audioPlayer.volume = previousVolume / 100;
+                volumeIcon.classList.remove('muted'); isMuted = false;
+            } else {
+                previousVolume = volumeSlider.value;
+                volumeSlider.value = 0;
+                audioPlayer.volume = 0;
+                volumeIcon.classList.add('muted'); isMuted = true;
             }
+            updateVolumeIconPosition();
+        });
+    }
+
+    function updateStatus(isPlayingNow) {
+        if (playBtn) {
+            if (isPlayingNow) { playBtn.textContent = '⏸ PAUSAR'; }
+            else { playBtn.textContent = '▶ SONAR'; }
         }
-    });
-    
-    audioPlayer.addEventListener('ended', () => { 
-        isPlaying = false; 
-        updateStatus(false);
-        wasPlayingBeforeFocusLoss = false;
-    });
+    }
+
+    if (audioPlayer) {
+        audioPlayer.addEventListener('playing', () => { 
+            isPlaying = true; 
+            updateStatus(true); 
+            wasPlayingBeforeFocusLoss = true;
+            
+            if (connectionManager.isReconnecting) {
+                connectionManager.stop();
+                showNotification('Conexión restaurada con éxito.');
+                
+                if (currentStation && currentStation.service !== 'nrk') {
+                    if (updateInterval) clearInterval(updateInterval);
+                    updateSongInfo(true).then(() => {
+                        updateInterval = setInterval(updateSongInfo, 30000);
+                    }).catch(error => {
+                        console.error('Error al actualizar información de la canción:', error);
+                        setTimeout(() => {
+                            updateSongInfo(true).then(() => {
+                                updateInterval = setInterval(updateSongInfo, 30000);
+                            }).catch(err => {
+                                console.error('Error al actualizar información de la canción (reintento):', err);
+                            });
+                        }, 5000);
+                    });
+                }
+            }
+        });
+        
+        audioPlayer.addEventListener('ended', () => { 
+            isPlaying = false; 
+            updateStatus(false);
+            wasPlayingBeforeFocusLoss = false;
+        });
+    }
 
     const connectionManager = {
         isReconnecting: false,
@@ -1644,77 +1667,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(showInstallPwaButtons, 1000);
 
-    shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
+    if (shareButton) {
+        shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
+    }
     document.addEventListener('click', (e) => {
-        if (!shareButton.contains(e.target) && !shareOptions.contains(e.target)) {
+        if (shareButton && shareOptions && !shareButton.contains(e.target) && !shareOptions.contains(e.target)) {
             shareOptions.classList.remove('active');
         }
     });
 
-    shareWhatsApp.addEventListener('click', () => {
-      const title = songTitle.textContent;
-      const artist = songArtist.textContent;
-      if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-         const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
-         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-         const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
-         if (isBraveAndroid) {
-             showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
-             setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
-         } else if (isMobile) {
-             const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
-             const link = document.createElement('a');
-             link.href = whatsappUri; link.target = '_blank'; link.rel = 'noopener noreferrer';
-             document.body.appendChild(link); link.click(); document.body.removeChild(link);
-             setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1500);
-         } else {
-             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-         }
-         shareOptions.classList.remove('active');
-      } else {
-         showNotification('Por favor, espera a que comience una canción para compartir');
-      }
-    });
-
-    closeInvitationBtn.addEventListener('click', () => {
-        hideInstallInvitation();
-    });
-
-    installWindowsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
-                else { console.log('User dismissed the A2HS prompt'); }
-                deferredPrompt = null;
-            });
-            hideInstallInvitation();
+    if (shareWhatsApp) {
+        shareWhatsApp.addEventListener('click', () => {
+        const title = songTitle.textContent;
+        const artist = songArtist.textContent;
+        if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
+            const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
+            if (isBraveAndroid) {
+                showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
+                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
+            } else if (isMobile) {
+                const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
+                const link = document.createElement('a');
+                link.href = whatsappUri; link.target = '_blank'; link.rel = 'noopener noreferrer';
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1500);
+            } else {
+                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+            }
+            if (shareOptions) shareOptions.classList.remove('active');
         } else {
-            showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+            showNotification('Por favor, espera a que comience una canción para compartir');
         }
-    });
+        });
+    }
 
-    installAndroidBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') { console.log('User accepted the A2HS prompt'); }
-                else { console.log('User dismissed the A2HS prompt'); }
-                deferredPrompt = null;
-            });
+    if (closeInvitationBtn) {
+        closeInvitationBtn.addEventListener('click', () => {
             hideInstallInvitation();
-        } else {
-            showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
-        }
-    });
+        });
+    }
 
-    installIosBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
-        hideInstallInvitation();
-    });
+    if (installWindowsBtn) {
+        installWindowsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
+                    else { console.log('User dismissed the A2HS prompt'); }
+                    deferredPrompt = null;
+                });
+                hideInstallInvitation();
+            } else {
+                showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+            }
+        });
+    }
+
+    if (installAndroidBtn) {
+        installAndroidBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') { console.log('User accepted the A2HS prompt'); }
+                    else { console.log('User dismissed the A2HS prompt'); }
+                    deferredPrompt = null;
+                });
+                hideInstallInvitation();
+            } else {
+                showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+            }
+        });
+    }
+
+    if (installIosBtn) {
+        installIosBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+            hideInstallInvitation();
+        });
+    }
 
     let lastKeyPressed = null;
     let lastMatchIndex = -1;
@@ -1750,68 +1785,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    updateVolumeIconPosition();
+    if (volumeIcon) {
+        updateVolumeIconPosition();
+    }
 
     const versionSpan = document.getElementById('version-number');
-    fetch('/sw.js')
-        .then(response => {
-            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-            return response.text();
-        })
-        .then(text => {
-            const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
-            if (versionMatch && versionMatch[1]) {
-                versionSpan.textContent = versionMatch[1];
-            } else {
-                versionSpan.textContent = 'N/D';
-                console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
-            versionSpan.textContent = 'Error';
+    if (versionSpan) {
+        fetch('/sw.js')
+            .then(response => {
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                return response.text();
+            })
+            .then(text => {
+                const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+                if (versionMatch && versionMatch[1]) {
+                    versionSpan.textContent = versionMatch[1];
+                } else {
+                    versionSpan.textContent = 'N/D';
+                    console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
+                versionSpan.textContent = 'Error';
+            });
+    }
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        let refreshing = false;
+        const updateNotification = document.getElementById('update-notification');
+        const updateReloadBtn = document.getElementById('update-reload-btn');
+
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => {
+                if (reg.waiting) {
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                    if (updateNotification) updateNotification.style.display = 'block';
+                }
+
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker?.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            if (updateNotification) updateNotification.style.display = 'block';
+                        }
+                    });
+                });
+            })
+            .catch(err => console.error('SW error:', err));
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
         });
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-
-    let refreshing = false;
-    const updateNotification = document.getElementById('update-notification');
-    const updateReloadBtn = document.getElementById('update-reload-btn');
-
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => {
-
-        if (reg.waiting) {
-          // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          updateNotification && (updateNotification.style.display = 'block');
+        if (updateReloadBtn) {
+            updateReloadBtn.addEventListener('click', () => {
+                if (updateNotification) updateNotification.style.display = 'none';
+                navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
+                setTimeout(() => window.location.reload(), 100);
+            });
         }
-
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              updateNotification && (updateNotification.style.display = 'block');
-            }
-          });
         });
-      })
-      .catch(err => console.error('SW error:', err));
+    }
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-
-    updateReloadBtn?.addEventListener('click', () => {
-      updateNotification && (updateNotification.style.display = 'none');
-      // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
-      navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
-      setTimeout(() => window.location.reload(), 100);
-    });
-
-  });
-}   
+    // =======================================================================
+    // FIN DEL BLOQUE TRY...CATCH
+    // =======================================================================
+    } catch (error) {
+        console.error("Error fatal durante la inicialización de la aplicación:", error);
+        const loadingElement = document.getElementById('loadingStations');
+        if (loadingElement) {
+            loadingElement.textContent = `Error crítico: ${error.message}. Revisa la consola para más detalles.`;
+            loadingElement.style.color = '#ff6600'; // Resaltar el error en rojo
+        }
+    }
 });
