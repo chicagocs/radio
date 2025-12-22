@@ -1082,6 +1082,34 @@ footer strong {
 }
 
 /* ==========================================================================
+   ESTILOS ESPECIFICOS PARA EL ISRC
+   ========================================================================== */
+
+/* Estilos del contenedor del ISRC (Fondo blanco, bordes rectos) */
+.countdown-timer-column .detail-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Mantiene la etiqueta y el valor separados pero alineados */
+    
+    background-color: #ffffff;      /* Fondo blanco */
+    border: 1px solid #000000;       /* Borde negro para marcar los límites rectos */
+    border-radius: 0;                /* Bordes completamente rectos (sin redondeo) */
+    
+    padding: 4px 6px;                /* Espacio interno para que respire el texto */
+    margin-top: 8px;                /* Separación del elemento de arriba */
+    width: 100%;                    /* Ocupa todo el ancho disponible */
+    box-sizing: border-box;          /* Asegura que el padding no rompa el ancho */
+}
+
+/* Texto negro y sin negrita para el ISRC */
+.countdown-timer-column .detail-row .detail-label,
+.countdown-timer-column .detail-row .detail-value {
+    color: #000000;           /* Texto negro */
+    font-weight: normal;       /* No negrita */
+    font-size: 11px;          /* Tamaño legible para el código */
+}
+
+/* ==========================================================================
    MEDIA QUERIES PARA RESPONSIVIDAD
    ========================================================================== */
 @media (max-width: 480px) {
