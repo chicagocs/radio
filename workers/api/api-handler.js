@@ -80,14 +80,12 @@ async function handleSpotifyRequest(request, env) {
     const artist = cleanSearchTerm(url.searchParams.get("artist"));
     const title = cleanSearchTerm(url.searchParams.get("title"));
     const album = cleanSearchTerm(url.searchParams.get("album"));
-
     if (!artist || !title) {
       return new Response(
         JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-
     const clientId = env.SPOTIFY_CLIENT_ID;
     const clientSecret = env.SPOTIFY_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
@@ -96,7 +94,6 @@ async function handleSpotifyRequest(request, env) {
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
-
     const authString = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch(
       "https://accounts.spotify.com/api/token",
@@ -109,15 +106,10 @@ async function handleSpotifyRequest(request, env) {
         body: "grant_type=client_credentials"
       }
     );
-
     if (!tokenResponse.ok) throw new Error("No se pudo obtener token de Spotify");
-
     const accessToken = (await tokenResponse.json()).access_token;
-
-    // Búsqueda
     let searchData = null;
     let responseSpotify = null;
-
     if (album) {
       const q = `track:"${title}" artist:"${artist}" album:"${album}"`;
       responseSpotify = await fetch(
@@ -126,7 +118,6 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
-
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `track:"${title}" artist:"${artist}"`;
       responseSpotify = await fetch(
@@ -135,7 +126,6 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
-
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `${artist} ${title}`;
       responseSpotify = await fetch(
@@ -144,28 +134,43 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
-
     if (!responseSpotify.ok)
       throw new Error("Error en búsqueda de Spotify");
-
     if (searchData && searchData.tracks.items.length > 0) {
       const track = searchData.tracks.items[0];
       const albumData = track.album;
+      
+      // =======================================================================
+      // NUEVO: Obtener el ISRC (Requiere una petición extra al endpoint /tracks/{id})
+      // =======================================================================
+      let trackIsrc = null;
+      if (track.id) {
+          try {
+              const trackResponse = await fetch(
+                  `https://api.spotify.com/v1/tracks/${track.id}`,
+                  { headers: { Authorization: `Bearer ${accessToken}` } }
+              );
+              if (trackResponse.ok) {
+                  const fullTrack = await trackResponse.json();
+                  trackIsrc = fullTrack.external_ids?.isrc || null;
+              }
+          } catch (e) {
+              console.error("Error obteniendo ISRC:", e);
+          }
+      }
 
       const resp = {
         imageUrl: albumData.images?.[0]?.url ?? null,
         release_date: albumData.release_date ?? null,
         label: albumData.label ?? null,
         genres: [],
-        duration: Math.floor(track.duration_ms / 1000),
+        duration: Math.floor(track.duration_ms / 1e3),
         totalTracks: albumData.total_tracks ?? null,
         totalAlbumDuration: 0,
         trackNumber: null,
         albumTypeDescription: getAlbumTypeDescription(albumData),
-        isrc: track.external_ids?.isrc ?? null
+        isrc: trackIsrc // <--- Usamos el valor obtenido arriba
       };
-
-      // Datos completos del álbum
       if (albumData.id) {
         try {
           const full = await fetch(
@@ -186,10 +191,9 @@ async function handleSpotifyRequest(request, env) {
               if (idx !== -1) resp.trackNumber = idx + 1;
             }
           }
-        } catch {}
+        } catch {
+        }
       }
-
-      // Géneros artistas
       if (track.artists.length > 0) {
         const tasks = track.artists.slice(0, 3).map(async (a) => {
           try {
@@ -204,13 +208,11 @@ async function handleSpotifyRequest(request, env) {
         });
         resp.genres = [...new Set((await Promise.all(tasks)).flat())];
       }
-
       return new Response(JSON.stringify(resp), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
     }
-
     return new Response(
       JSON.stringify({
         imageUrl: null,
@@ -222,14 +224,13 @@ async function handleSpotifyRequest(request, env) {
         totalAlbumDuration: 0,
         trackNumber: null,
         albumTypeDescription: null,
-        isrc: null
+        isrc: null // Aseguramos que sea null si no hay resultados
       }),
       {
         status: 404,
         headers: { "Content-Type": "application/json" }
       }
     );
-
   } catch (err) {
     return new Response(
       JSON.stringify({ error: "Error interno Spotify", details: err.message }),
