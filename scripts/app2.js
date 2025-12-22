@@ -1,4 +1,4 @@
-// app.js - v3.2.3 - Con sistema de favoritos integrado
+// app.js - v3.2.3
 document.addEventListener('DOMContentLoaded', () => {
     // =======================================================================
     // MANEJO DE ERRORES GLOBAL PARA CAPTURAR CUALQUIER FALLO
@@ -915,41 +915,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10000);
     }
     
+    // =======================================================================
+    // MODIFICADO: Función mejorada para Radio Paradise
+    // =======================================================================
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
-    if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
-    try {
-        const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
-        const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
-        const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
-        const response = await fetch(finalUrl);
-        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-        const data = await response.json();
-        const newTrackInfo = { 
-            title: data.title || 'Título desconocido', 
-            artist: data.artist || 'Artista desconocido', 
-            album: data.album || '', 
-        };
-        const isNewTrack = !currentTrackInfo || 
-                          currentTrackInfo.title !== newTrackInfo.title || 
-                          currentTrackInfo.artist !== newTrackInfo.artist;
-        if (isNewTrack) {
-            resetCountdown(); 
-            resetAlbumDetails(); 
-            currentTrackInfo = newTrackInfo;
-            updateUIWithTrackInfo(newTrackInfo); 
-            resetAlbumCover();
+        if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
+        try {
+            const workerUrl = 'https://core.chcs.workers.dev/radioparadise'; 
+            const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`; 
+            const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
+            const response = await fetch(finalUrl);
+            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+            const data = await response.json();
             
-            trackStartTime = Date.now() - 15000;
-            
-            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+            // MEJORA: Registrar la respuesta completa para depuración
+            console.log("Respuesta de Radio Paradise API:", data);
+
+            const newTrackInfo = { 
+                title: data.title || 'Título desconocido', 
+                artist: data.artist || 'Artista desconocido', 
+                album: data.album || '', 
+            };
+            const isNewTrack = !currentTrackInfo || 
+                              currentTrackInfo.title !== newTrackInfo.title || 
+                              currentTrackInfo.artist !== newTrackInfo.artist;
+            if (isNewTrack) {
+                resetCountdown(); 
+                resetAlbumDetails(); 
+                currentTrackInfo = newTrackInfo;
+                updateUIWithTrackInfo(newTrackInfo); 
+                resetAlbumCover();
+                
+                // NUEVO: Intentar obtener la duración desde la propia API de Radio Paradise
+                if (data.song_duration && typeof data.song_duration === 'number') {
+                    trackDuration = data.song_duration;
+                    console.log(`Duración obtenida desde Radio Paradise API: ${trackDuration} segundos`);
+                } else {
+                    // Si no hay duración en la API de RP, estimamos un tiempo de inicio
+                    trackStartTime = Date.now() - 15000; 
+                    trackDuration = 0; // Forzar a buscar en otras APIs
+                    console.log("Duración no encontrada en RP API, buscando en Spotify/MusicBrainz.");
+                }
+                
+                // Iniciar el contador con la duración que tengamos (0 si no se encontró)
+                startCountdown();
+
+                // Llamar a las otras APIs para obtener más detalles (portada, etc.)
+                await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+            }
+        } catch (error) {
+            logErrorForAnalysis('Radio Paradise API error', { 
+                error: error.message, 
+                stationId: currentStation.id, 
+                timestamp: new Date().toISOString() 
+            });
         }
-    } catch (error) {
-        logErrorForAnalysis('Radio Paradise API error', { 
-            error: error.message, 
-            stationId: currentStation.id, 
-            timestamp: new Date().toISOString() 
-        });
-    }
     }
     
     async function fetchSongDetails(artist, title, album) {
@@ -1291,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     timestamp: new Date().toISOString() 
                 });
                 
-                if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for the media resource was aborted')) {
+                if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for media resource was aborted')) {
                     wasPlayingBeforeFocusLoss = true;
                     
                     setTimeout(() => {
@@ -1716,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
                     if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
-                    else { console.log('User dismissed the A2HS prompt'); }
+                    else { console.log('User dismissed A2HS prompt'); }
                     deferredPrompt = null;
                 });
                 hideInstallInvitation();
@@ -1732,8 +1752,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') { console.log('User accepted the A2HS prompt'); }
-                    else { console.log('User dismissed the A2HS prompt'); }
+                    if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
+                    else { console.log('User dismissed A2HS prompt'); }
                     deferredPrompt = null;
                 });
                 hideInstallInvitation();
@@ -1820,6 +1840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serviceWorker.register('/sw.js')
             .then(reg => {
                 if (reg.waiting) {
+                    // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
                     reg.waiting.postMessage({ type: 'SKIP_WAITING' });
                     if (updateNotification) updateNotification.style.display = 'block';
                 }
@@ -1844,10 +1865,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (updateReloadBtn) {
             updateReloadBtn.addEventListener('click', () => {
                 if (updateNotification) updateNotification.style.display = 'none';
+                // CORREGIDO: El tipo de mensaje debe ser 'SKIP_WAITING'
                 navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
                 setTimeout(() => window.location.reload(), 100);
             });
-        }
         });
     }
 
