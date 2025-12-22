@@ -1,14 +1,3 @@
-
-
-¡Por supuesto! He corregido esos dos problemas de estilo en el archivo CSS.
-
-Los cambios clave son:
-1.  **Salto de Línea en la Descripción:** A la descripción (`.custom-option-description`) se le han añadido las propiedades `display: block`, `width: 100%` y `word-wrap: break-word` para asegurar que el texto se ajuste correctamente dentro de su contenedor y no se quede "pegado".
-2.  **Centrado del Nombre:** El contenedor principal de los detalles (`.station-details`) ahora es un `flex-container` con `align-items: center` y `text-align: center`. Esto centrará tanto el nombre como la descripción verticalmente y horizontalmente, dándole un aspecto más limpio y organizado.
-
-Aquí tienes el archivo `styles2.css` actualizado con las correcciones.
-
-```css
 /* ==========================================================================
    VARIABLES CSS
    ========================================================================== */
@@ -1181,4 +1170,3 @@ footer strong {
     50% { transform: scale(1.03); }
     100% { transform: scale(1); }
 }
-```
