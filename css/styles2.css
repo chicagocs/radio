@@ -1095,7 +1095,7 @@ footer strong {
     border: 1px solid #000000;       /* Borde negro para marcar los límites rectos */
     border-radius: 0;                /* Bordes completamente rectos (sin redondeo) */
     
-    padding: 2px 4px;                /* Espacio interno para que respire el texto */
+    padding: 2px 4px 2px 0px;                /* Espacio interno para que respire el texto */
     margin-top: 4px;                /* Separación del elemento de arriba */
     width: 100%;                    /* Ocupa todo el ancho disponible */
     box-sizing: border-box;          /* Asegura que el padding no rompa el ancho */
