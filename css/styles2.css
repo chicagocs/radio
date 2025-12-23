@@ -663,7 +663,7 @@ body {
 }
 
 .countdown-timer-column {
-    width: 130px;
+    width: 120px;
     flex-shrink: 0;
     text-align: center;
     display: flex;
@@ -1106,7 +1106,7 @@ footer strong {
 .countdown-timer-column .detail-row .detail-value {
     color: #000000;           /* Texto negro */
     font-weight: bold;       /* negrita */
-    font-size: 9px;          /* Tamaño legible para el código */
+    font-size: 10px;          /* Tamaño legible para el código */
 }
 
 /* ==========================================================================
