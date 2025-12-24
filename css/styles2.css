@@ -147,7 +147,7 @@ body {
 /* Estilo base del marcador: solo contorno (modo "solo favoritas") */
 .bookmark-frame path {
   fill: none;                /* Vacío por defecto */
-  stroke: #F4B400;
+  stroke: #FFD700;
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -155,8 +155,8 @@ body {
 
 /* Cuando está activo: mostrar TODAS → rellenar la cinta */
 #filterToggleStar.active .bookmark-frame path {
-  fill: #F4B400;             /* Relleno dorado */
-  stroke: #F4B400;           /* El borde sigue igual */
+  fill: #FFD700;             /* Relleno dorado */
+  stroke: #FFD700;           /* El borde sigue igual */
 }
 
 .bookmark-frame {
