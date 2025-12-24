@@ -134,7 +134,7 @@ body {
 
 #filterToggleStar {
   position: absolute;
-  top: -0.9rem;      /* ≈ -14.4px → evita solapamiento */
+  top: -0.85rem;      /* ≈ -14.4px → evita solapamiento */
   right: 0;
   width: 2.9rem;     /* ligeramente más estrecho */
   height: 2.9rem;    /* altura reducida (antes 3.5rem) */
