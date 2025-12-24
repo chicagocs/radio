@@ -130,14 +130,14 @@ body {
     color: var(--primary);
 }
 
-/* ✨ Botón de favoritos estilo demo */
+/* ✨ Cinta de favoritos */
 
 #filterToggleStar {
   position: absolute;
-  top: -0.8rem;      /* ≈ -14.4px → evita solapamiento */
+  top: -0.8rem;      /* ajuste fino */
   right: 0;
-  width: 2.9rem;     /* ligeramente más estrecho */
-  height: 2.9rem;    /* altura reducida (antes 3.5rem) */
+  width: 2.7rem;
+  height: 2.7rem;
   background: transparent;
   border: none;
   cursor: pointer;
