@@ -142,7 +142,7 @@ body {
   cursor: pointer;
   padding: 0;
   z-index: 10;
-  /* ❌ Sin transform ni transición de hover */
+  /* ❌ NADA de transiciones, transform o hover */
 }
 
 /* Estilo base del marcador: solo contorno (modo "solo favoritas") */
@@ -158,10 +158,6 @@ body {
 #filterToggleStar.active .bookmark-frame path {
   fill: #F4B400;             /* Relleno dorado */
   stroke: #F4B400;           /* El borde sigue igual */
-}
-
-#filterToggleStar:hover {
-    transform: scale(1.1);
 }
 
 .bookmark-frame {
