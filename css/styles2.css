@@ -134,7 +134,7 @@ body {
 #filterToggleStar {
     position: absolute;
     top: calc(-1.5rem - 4px); /* Cuelga ~24px encima del header */
-    right: 1rem;
+    right: 0rem;
     width: 3rem;     /* ≈48px */
     height: 3.5rem;  /* ≈56px */
     background: transparent;
