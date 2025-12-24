@@ -169,7 +169,7 @@ body {
 .star-symbol::before {
     content: "☆";
     position: absolute;
-    top: 60%;
+    top: 30%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 1.75rem; /* ≈28px */
