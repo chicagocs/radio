@@ -142,7 +142,6 @@ body {
   cursor: pointer;
   padding: 0;
   z-index: 10;
-  /* ❌ NADA de transiciones, transform o hover */
 }
 
 /* Estilo base del marcador: solo contorno (modo "solo favoritas") */
