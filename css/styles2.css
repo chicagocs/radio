@@ -163,7 +163,7 @@ body {
 
 .bookmark-frame path {
     stroke: #FF6600;      /* Color naranja (igual que el contenedor principal) */
-    stroke-width: 1.5;    /* Más fino: antes era 2, ahora 1.5 */
+    stroke-width: 1.0;    /* Más fino: antes era 2, ahora 1.5 */
 }
 
 .star-symbol::before {
