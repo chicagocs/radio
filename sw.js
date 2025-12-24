@@ -1,5 +1,5 @@
-// v3.2.5 - Cachés separados + limpieza LRU + diagnóstico remoto
-const CACHE_VERSION = 'v3.2.5';
+// v3.2.51
+const CACHE_VERSION = 'v3.2.51';
 const STATIC_CACHE = `max-static-${CACHE_VERSION}`;
 const API_CACHE = `max-api-${CACHE_VERSION}`;
 
