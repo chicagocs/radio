@@ -1,4 +1,4 @@
-// app.js - v3.2.6 (actualizado para integrar botón de favoritos estilo demo)
+// app.js - v3.2.7
 document.addEventListener('DOMContentLoaded', () => {
 // =======================================================================
 // MANEJO DE ERRORES GLOBAL PARA CAPTURAR CUALQUIER FALLO
