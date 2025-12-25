@@ -119,7 +119,8 @@ body {
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
-    padding: 10px 0;
+    /* AJUSTE: Eliminado padding-top para permitir que la cinta suba */
+    padding-bottom: 10px;
     background-color: transparent;
 }
 
@@ -128,13 +129,16 @@ body {
     font-weight: bold;
     color: var(--primary);
     margin: auto;
+    /* AJUSTE: Añadido padding-top para compensar y alinear el texto */
+    padding-top: 10px;
+    padding-right: 30px;
 }
 
-/* ✨ Cinta de favoritos */
-
+/* ✨ Cinta de favoritos - AJUSTE APLICADO */
 #filterToggleStar {
   position: absolute;
-  top: 0rem;
+  /* AJUSTE: top: -25px para compensar el padding de .player-container y pegarse al borde superior */
+  top: -25px;
   right: 0;
   width: 2.6rem;
   height: 2.6rem;
