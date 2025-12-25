@@ -604,7 +604,7 @@ loadStations();
 // =======================================================================
 if (filterToggleStar) {
   filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
-  filterToggleStar.title = 'Mostrar solo favoritas';
+  filterToggleStar.title = 'Solo estaciones favoritas';
 
   filterToggleStar.addEventListener('click', function() {
     showOnlyFavorites = !showOnlyFavorites;
@@ -612,11 +612,11 @@ if (filterToggleStar) {
 
     if (showOnlyFavorites) {
       this.setAttribute('aria-label', 'Mostrar todas las estaciones');
-      this.title = 'Mostrar todas';
+      this.title = 'Todas las estaciones';
       filterStationsByFavorites();
     } else {
       this.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
-      this.title = 'Mostrar solo favoritas';
+      this.title = 'Solo estaciones favoritas';
       showAllStations();
     }
   });
