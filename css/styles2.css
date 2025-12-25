@@ -160,14 +160,14 @@ body {
 
 .bookmark-frame path {
   fill: none;
-  stroke: #F4B400;
+  stroke: #FFD700;
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 #filterToggleStar.active .bookmark-frame path {
-  fill: #F4B400;
+  fill: #FFD700;
 }
 
 /* Selector de Estaciones */
