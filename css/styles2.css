@@ -118,7 +118,6 @@ body {
     position: relative;
     display: flex;
     justify-content: center;
-    align-items: center;
     margin-bottom: 20px;
     padding: 10px 0;
     background-color: transparent;
@@ -128,6 +127,7 @@ body {
     font-size: 24px;
     font-weight: bold;
     color: var(--primary);
+    margin: auto;
 }
 
 /* ✨ Cinta de favoritos */
