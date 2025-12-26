@@ -1,6 +1,6 @@
 // app.js - v3.2.7
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/esm/index.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
