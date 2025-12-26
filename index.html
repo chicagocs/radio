@@ -57,7 +57,7 @@
     }
     </script>
 
-    <style>
+<style>
   /* ==========================================================================
      CSS CRÍTICO (Inline)
      ========================================================================== */
@@ -92,7 +92,33 @@
       padding-bottom: 60px;
   }
 
-  /* Estructura Principal Visible */
+  /* ==========================================================================
+     OPTIMIZACIONES VISUALES Y DE ESTABILIDAD (NUEVO)
+     ========================================================================== */
+  
+  /* 1. Control de tamaño de íconos (Evita íconos gigantes) */
+  .btn svg, 
+  .favorite-btn svg, 
+  .share-button svg, 
+  .volume-icon,
+  .album-cover svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor; /* Hereda el color del texto/botón */
+      display: inline-block;
+      vertical-align: middle;
+  }
+
+  /* Ajustes específicos para elementos únicos */
+  #filterToggleStar svg { width: 100%; height: 100%; }
+  .volume-icon { width: 20px; height: 20px; }
+
+  /* 2. Estilos mínimos para botones que pueden verse sin CSS completo */
+  .favorite-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  
+  /* ==========================================================================
+     ESTRUCTURA PRINCIPAL
+     ========================================================================== */
   .player-container {
       background-color: var(--bg-surface);
       border: 2px solid var(--primary);
@@ -173,6 +199,7 @@
   }
   .album-cover {
       width: 120px; height: 120px;
+      min-height: 120px; /* Previene colapso */
       background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface) 100%);
       border: 1px solid var(--primary); border-radius: var(--radius);
       overflow: hidden; display: flex; align-items: center; justify-content: center;
@@ -190,7 +217,13 @@
   .song-album { font-size: 12px; color: var(--text-muted); font-style: normal; }
 
   /* Botones de Control */
-  .controls { display: flex; flex-direction: row; gap: 15px; margin-bottom: 20px; }
+  .controls { 
+      display: flex; 
+      flex-direction: row; 
+      gap: 15px; 
+      margin-bottom: 20px;
+      min-height: 50px; /* Previene saltos si el botón carga tarde */
+  }
   .btn {
       background-color: var(--primary); color: var(--bg-dark); border: none; padding: 12px;
       border-radius: var(--radius); font-size: 15px; font-weight: bold; cursor: pointer;
@@ -217,7 +250,7 @@
       font-size: 12px; color: var(--text-muted); width: 100%; max-width: 500px;
       display: flex; align-items: center; justify-content: center;
   }
-    </style>
+</style>
     
     <link rel="stylesheet" href="/css/styles.css" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="/css/styles.css"></noscript>
