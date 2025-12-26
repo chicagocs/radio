@@ -1,4 +1,4 @@
-// app.js - v3.2.9 (Final)
+// app.js - v3.2.9
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -8,13 +8,10 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // --- GESTIÓN DE ALMACENAMIENTO (STANDARD API) ---
 const StorageManager = {
   async init() {
-    // Solicitar persistencia de almacenamiento usando la API estándar navigator.storage
     if ('storage' in navigator && 'persist' in navigator.storage) {
       try {
         const isPersistent = await navigator.storage.persist();
         console.log(`[Storage] Persistencia garantizada: ${isPersistent}`);
-        
-        // Estimar cuota (Feature moderna)
         if (navigator.storage.estimate) {
           const estimate = await navigator.storage.estimate();
           console.log(`[Storage] Cuota usada: ${(estimate.usage / 1024 / 1024).toFixed(2)} MB de ${(estimate.quota / 1024 / 1024).toFixed(2)} MB`);
@@ -125,7 +122,6 @@ const PresenceManager = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Inicializar Gestor de Almacenamiento (API Estándar)
     await StorageManager.init();
 
     // --- REFERENCIAS DOM ---
@@ -270,7 +266,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const id = opt.dataset.value;
         opt.style.display = favorites.includes(id) ? 'block' : 'none';
       });
-      // Ocultar grupos vacíos
       document.querySelectorAll('.custom-optgroup-label').forEach(label => {
         let hasVisible = false;
         let next = label.nextElementSibling;
@@ -314,7 +309,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         this.updateTrigger();
         this.updateSelected();
         
-        // Scroll inicial
         setTimeout(() => {
           const selected = this.options.querySelector('.selected');
           if(selected) selected.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -358,12 +352,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         nameSpan.textContent = name;
         details.appendChild(nameSpan);
 
+        // Descripción
         if(station?.description) {
           const desc = document.createElement('span');
           desc.className = 'custom-option-description';
           desc.textContent = station.description;
           details.appendChild(desc);
         }
+
+        // --- RESTAURADO: TAGS (ETIQUETAS) ---
+        if (station?.tags && station.tags.length > 0) {
+          const tagsContainer = document.createElement('div');
+          tagsContainer.className = 'station-tags-container';
+          station.tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = 'station-tag';
+            tagElement.textContent = tag;
+            tagsContainer.appendChild(tagElement);
+          });
+          details.appendChild(tagsContainer);
+        }
+
+        // --- RESTAURADO: PROMOTIONS (ENLACES) ---
+        if (station?.promotions && station.promotions.length > 0) {
+          const promotionsContainer = document.createElement('div');
+          promotionsContainer.className = 'station-promotions-container';
+          station.promotions.forEach(promo => {
+            const promoLink = document.createElement('a');
+            promoLink.href = promo.url;
+            promoLink.textContent = promo.text;
+            promoLink.className = `station-promotion-link station-promotion-link-${promo.type}`;
+            promoLink.target = '_blank';
+            promoLink.rel = 'noopener noreferrer';
+            promotionsContainer.appendChild(promoLink);
+          });
+          details.appendChild(promotionsContainer);
+        }
+        // ---------------------------------------
 
         infoContainer.appendChild(details);
 
@@ -461,7 +486,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function resetAlbumCover() {
-      // SVG por defecto
       dom.albumCover.innerHTML = `
         <div class="album-cover-placeholder">
             <svg viewBox="0 0 640 640" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -509,7 +533,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!res.ok) throw new Error('Error HTTP');
         const all = await res.json();
         
-        // Agrupar
         const groups = all.reduce((acc, st) => {
           const name = st.service === 'somafm' ? 'SomaFM' : st.service === 'radioparadise' ? 'Radio Paradise' : st.service === 'nrk' ? 'NRK Radio' : 'Otro';
           if (!acc[name]) acc[name] = [];
@@ -517,14 +540,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           return acc;
         }, {});
 
-        // Ordenar
         for(let k in groups) groups[k].sort((a,b) => a.name.localeCompare(b.name));
 
         state.stationsById = {};
         dom.loadingStations.style.display = 'none';
         dom.stationSelect.style.display = 'block';
 
-        // Llenar select nativo
         while(dom.stationSelect.firstChild) dom.stationSelect.removeChild(dom.stationSelect.firstChild);
         const def = document.createElement('option');
         def.value = ""; def.textContent = " Seleccionar Estación "; def.disabled = true; def.selected = true;
@@ -543,11 +564,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const customSelect = new CustomSelect(dom.stationSelect);
-
-        // Restaurar favoritos
         getFavorites().forEach(id => updateFavoriteButtonUI(id, true));
 
-        // Restaurar última estación
         const lastId = StorageManager.get('lastSelectedStation');
         if (lastId && state.stationsById[lastId]) {
           dom.stationSelect.value = lastId;
@@ -600,7 +618,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         dom.totalDuration.textContent = '(--:--)';
       }
 
-      // Rapid Check Logic (SomaFM)
       if (state.currentStation?.service === 'somafm' && !state.songTransitionDetected) {
         const checkRapid = () => {
           const elapsed = (Date.now() - state.trackStartTime) / 1000;
@@ -648,13 +665,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function fetchSongDetails(artist, title, album) {
       if (!artist || !title) return;
-      // Sanitización básica
       const sArtist = artist.replace(/<[^>]*>?/gm, '');
       const sTitle = title.replace(/<[^>]*>?/gm, '');
       const sAlbum = album ? album.replace(/<[^>]*>?/gm, '') : '';
 
       try {
-        // Spotify via Worker
         const q = `artist=${encodeURIComponent(sArtist)}&title=${encodeURIComponent(sTitle)}&album=${encodeURIComponent(sAlbum)}`;
         const res = await fetch(`https://core.chcs.workers.dev/spotify?${q}`);
         if (!res.ok) throw new Error('Error API Spotify');
@@ -727,7 +742,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           const newInfo = { title: s.title, artist: s.artist, album: s.album, date: s.date };
           
           if (!state.currentTrackInfo || state.currentTrackInfo.title !== newInfo.title || state.currentTrackInfo.artist !== newInfo.artist) {
-            // Detalles reset
             dom.releaseDate.textContent = '----'; dom.recordLabel.textContent = '----'; dom.albumTrackCount.textContent = '--'; dom.albumTotalDuration.textContent = '--:--'; dom.trackGenre.textContent = '--'; dom.trackPosition.textContent = '--/--'; dom.trackIsrc.textContent = '----';
 
             state.currentTrackInfo = newInfo;
@@ -825,7 +839,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.currentTrackInfo = null;
       resetCountdown();
       resetAlbumCover();
-      // Reset detalles
       dom.releaseDate.textContent = '----'; dom.recordLabel.textContent = '----'; dom.albumTrackCount.textContent = '--'; dom.albumTotalDuration.textContent = '--:--'; dom.trackGenre.textContent = '--'; dom.trackPosition.textContent = '--/--'; dom.trackIsrc.textContent = '----';
 
       showWelcomeScreen();
@@ -839,13 +852,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function playStation() {
       if (!state.currentStation) return alert('Selecciona una estación');
       
-      // Limpiar intervalos previos
       if(state.updateInterval) clearInterval(state.updateInterval);
       if(state.countdownInterval) clearInterval(state.countdownInterval);
       state.currentTrackInfo = null; state.trackDuration = 0; state.trackStartTime = 0;
       resetCountdown();
       
-      // Reset UI canción
       dom.songTitle.textContent = 'Conectando...';
       dom.songArtist.textContent = ''; dom.songAlbum.textContent = '';
       resetAlbumCover();
@@ -882,19 +893,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ==========================================================================
-    // NAVEGACIÓN POR TECLADO (Saltar a estación por letra)
+    // NAVEGACIÓN POR TECLADO (RESTAURADO)
     // ==========================================================================
     let lastKeyPressed = null;
     let lastMatchIndex = -1;
 
     document.addEventListener('keydown', function(event) {
-      // Solo funcionar si el selector personalizado está CERRADO
       if (document.querySelector('.custom-select-wrapper.open')) return;
-      
-      // Ignorar si el usuario está escribiendo en un input o textarea
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-      
-      // Solo procesar letras y números
       if (!/^[a-zA-Z0-9]$/.test(event.key)) return;
 
       event.preventDefault();
@@ -903,7 +909,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const customOptions = document.querySelectorAll('.custom-option');
       const matches = [];
 
-      // Buscar opciones que coincidan con la letra presionada
       customOptions.forEach(option => {
         const nameElement = option.querySelector('.custom-option-name');
         if (nameElement) {
@@ -915,7 +920,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (matches.length > 0) {
-        // Ciclar si se presiona la misma letra varias veces
         if (key === lastKeyPressed) {
           lastMatchIndex = (lastMatchIndex + 1) % matches.length;
         } else {
@@ -926,13 +930,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectedOption = matches[lastMatchIndex];
         const stationId = selectedOption.dataset.value;
 
-        // Actualizar el select nativo
         dom.stationSelect.value = stationId;
-        
-        // Disparar el evento de cambio manualmente para cargar la estación
         dom.stationSelect.dispatchEvent(new Event('change'));
 
-        // Actualización visual del trigger del Custom Select
         const station = state.stationsById[stationId];
         let displayName = station ? station.name : "Seleccionar Estación";
         if (station && station.service === 'radioparadise') {
@@ -942,7 +942,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const trigger = document.querySelector('.custom-select-trigger');
         if (trigger) trigger.textContent = displayName;
 
-        // Resaltar visualmente la opción y hacer scroll
         customOptions.forEach(opt => opt.classList.remove('selected'));
         selectedOption.classList.add('selected');
         selectedOption.scrollIntoView({ block: 'nearest' });
@@ -1069,7 +1068,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     let deferredPrompt;
     function showInstallPwaInvitation() {
       if(window.matchMedia('(display-mode: standalone)').matches || state.installInvitationTimeout) return;
-      // Lógica simple de detección OS
       const ua = navigator.userAgent.toLowerCase();
       let os = 'other';
       if(ua.indexOf('android') > -1) os = 'android';
@@ -1129,7 +1127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           setTimeout(()=>window.location.reload(), 100);
         });
         
-        // Fetch SW Version
         const verSpan = document.getElementById('version-number');
         fetch('/sw.js').then(r=>r.text()).then(txt => {
           const m = txt.match(/v(\d+\.\d+\.\d+)/);
@@ -1157,7 +1154,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else showNotification('Espera a que empiece la canción');
     });
 
-    // Init
     await loadStations();
 
   } catch (fatalError) {
