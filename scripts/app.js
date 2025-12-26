@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'RadioMax',
         artist: 'Streaming Player',
-        artwork: [{ src: '/images/icon-512.png', sizes: '512x512', type: 'image/png' }]
+        artwork: [{ src: '/images/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }]
       });
       navigator.mediaSession.setActionHandler('play', () => { if(!state.isPlaying && state.currentStation) dom.playBtn.click(); });
       navigator.mediaSession.setActionHandler('pause', () => { if(state.isPlaying) dom.playBtn.click(); });
