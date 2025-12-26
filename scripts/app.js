@@ -1128,10 +1128,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         
         const verSpan = document.getElementById('version-number');
-        fetch('/sw.js').then(r=>r.text()).then(txt => {
-          const m = txt.match(/v(\d+\.\d+\.\d+)/);
-          if(verSpan && m) verSpan.textContent = m[1];
-        }).catch(()=>{});
+        fetch('/sw.js')
+          .then(response => {
+            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+            return response.text();
+          })
+          .then(text => {
+            // Regex robusto para admitir formatos como "// v3.2.8", "v3.2.8" o "3.2.8"
+            const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+            
+            if (versionMatch && versionMatch[1]) {
+              verSpan.textContent = versionMatch[1];
+            } else {
+              verSpan.textContent = 'N/D';
+              console.warn('No se pudo encontrar el número de versión en sw.js.');
+            }
+          })
+          .catch(error => {
+            console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
+            if(verSpan) verSpan.textContent = 'Error';
+          });
       });
     }
     
