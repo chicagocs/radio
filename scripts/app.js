@@ -1136,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           .then(text => {
             // BÚSQUEDA ULTRA-ROBUSTA: Busca una "v" seguida de formato de versión (ej: 3.2.8)
             // Funciona tanto en comentarios (// v3.2.8) como en código (const CACHE_VERSION = 'v3.2.8';)
-            const versionMatch = text.match(/v(\d+(?:\.\d+){1,2})/);
+            const versionMatch = text.match(/['"]?v(\d+(?:\.\d+){1,2})['"]?/);
             
             if (versionMatch && versionMatch[1]) {
               // Añadimos la "v" manualmente para asegurar el formato visual consistente
