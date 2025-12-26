@@ -1,0 +1,93 @@
+{
+  "name": "RadioMax - Una experiencia inmersiva",
+  "short_name": "RadioMax",
+  "description": "Una experiencia inmersiva de radio con reproducción sin interrupciones",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#ff6600",
+  "categories": ["music", "entertainment"],
+  "lang": "es-AR",
+  "dir": "ltr",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "shortcuts": [
+    {
+      "name": "Reproducir",
+      "short_name": "Play",
+      "description": "Comenzar a escuchar radio",
+      "url": "/?action=play",
+      "icons": [
+        {
+          "src": "/images/favicon-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "src": "/images/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista móvil de RadioMax"
+    },
+    {
+      "src": "/images/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vista de escritorio de RadioMax"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+radio",
+      "url": "/?station=%s"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}
