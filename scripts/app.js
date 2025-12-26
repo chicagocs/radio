@@ -1,5 +1,4 @@
-// app.js - v3.2.7 + Integración Supabase Presence
-// IMPORTANTE: Asegúrate de usar <script type="module"> en tu HTML para que este import funcione.
+// app.js - v3.2.7
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
 
