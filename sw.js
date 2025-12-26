@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   '/images/favicon-32x32.png',
   '/images/favicon-16x16.png',
   '/images/web-app-manifest-192x192.png',
-  '/images/web-app-manifest-512x512.png' // ✅ Corregido: solo una extensión
+  '/images/web-app-manifest-512x512.png'
 ];
 
 const API_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
