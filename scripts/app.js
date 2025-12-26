@@ -1,4 +1,4 @@
-// app.js - v3.2.9
+// app.js - v3.2.9 (Final)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -42,7 +42,6 @@ const StorageManager = {
     } catch (error) {
       if (error.name === 'QuotaExceededError') {
         console.error('[Storage] Error: Cuota de localStorage llena.');
-        // Opcional: Intentar limpiar datos antiguos o notificar al usuario
       }
       return false;
     }
@@ -882,7 +881,77 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.updateInterval = setInterval(() => updateSongInfo(true), 6000);
     }
 
-    // --- EVENT LISTENERS ---
+    // ==========================================================================
+    // NAVEGACIÓN POR TECLADO (Saltar a estación por letra)
+    // ==========================================================================
+    let lastKeyPressed = null;
+    let lastMatchIndex = -1;
+
+    document.addEventListener('keydown', function(event) {
+      // Solo funcionar si el selector personalizado está CERRADO
+      if (document.querySelector('.custom-select-wrapper.open')) return;
+      
+      // Ignorar si el usuario está escribiendo en un input o textarea
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      
+      // Solo procesar letras y números
+      if (!/^[a-zA-Z0-9]$/.test(event.key)) return;
+
+      event.preventDefault();
+
+      const key = event.key.toLowerCase();
+      const customOptions = document.querySelectorAll('.custom-option');
+      const matches = [];
+
+      // Buscar opciones que coincidan con la letra presionada
+      customOptions.forEach(option => {
+        const nameElement = option.querySelector('.custom-option-name');
+        if (nameElement) {
+          const name = nameElement.textContent.toLowerCase();
+          if (name.startsWith(key)) {
+            matches.push(option);
+          }
+        }
+      });
+
+      if (matches.length > 0) {
+        // Ciclar si se presiona la misma letra varias veces
+        if (key === lastKeyPressed) {
+          lastMatchIndex = (lastMatchIndex + 1) % matches.length;
+        } else {
+          lastMatchIndex = 0;
+          lastKeyPressed = key;
+        }
+
+        const selectedOption = matches[lastMatchIndex];
+        const stationId = selectedOption.dataset.value;
+
+        // Actualizar el select nativo
+        dom.stationSelect.value = stationId;
+        
+        // Disparar el evento de cambio manualmente para cargar la estación
+        dom.stationSelect.dispatchEvent(new Event('change'));
+
+        // Actualización visual del trigger del Custom Select
+        const station = state.stationsById[stationId];
+        let displayName = station ? station.name : "Seleccionar Estación";
+        if (station && station.service === 'radioparadise') {
+          displayName = station.name.split(' - ')[1] || station.name;
+        }
+
+        const trigger = document.querySelector('.custom-select-trigger');
+        if (trigger) trigger.textContent = displayName;
+
+        // Resaltar visualmente la opción y hacer scroll
+        customOptions.forEach(opt => opt.classList.remove('selected'));
+        selectedOption.classList.add('selected');
+        selectedOption.scrollIntoView({ block: 'nearest' });
+      }
+    });
+
+    // ==========================================================================
+    // EVENT LISTENERS
+    // ==========================================================================
 
     if (dom.filterToggleStar) {
       dom.filterToggleStar.addEventListener('click', () => {
