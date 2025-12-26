@@ -1134,14 +1134,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             return response.text();
           })
           .then(text => {
-            // Regex robusto para admitir formatos como "// v3.2.8", "v3.2.8" o "3.2.8"
-            const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+            // BÚSQUEDA ULTRA-ROBUSTA: Busca una "v" seguida de formato de versión (ej: 3.2.8)
+            // Funciona tanto en comentarios (// v3.2.8) como en código (const CACHE_VERSION = 'v3.2.8';)
+            const versionMatch = text.match(/v(\d+(?:\.\d+){1,2})/);
             
             if (versionMatch && versionMatch[1]) {
-              verSpan.textContent = versionMatch[1];
+              // Añadimos la "v" manualmente para asegurar el formato visual consistente
+              verSpan.textContent = "v" + versionMatch[1];
             } else {
               verSpan.textContent = 'N/D';
-              console.warn('No se pudo encontrar el número de versión en sw.js.');
+              console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
             }
           })
           .catch(error => {
