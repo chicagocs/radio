@@ -87,34 +87,25 @@
         <div class="now-playing-container">
             <div class="album-cover" id="albumCover">
                 <div class="album-cover-placeholder">
-                    <svg width="100%" height="100%" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                          <filter id="glow">
-                            <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-                            <feMerge>
-                              <feMergeNode in="coloredBlur"/>
-                              <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                          </filter>
-                        </defs>
-                        <rect width="640" height="640" fill="#0A0A0A" />
-                        <g stroke="#333333" stroke-width="2" fill="none">
-                          <circle cx="320" cy="320" r="280" />
-                          <circle cx="320" cy="320" r="220" />
-                          <circle cx="320" cy="320" r="160" />
-                        </g>
-                        <g transform="translate(320, 320)">
-                          <path 
-                            d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" 
-                            stroke="#FF7A00" 
-                            stroke-width="20" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round" 
-                            fill="none"
-                            filter="url(#glow)"
-                          />
-                        </g>
-                    </svg>
+                <!-- Logo RM -->    
+                <svg viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g stroke="#333333" stroke-width="2" fill="none">
+                    <circle cx="320" cy="320" r="280" />
+                    <circle cx="320" cy="320" r="220" />
+                    <circle cx="320" cy="320" r="160" />
+                </g>
+                <g transform="translate(320, 320)">
+                    <path 
+                        d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" 
+                        stroke="#FF7A00" 
+                        stroke-width="20" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round" 
+                        fill="none"
+                    />
+                </g>
+                </svg>
+                <!-- Logo RM -->       
                 </div>
             </div>
             <div class="now-playing" id="nowPlaying">
