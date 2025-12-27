@@ -32,8 +32,7 @@ import {
   updateTotalDurationDisplay,
   showWelcomeScreen,
   showPlaybackInfo,
-  showNotification,
-  formatDuration
+  showNotification
 } from './ui-controller.js';
 
 // ==========================================================================
@@ -42,9 +41,6 @@ import {
 const SUPABASE_URL = 'https://xahbzlhjolnugpbpnbmo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_G_dlO7Q6PPT7fDQCvSN5lA_mbcqtxVl';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let currentChannel = null;
-let currentStationId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -406,7 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const spotifyData = await fetchSpotifyDetails(artist, title, album);
         displayAlbumCoverFromUrl(spotifyData.imageUrl);
-        updateAlbumDetailsWithSpotifyData(spotifyData);
+        updateAlbumDetailsWithSpotifyData(spotifyData); // ✅ Llama a la función de ui-controller.js
         if (spotifyData.duration) {
           trackDuration = spotifyData.duration;
           updateTotalDurationDisplay(trackDuration);
@@ -501,7 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
         return;
       }
-      leaveStation(supabase); // ✅ Corregido: solo pasa `supabase`
+      leaveStation(supabase); // ✅ Pasa solo `supabase`
       resetCountdown();
       resetAlbumCover();
       resetAlbumDetails();
@@ -558,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await audioPlayer.play(currentStation.url);
         showPlaybackInfo();
         if (currentStation.id) {
-          await joinStation(supabase, currentStation.id); // ✅ Corregido: pasa `supabase` y `stationId`
+          await joinStation(supabase, currentStation.id); // ✅ Pasa `supabase` y `stationId`
         }
         if (currentStation.service === 'somafm') {
           startSomaFmPolling();
@@ -726,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (stopBtn) {
       stopBtn.addEventListener('click', () => {
-        leaveStation(supabase); // ✅ Corregido: solo pasa `supabase`
+        leaveStation(supabase); // ✅ Pasa solo `supabase`
         audioPlayer.stop();
         stopSongInfoUpdates();
         stopPlaybackChecks();
@@ -839,7 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // PWA INSTALL
+    // PWA, SHARE, TECLADO, SW, etc. (todos los listeners completos)
+
     let deferredPrompt;
     const installPwaBtnAndroid = document.getElementById('install-pwa-btn-android');
     const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
@@ -891,7 +888,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setTimeout(showInstallPwaButtons, 1000);
 
-    // COMPARTIR
     if (shareButton) {
       shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
     }
@@ -977,7 +973,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // TECLADO
     let lastKeyPressed = null;
     let lastMatchIndex = -1;
     document.addEventListener('keydown', function (event) {
@@ -1012,12 +1007,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // VOLUMEN
     if (volumeIcon) {
       audioPlayer.updateVolumeIconPosition();
     }
 
-    // VERSIÓN Y SERVICE WORKER
     const versionSpan = document.getElementById('version-number');
     if (versionSpan) {
       fetch('/sw.js')
