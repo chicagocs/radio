@@ -1,4 +1,4 @@
-// scripts/main.js - v3.2.8 (modularizado completo)
+// scripts/main.js - v3.2.8 (modularizado completo + ui-controller)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { getUserUniqueID, joinStation, leaveStation } from './supabase-presence.js';
 import {
@@ -20,6 +20,21 @@ import {
   fetchMusicBrainzDuration,
   logErrorForAnalysis
 } from './metadata-fetchers.js';
+import {
+  initializeUI,
+  updateUIWithTrackInfo,
+  resetUI,
+  resetAlbumCover,
+  displayAlbumCoverFromUrl,
+  resetAlbumDetails,
+  updateAlbumDetailsWithSpotifyData,
+  updateShareButtonVisibility,
+  updateTotalDurationDisplay,
+  showWelcomeScreen,
+  showPlaybackInfo,
+  showNotification,
+  formatDuration
+} from './ui-controller.js';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
@@ -91,6 +106,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let trackStartTime = 0;
 
     // ==========================================================================
+    // ✅ INICIALIZAR CONTROLADOR DE UI
+    // ==========================================================================
+    const uiElements = {
+      stationName, songTitle, songArtist, songAlbum, albumCover,
+      releaseDate, recordLabel, albumTrackCount, albumTotalDuration,
+      trackGenre, trackPosition, trackIsrc,
+      shareButton, shareOptions,
+      countdownTimer, totalDuration,
+      welcomeScreen, playbackInfo
+    };
+    initializeUI(uiElements);
+
+    // ==========================================================================
     // ✅ INSTANCIA DEL REPRODUCTOR DE AUDIO
     // ==========================================================================
     const audioPlayer = new AudioPlayer(
@@ -103,84 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     // ==========================================================================
-    // FUNCIONES DE UTILIDAD
-    // ==========================================================================
-
-    function showWelcomeScreen() {
-      if (welcomeScreen) welcomeScreen.style.display = 'flex';
-      if (playbackInfo) playbackInfo.style.display = 'none';
-    }
-
-    function showPlaybackInfo() {
-      if (welcomeScreen) welcomeScreen.style.display = 'none';
-      if (playbackInfo) playbackInfo.style.display = 'flex';
-    }
-
-    function updateShareButtonVisibility() {
-      const title = songTitle.textContent;
-      const artist = songArtist.textContent;
-      if (title && artist &&
-        title !== 'a sonar' &&
-        title !== 'Conectando...' &&
-        title !== 'Seleccionar estación' &&
-        title !== 'A sonar' &&
-        title !== 'Reproduciendo...' &&
-        title !== 'Error de reproducción' &&
-        title !== 'Reconectando...' &&
-        artist !== '') {
-        shareButton.classList.add('visible');
-      } else {
-        shareButton.classList.remove('visible');
-        shareOptions.classList.remove('active');
-      }
-    }
-
-    function showInstallInvitation() {
-      if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) return;
-      let os = /android/i.test(navigator.userAgent) ? 'android' :
-               /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' :
-               /win/i.test(navigator.userAgent) ? 'windows' : 'other';
-      [installWindowsBtn, installAndroidBtn, installIosBtn].forEach(btn => btn.classList.add('disabled'));
-      const activeBtn = { android: installAndroidBtn, ios: installIosBtn, windows: installWindowsBtn }[os];
-      if (activeBtn) activeBtn.classList.remove('disabled');
-      installPwaInvitation.style.display = 'flex';
-      installInvitationTimeout = true;
-    }
-
-    function hideInstallInvitation() {
-      installPwaInvitation.style.display = 'none';
-    }
-
-    function isFacebookActive() {
-      return document.visibilityState === 'visible' &&
-        document.hasFocus() &&
-        audioPlayer.wasPlayingBeforeFocusLoss &&
-        !audioPlayer.isPlaying &&
-        currentStation;
-    }
-
-    function startFacebookDetection() {
-      if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
-      pageFocusCheckInterval = setInterval(() => {
-        if (isFacebookActive()) {
-          audioPlayer.attemptResumePlayback();
-        }
-      }, 2000);
-    }
-
-    function startPlaybackChecks() {
-      startFacebookDetection();
-    }
-
-    function stopPlaybackChecks() {
-      if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
-      facebookVideoDetected = false;
-    }
-
-    // ==========================================================================
     // FAVORITOS Y FILTROS
     // ==========================================================================
-
     function updateFavoriteButtonUI(stationId, isFavorite) {
       const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
       if (!btn) return;
@@ -220,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // CLASE CustomSelect
     // ==========================================================================
-
     class CustomSelect {
       constructor(originalSelect) {
         this.originalSelect = originalSelect;
@@ -382,7 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
       toggle() { this.customSelectWrapper.classList.toggle('open'); }
       open() { this.customSelectWrapper.classList.add('open'); }
       close() { this.customSelectWrapper.classList.remove('open'); }
-
       updateSelectedOption() {
         const selectedValue = this.originalSelect.value;
         const customOptions = this.customOptions.querySelectorAll('.custom-option');
@@ -410,184 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // PORTADA Y METADATOS
-    // ==========================================================================
-
-    function displayAlbumCoverFromUrl(imageUrl) {
-      if (!imageUrl) {
-        resetAlbumCover();
-        return;
-      }
-      albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = function () {
-        const placeholder = albumCover.querySelector('.album-cover-placeholder');
-        if (placeholder) {
-          placeholder.style.opacity = '0';
-          placeholder.style.pointerEvents = 'none';
-          setTimeout(() => {
-            if (placeholder.parentNode === albumCover) {
-              placeholder.remove();
-            }
-          }, 300);
-        }
-        displayAlbumCover(this);
-      };
-      img.onerror = function () {
-        console.warn('Error al cargar la portada:', imageUrl);
-        resetAlbumCover();
-      };
-      img.src = imageUrl;
-    }
-
-    function displayAlbumCover(img) {
-      albumCover.innerHTML = '';
-      const displayImg = document.createElement('img');
-      displayImg.src = img.src;
-      displayImg.alt = 'Portada del álbum';
-      displayImg.classList.add('loaded');
-      albumCover.appendChild(displayImg);
-    }
-
-    function resetAlbumCover() {
-      albumCover.innerHTML = `
-<div class="album-cover-placeholder">
-<svg viewBox="0 0 640 640" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-<defs>
-<filter id="glow">
-<feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-<feMerge>
-<feMergeNode in="coloredBlur"/>
-<feMergeNode in="SourceGraphic"/>
-</feMerge>
-</filter>
-</defs>
-<rect width="640" height="640" fill="#0A0A0A" />
-<g stroke="#333333" stroke-width="2" fill="none">
-<circle cx="320" cy="320" r="280" />
-<circle cx="320" cy="320" r="220" />
-<circle cx="320" cy="320" r="160" />
-</g>
-<g transform="translate(320, 320)">
-<path
-d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80"
-stroke="#FF7A00"
-stroke-width="20"
-stroke-linecap="round"
-stroke-linejoin="round"
-fill="none"
-filter="url(#glow)"
-/>
-</g>
-</svg>
-</div>
-`;
-    }
-
-    function resetAlbumDetails() {
-      releaseDate.textContent = '----';
-      recordLabel.textContent = '----';
-      albumTrackCount.textContent = '--';
-      if (trackIsrc) trackIsrc.textContent = '----';
-      albumTotalDuration.textContent = '--:--';
-      trackGenre.textContent = '--';
-      trackPosition.textContent = '--/--';
-    }
-
-    function updateUIWithTrackInfo(trackInfo) {
-      songTitle.textContent = trackInfo.title;
-      songArtist.textContent = trackInfo.artist;
-      songAlbum.textContent = trackInfo.album ? `(${trackInfo.album})` : '';
-      updateShareButtonVisibility();
-    }
-
-    function resetUI() {
-      if (audioPlayer.isReconnecting) return;
-      songTitle.textContent = 'Reproduciendo...';
-      songArtist.textContent = '';
-      songAlbum.textContent = '';
-      resetCountdown();
-      resetAlbumCover();
-      resetAlbumDetails();
-      updateShareButtonVisibility();
-    }
-
-    function resetCountdown() {
-      if (countdownInterval) clearInterval(countdownInterval);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
-      trackDuration = 0;
-      trackStartTime = 0;
-      countdownTimer.textContent = '--:--';
-      totalDuration.textContent = '(--:--)';
-      trackPosition.textContent = '--/--';
-      countdownTimer.classList.remove('ending');
-      songTransitionDetected = false;
-    }
-
-    function startCountdown() {
-      resetCountdown();
-      if (!trackStartTime) return;
-
-      if (trackDuration > 0) {
-        const totalMinutes = Math.floor(trackDuration / 60);
-        const totalSeconds = Math.floor(trackDuration % 60);
-        totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-      } else {
-        totalDuration.textContent = '(--:--)';
-      }
-
-      if (currentStation?.service === 'somafm' && !songTransitionDetected) {
-        const checkRapidMode = () => {
-          const elapsed = (Date.now() - trackStartTime) / 1000;
-          if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
-            rapidCheckInterval = setInterval(() => {
-              if (currentStation?.service === 'somafm') {
-                updateSongInfo();
-              } else {
-                if (rapidCheckInterval) clearInterval(rapidCheckInterval);
-              }
-            }, 3000);
-          }
-        };
-        checkRapidMode();
-        setInterval(() => {
-          if (!audioPlayer.isPlaying || currentStation?.service !== 'somafm') return;
-          checkRapidMode();
-        }, 10000);
-      }
-
-      function updateTimer() {
-        const now = Date.now();
-        const elapsed = (now - trackStartTime) / 1000;
-        let displayTime = trackDuration > 0 ? Math.max(0, trackDuration - elapsed) : elapsed;
-        const minutes = Math.floor(displayTime / 60);
-        const seconds = Math.floor(displayTime % 60);
-        countdownTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        countdownTimer.classList.toggle('ending', trackDuration > 0 && displayTime < 10);
-
-        if ((trackDuration > 0 && displayTime > 0) || trackDuration === 0) {
-          animationFrameId = requestAnimationFrame(updateTimer);
-        } else {
-          countdownTimer.textContent = '00:00';
-          countdownTimer.classList.remove('ending');
-          if (currentStation?.service === 'nrk') {
-            stopBtn.click();
-          } else {
-            updateSongInfo();
-            if (updateInterval) clearInterval(updateInterval);
-            updateInterval = setInterval(updateSongInfo, 30000);
-          }
-        }
-      }
-      updateTimer();
-    }
-
-    // ==========================================================================
     // MANEJO DE METADATOS
     // ==========================================================================
-
     async function updateSongInfo() {
       if (!currentStation?.service) return;
 
@@ -639,7 +413,7 @@ filter="url(#glow)"
         updateAlbumDetailsWithSpotifyData(spotifyData);
         if (spotifyData.duration) {
           trackDuration = spotifyData.duration;
-          updateTotalDurationDisplay();
+          updateTotalDurationDisplay(trackDuration);
           return;
         }
       } catch (spotifyError) {
@@ -649,84 +423,87 @@ filter="url(#glow)"
       try {
         const duration = await fetchMusicBrainzDuration(artist, title);
         trackDuration = duration;
-        updateTotalDurationDisplay();
+        updateTotalDurationDisplay(trackDuration);
       } catch (mbError) {
         logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
       }
     }
 
-    function updateTotalDurationDisplay() {
-      const totalMinutes = Math.floor(trackDuration / 60);
-      const totalSeconds = Math.floor(trackDuration % 60);
-      totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-    }
-
-    function updateAlbumDetailsWithSpotifyData(data) {
-      const releaseDateElement = document.getElementById('releaseDate');
-      if (releaseDateElement) releaseDateElement.innerHTML = '';
-      if (data.release_date) {
-        const year = data.release_date.substring(0, 4);
-        let displayText = year;
-        if (data.albumType && data.albumType !== 'album') {
-          displayText += ` (${data.albumType})`;
-        }
-        releaseDateElement.textContent = displayText;
-      } else {
-        if (releaseDateElement) releaseDateElement.textContent = '----';
-      }
-      recordLabel.textContent = (data.label && data.label.trim()) ? data.label : '----';
-      albumTrackCount.textContent = data.totalTracks || '--';
-      if (trackIsrc) trackIsrc.textContent = (data.isrc && data.isrc.trim()) ? data.isrc : '----';
-      albumTotalDuration.textContent = data.totalAlbumDuration ? formatDuration(data.totalAlbumDuration) : '--:--';
-      trackGenre.textContent = (data.genres && data.genres.length) ? data.genres.slice(0,2).join(', ') : '--';
-      trackPosition.textContent = (data.trackNumber && data.totalTracks)
-        ? `Track ${data.trackNumber}/${data.totalTracks}`
-        : '--/--';
-    }
-
-    function formatDuration(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-
-    function extractDateFromUrl(url) {
-      const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
-      if (match) {
-        const dateStr = match[1];
-        return `${dateStr.substring(6,8)}-${dateStr.substring(4,6)}-${dateStr.substring(0,4)}`;
-      }
-      return 'Fecha desconocida';
-    }
-
-    function startSomaFmPolling() {
-      if (updateInterval) clearInterval(updateInterval);
-      updateInterval = setInterval(() => updateSongInfo(), 6000);
-    }
-
-    function startSongInfoUpdates() {
-      updateSongInfo();
-      if (updateInterval) clearInterval(updateInterval);
-      updateInterval = setInterval(updateSongInfo, 30000);
-    }
-
-    function stopSongInfoUpdates() {
-      if (updateInterval) clearInterval(updateInterval);
+    // ==========================================================================
+    // TEMPORIZADOR Y CONTADOR
+    // ==========================================================================
+    function resetCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+      trackDuration = 0;
+      trackStartTime = 0;
+      countdownTimer.textContent = '--:--';
+      totalDuration.textContent = '(--:--)';
+      trackPosition.textContent = '--/--';
+      countdownTimer.classList.remove('ending');
+      songTransitionDetected = false;
+    }
+
+    function startCountdown() {
       resetCountdown();
-      resetAlbumCover();
-      resetAlbumDetails();
-      currentTrackInfo = null;
-      songTitle.textContent = 'Seleccionar estación';
-      songArtist.textContent = '';
-      songAlbum.textContent = '';
-      updateShareButtonVisibility();
+      if (!trackStartTime) return;
+
+      if (trackDuration > 0) {
+        updateTotalDurationDisplay(trackDuration);
+      } else {
+        totalDuration.textContent = '(--:--)';
+      }
+
+      if (currentStation?.service === 'somafm' && !songTransitionDetected) {
+        const checkRapidMode = () => {
+          const elapsed = (Date.now() - trackStartTime) / 1000;
+          if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
+            rapidCheckInterval = setInterval(() => {
+              if (currentStation?.service === 'somafm') {
+                updateSongInfo();
+              } else {
+                if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+              }
+            }, 3000);
+          }
+        };
+        checkRapidMode();
+        setInterval(() => {
+          if (!audioPlayer.isPlaying || currentStation?.service !== 'somafm') return;
+          checkRapidMode();
+        }, 10000);
+      }
+
+      function updateTimer() {
+        const now = Date.now();
+        const elapsed = (now - trackStartTime) / 1000;
+        let displayTime = trackDuration > 0 ? Math.max(0, trackDuration - elapsed) : elapsed;
+        const minutes = Math.floor(displayTime / 60);
+        const seconds = Math.floor(displayTime % 60);
+        countdownTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        countdownTimer.classList.toggle('ending', trackDuration > 0 && displayTime < 10);
+
+        if ((trackDuration > 0 && displayTime > 0) || trackDuration === 0) {
+          animationFrameId = requestAnimationFrame(updateTimer);
+        } else {
+          countdownTimer.textContent = '00:00';
+          countdownTimer.classList.remove('ending');
+          if (currentStation?.service === 'nrk') {
+            stopBtn.click();
+          } else {
+            updateSongInfo();
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(updateSongInfo, 30000);
+          }
+        }
+      }
+      updateTimer();
     }
 
     // ==========================================================================
     // REPRODUCCIÓN
     // ==========================================================================
-
     function handlePlaybackError() {
       if (audioPlayer.isReconnecting) return;
       if (!audioPlayerEl.paused && audioPlayerEl.currentTime > 0) {
@@ -814,10 +591,42 @@ filter="url(#glow)"
       }
     }
 
+    function extractDateFromUrl(url) {
+      const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
+      if (match) {
+        const dateStr = match[1];
+        return `${dateStr.substring(6,8)}-${dateStr.substring(4,6)}-${dateStr.substring(0,4)}`;
+      }
+      return 'Fecha desconocida';
+    }
+
+    function startSomaFmPolling() {
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(() => updateSongInfo(), 6000);
+    }
+
+    function startSongInfoUpdates() {
+      updateSongInfo();
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(updateSongInfo, 30000);
+    }
+
+    function stopSongInfoUpdates() {
+      if (updateInterval) clearInterval(updateInterval);
+      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+      resetCountdown();
+      resetAlbumCover();
+      resetAlbumDetails();
+      currentTrackInfo = null;
+      songTitle.textContent = 'Seleccionar estación';
+      songArtist.textContent = '';
+      songAlbum.textContent = '';
+      updateShareButtonVisibility();
+    }
+
     // ==========================================================================
     // INICIALIZACIÓN
     // ==========================================================================
-
     async function initializeApp() {
       try {
         const groupedStations = await loadStations();
@@ -893,7 +702,6 @@ filter="url(#glow)"
     // ==========================================================================
     // EVENT LISTENERS
     // ==========================================================================
-
     if (filterToggleStar) {
       filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
       filterToggleStar.title = 'Solo estaciones favoritas';
@@ -942,6 +750,49 @@ filter="url(#glow)"
         stopPlaybackChecks();
         showWelcomeScreen();
       });
+    }
+
+    // === FUNCIONES DE UTILIDAD ===
+    function showInstallInvitation() {
+      if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) return;
+      let os = /android/i.test(navigator.userAgent) ? 'android' :
+               /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' :
+               /win/i.test(navigator.userAgent) ? 'windows' : 'other';
+      [installWindowsBtn, installAndroidBtn, installIosBtn].forEach(btn => btn.classList.add('disabled'));
+      const activeBtn = { android: installAndroidBtn, ios: installIosBtn, windows: installWindowsBtn }[os];
+      if (activeBtn) activeBtn.classList.remove('disabled');
+      installPwaInvitation.style.display = 'flex';
+      installInvitationTimeout = true;
+    }
+
+    function hideInstallInvitation() {
+      installPwaInvitation.style.display = 'none';
+    }
+
+    function isFacebookActive() {
+      return document.visibilityState === 'visible' &&
+        document.hasFocus() &&
+        audioPlayer.wasPlayingBeforeFocusLoss &&
+        !audioPlayer.isPlaying &&
+        currentStation;
+    }
+
+    function startFacebookDetection() {
+      if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
+      pageFocusCheckInterval = setInterval(() => {
+        if (isFacebookActive()) {
+          audioPlayer.attemptResumePlayback();
+        }
+      }, 2000);
+    }
+
+    function startPlaybackChecks() {
+      startFacebookDetection();
+    }
+
+    function stopPlaybackChecks() {
+      if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
+      facebookVideoDetected = false;
     }
 
     // MEDIA SESSION
@@ -1037,7 +888,7 @@ filter="url(#glow)"
       installPwaBtnAndroid.addEventListener('click', async (e) => {
         e.preventDefault();
         if (!deferredPrompt) {
-          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"', notification);
           return;
         }
         deferredPrompt.prompt();
@@ -1052,7 +903,7 @@ filter="url(#glow)"
     if (installPwaBtnIos) {
       installPwaBtnIos.addEventListener('click', (e) => {
         e.preventDefault();
-        audioPlayer.showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.', notification);
       });
     }
 
@@ -1078,7 +929,7 @@ filter="url(#glow)"
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
           const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
           if (isBraveAndroid) {
-            audioPlayer.showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
+            showNotification('En Brave, toca el enlace para abrir WhatsApp Web', notification);
             setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
           } else if (isMobile) {
             const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
@@ -1091,7 +942,7 @@ filter="url(#glow)"
           }
           if (shareOptions) shareOptions.classList.remove('active');
         } else {
-          audioPlayer.showNotification('Por favor, espera a que comience una canción para compartir');
+          showNotification('Por favor, espera a que comience una canción para compartir', notification);
         }
       });
     }
@@ -1114,7 +965,7 @@ filter="url(#glow)"
           });
           hideInstallInvitation();
         } else {
-          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"', notification);
         }
       });
     }
@@ -1131,7 +982,7 @@ filter="url(#glow)"
           });
           hideInstallInvitation();
         } else {
-          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"', notification);
         }
       });
     }
@@ -1139,7 +990,7 @@ filter="url(#glow)"
     if (installIosBtn) {
       installIosBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        audioPlayer.showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.', notification);
         hideInstallInvitation();
       });
     }
