@@ -1,4 +1,4 @@
-// scripts/main.js - v3.2.8 (modularizado + AudioPlayer integrado)
+// scripts/main.js - v3.2.8 (modularizado completo)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { getUserUniqueID, joinStation, leaveStation } from './supabase-presence.js';
 import {
@@ -13,6 +13,13 @@ import {
   findStationById
 } from './station-manager.js';
 import { AudioPlayer } from './audio-player.js';
+import {
+  fetchSomaFmInfo,
+  fetchRadioParadiseInfo,
+  fetchSpotifyDetails,
+  fetchMusicBrainzDuration,
+  logErrorForAnalysis
+} from './metadata-fetchers.js';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
@@ -64,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playerHeader = document.querySelector('.player-header');
     const filterToggleStar = document.getElementById('filterToggleStar');
 
-    // === VARIABLES DE ESTADO (solo las necesarias fuera del reproductor) ===
+    // === VARIABLES DE ESTADO ===
     let stationsById = {};
     let currentStation = null;
     let updateInterval = null;
@@ -72,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let installInvitationTimeout = null;
     let showOnlyFavorites = false;
     let pageFocusCheckInterval = null;
-    let audioContextCheckInterval = null;
     let facebookVideoDetected = false;
     let animationFrameId = null;
     let rapidCheckInterval = null;
@@ -97,13 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     // ==========================================================================
-    // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
+    // FUNCIONES DE UTILIDAD
     // ==========================================================================
-    const apiCallTracker = {
-      somaFM: { lastCall: 0, minInterval: 5000 },
-      radioParadise: { lastCall: 0, minInterval: 5000 },
-      musicBrainz: { lastCall: 0, minInterval: 1000 }
-    };
 
     function showWelcomeScreen() {
       if (welcomeScreen) welcomeScreen.style.display = 'flex';
@@ -113,19 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showPlaybackInfo() {
       if (welcomeScreen) welcomeScreen.style.display = 'none';
       if (playbackInfo) playbackInfo.style.display = 'flex';
-    }
-
-    function canMakeApiCall(service) {
-      const now = Date.now();
-      if (now - apiCallTracker[service].lastCall >= apiCallTracker[service].minInterval) {
-        apiCallTracker[service].lastCall = now;
-        return true;
-      }
-      return false;
-    }
-
-    function logErrorForAnalysis(type, details) {
-      console.error(`Error logged: ${type}`, details);
     }
 
     function updateShareButtonVisibility() {
@@ -148,22 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showInstallInvitation() {
-      if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) {
-        return;
-      }
-      let os = 'other';
-      if (/android/i.test(navigator.userAgent)) {
-        os = 'android';
-      } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-        os = 'ios';
-      } else if (/win/i.test(navigator.userAgent)) {
-        os = 'windows';
-      }
+      if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) return;
+      let os = /android/i.test(navigator.userAgent) ? 'android' :
+               /iphone|ipad|ipod/i.test(navigator.userAgent) ? 'ios' :
+               /win/i.test(navigator.userAgent) ? 'windows' : 'other';
       [installWindowsBtn, installAndroidBtn, installIosBtn].forEach(btn => btn.classList.add('disabled'));
-      const activeBtn = os === 'android' ? installAndroidBtn : (os === 'ios' ? installIosBtn : (os === 'windows' ? installWindowsBtn : null));
-      if (activeBtn) {
-        activeBtn.classList.remove('disabled');
-      }
+      const activeBtn = { android: installAndroidBtn, ios: installIosBtn, windows: installWindowsBtn }[os];
+      if (activeBtn) activeBtn.classList.remove('disabled');
       installPwaInvitation.style.display = 'flex';
       installInvitationTimeout = true;
     }
@@ -172,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
       installPwaInvitation.style.display = 'none';
     }
 
-    // === Facebook / Focus Detection ===
     function isFacebookActive() {
       return document.visibilityState === 'visible' &&
         document.hasFocus() &&
@@ -190,86 +168,59 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2000);
     }
 
-    function startAudioContextCheck() {
-      if (audioContextCheckInterval) clearInterval(audioContextCheckInterval);
-      audioContextCheckInterval = setInterval(() => {
-        // El reproductor ya gestiona el estado, así que solo iniciamos detección si es necesario
-      }, 3000);
-    }
-
     function startPlaybackChecks() {
       startFacebookDetection();
-      startAudioContextCheck();
     }
 
     function stopPlaybackChecks() {
-      if (pageFocusCheckInterval) {
-        clearInterval(pageFocusCheckInterval);
-        pageFocusCheckInterval = null;
-      }
-      if (audioContextCheckInterval) {
-        clearInterval(audioContextCheckInterval);
-        audioContextCheckInterval = null;
-      }
+      if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
       facebookVideoDetected = false;
     }
 
     // ==========================================================================
-    // FAVORITOS Y FILTROS (UI)
+    // FAVORITOS Y FILTROS
     // ==========================================================================
 
     function updateFavoriteButtonUI(stationId, isFavorite) {
       const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
-      if (btn) {
-        if (isFavorite) {
-          btn.innerHTML = '★'; // Estrella rellena
-          btn.classList.add('is-favorite');
-          const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
-          btn.setAttribute('aria-label', `Quitar ${stationName} de favoritos`);
-        } else {
-          btn.innerHTML = '☆'; // Estrella vacía
-          btn.classList.remove('is-favorite');
-          const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
-          btn.setAttribute('aria-label', `Añadir ${stationName} a favoritos`);
-        }
+      if (!btn) return;
+      if (isFavorite) {
+        btn.innerHTML = '★';
+        btn.classList.add('is-favorite');
+        const name = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
+        btn.setAttribute('aria-label', `Quitar ${name} de favoritos`);
+      } else {
+        btn.innerHTML = '☆';
+        btn.classList.remove('is-favorite');
+        const name = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
+        btn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
       }
     }
 
     function filterStationsByFavorites() {
       const favorites = getFavorites();
-      const customOptions = document.querySelectorAll('.custom-option');
-      customOptions.forEach(option => {
-        const stationId = option.dataset.value;
-        if (favorites.includes(stationId)) {
-          option.style.display = 'block';
-        } else {
-          option.style.display = 'none';
-        }
+      document.querySelectorAll('.custom-option').forEach(option => {
+        option.style.display = favorites.includes(option.dataset.value) ? 'block' : 'none';
       });
-      // Ocultar grupos que no tienen opciones visibles
       document.querySelectorAll('.custom-optgroup-label').forEach(label => {
-        let hasVisibleOptions = false;
-        let nextElement = label.nextElementSibling;
-        while (nextElement && nextElement.classList.contains('custom-option')) {
-          if (nextElement.style.display !== 'none') {
-            hasVisibleOptions = true;
-            break;
-          }
-          nextElement = nextElement.nextElementSibling;
+        let hasVisible = false;
+        let next = label.nextElementSibling;
+        while (next && next.classList.contains('custom-option')) {
+          if (next.style.display !== 'none') { hasVisible = true; break; }
+          next = next.nextElementSibling;
         }
-        label.style.display = hasVisibleOptions ? 'block' : 'none';
+        label.style.display = hasVisible ? 'block' : 'none';
       });
     }
 
     function showAllStations() {
-      document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(element => {
-        element.style.display = '';
-      });
+      document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(el => el.style.display = '');
     }
 
     // ==========================================================================
-    // CLASE PARA EL SELECTOR DE ESTACIONES PERSONALIZADO
+    // CLASE CustomSelect
     // ==========================================================================
+
     class CustomSelect {
       constructor(originalSelect) {
         this.originalSelect = originalSelect;
@@ -459,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // ✅ FUNCIONES OPTIMIZADAS PARA PORTADA (v3.2.8)
+    // PORTADA Y METADATOS
     // ==========================================================================
 
     function displayAlbumCoverFromUrl(imageUrl) {
@@ -534,8 +485,337 @@ filter="url(#glow)"
 `;
     }
 
+    function resetAlbumDetails() {
+      releaseDate.textContent = '----';
+      recordLabel.textContent = '----';
+      albumTrackCount.textContent = '--';
+      if (trackIsrc) trackIsrc.textContent = '----';
+      albumTotalDuration.textContent = '--:--';
+      trackGenre.textContent = '--';
+      trackPosition.textContent = '--/--';
+    }
+
+    function updateUIWithTrackInfo(trackInfo) {
+      songTitle.textContent = trackInfo.title;
+      songArtist.textContent = trackInfo.artist;
+      songAlbum.textContent = trackInfo.album ? `(${trackInfo.album})` : '';
+      updateShareButtonVisibility();
+    }
+
+    function resetUI() {
+      if (audioPlayer.isReconnecting) return;
+      songTitle.textContent = 'Reproduciendo...';
+      songArtist.textContent = '';
+      songAlbum.textContent = '';
+      resetCountdown();
+      resetAlbumCover();
+      resetAlbumDetails();
+      updateShareButtonVisibility();
+    }
+
+    function resetCountdown() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+      trackDuration = 0;
+      trackStartTime = 0;
+      countdownTimer.textContent = '--:--';
+      totalDuration.textContent = '(--:--)';
+      trackPosition.textContent = '--/--';
+      countdownTimer.classList.remove('ending');
+      songTransitionDetected = false;
+    }
+
+    function startCountdown() {
+      resetCountdown();
+      if (!trackStartTime) return;
+
+      if (trackDuration > 0) {
+        const totalMinutes = Math.floor(trackDuration / 60);
+        const totalSeconds = Math.floor(trackDuration % 60);
+        totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+      } else {
+        totalDuration.textContent = '(--:--)';
+      }
+
+      if (currentStation?.service === 'somafm' && !songTransitionDetected) {
+        const checkRapidMode = () => {
+          const elapsed = (Date.now() - trackStartTime) / 1000;
+          if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
+            rapidCheckInterval = setInterval(() => {
+              if (currentStation?.service === 'somafm') {
+                updateSongInfo();
+              } else {
+                if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+              }
+            }, 3000);
+          }
+        };
+        checkRapidMode();
+        setInterval(() => {
+          if (!audioPlayer.isPlaying || currentStation?.service !== 'somafm') return;
+          checkRapidMode();
+        }, 10000);
+      }
+
+      function updateTimer() {
+        const now = Date.now();
+        const elapsed = (now - trackStartTime) / 1000;
+        let displayTime = trackDuration > 0 ? Math.max(0, trackDuration - elapsed) : elapsed;
+        const minutes = Math.floor(displayTime / 60);
+        const seconds = Math.floor(displayTime % 60);
+        countdownTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        countdownTimer.classList.toggle('ending', trackDuration > 0 && displayTime < 10);
+
+        if ((trackDuration > 0 && displayTime > 0) || trackDuration === 0) {
+          animationFrameId = requestAnimationFrame(updateTimer);
+        } else {
+          countdownTimer.textContent = '00:00';
+          countdownTimer.classList.remove('ending');
+          if (currentStation?.service === 'nrk') {
+            stopBtn.click();
+          } else {
+            updateSongInfo();
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(updateSongInfo, 30000);
+          }
+        }
+      }
+      updateTimer();
+    }
+
     // ==========================================================================
-    // LÓGICA DE LA APLICACIÓN
+    // MANEJO DE METADATOS
+    // ==========================================================================
+
+    async function updateSongInfo() {
+      if (!currentStation?.service) return;
+
+      try {
+        let trackInfo;
+        if (currentStation.service === 'somafm') {
+          trackInfo = await fetchSomaFmInfo(currentStation.id);
+        } else if (currentStation.service === 'radioparadise') {
+          trackInfo = await fetchRadioParadiseInfo(currentStation.channelId || 1);
+        } else {
+          return;
+        }
+
+        const isNewTrack = !currentTrackInfo ||
+          currentTrackInfo.title !== trackInfo.title ||
+          currentTrackInfo.artist !== trackInfo.artist;
+
+        if (isNewTrack) {
+          resetAlbumDetails();
+          currentTrackInfo = trackInfo;
+          updateUIWithTrackInfo(trackInfo);
+          resetAlbumCover();
+          if (trackInfo.date) {
+            trackStartTime = trackInfo.date.getTime();
+          } else {
+            trackStartTime = Date.now();
+          }
+          trackDuration = trackInfo.duration || 0;
+          startCountdown();
+
+          if (trackInfo.artist && trackInfo.title) {
+            enrichTrackMetadata(trackInfo.artist, trackInfo.title, trackInfo.album);
+          }
+        }
+      } catch (error) {
+        logErrorForAnalysis('Metadata update error', {
+          error: error.message,
+          station: currentStation.id,
+          service: currentStation.service
+        });
+        resetUI();
+      }
+    }
+
+    async function enrichTrackMetadata(artist, title, album) {
+      try {
+        const spotifyData = await fetchSpotifyDetails(artist, title, album);
+        displayAlbumCoverFromUrl(spotifyData.imageUrl);
+        updateAlbumDetailsWithSpotifyData(spotifyData);
+        if (spotifyData.duration) {
+          trackDuration = spotifyData.duration;
+          updateTotalDurationDisplay();
+          return;
+        }
+      } catch (spotifyError) {
+        logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
+      }
+
+      try {
+        const duration = await fetchMusicBrainzDuration(artist, title);
+        trackDuration = duration;
+        updateTotalDurationDisplay();
+      } catch (mbError) {
+        logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
+      }
+    }
+
+    function updateTotalDurationDisplay() {
+      const totalMinutes = Math.floor(trackDuration / 60);
+      const totalSeconds = Math.floor(trackDuration % 60);
+      totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+    }
+
+    function updateAlbumDetailsWithSpotifyData(data) {
+      const releaseDateElement = document.getElementById('releaseDate');
+      if (releaseDateElement) releaseDateElement.innerHTML = '';
+      if (data.release_date) {
+        const year = data.release_date.substring(0, 4);
+        let displayText = year;
+        if (data.albumType && data.albumType !== 'album') {
+          displayText += ` (${data.albumType})`;
+        }
+        releaseDateElement.textContent = displayText;
+      } else {
+        if (releaseDateElement) releaseDateElement.textContent = '----';
+      }
+      recordLabel.textContent = (data.label && data.label.trim()) ? data.label : '----';
+      albumTrackCount.textContent = data.totalTracks || '--';
+      if (trackIsrc) trackIsrc.textContent = (data.isrc && data.isrc.trim()) ? data.isrc : '----';
+      albumTotalDuration.textContent = data.totalAlbumDuration ? formatDuration(data.totalAlbumDuration) : '--:--';
+      trackGenre.textContent = (data.genres && data.genres.length) ? data.genres.slice(0,2).join(', ') : '--';
+      trackPosition.textContent = (data.trackNumber && data.totalTracks)
+        ? `Track ${data.trackNumber}/${data.totalTracks}`
+        : '--/--';
+    }
+
+    function formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function extractDateFromUrl(url) {
+      const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
+      if (match) {
+        const dateStr = match[1];
+        return `${dateStr.substring(6,8)}-${dateStr.substring(4,6)}-${dateStr.substring(0,4)}`;
+      }
+      return 'Fecha desconocida';
+    }
+
+    function startSomaFmPolling() {
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(() => updateSongInfo(), 6000);
+    }
+
+    function startSongInfoUpdates() {
+      updateSongInfo();
+      if (updateInterval) clearInterval(updateInterval);
+      updateInterval = setInterval(updateSongInfo, 30000);
+    }
+
+    function stopSongInfoUpdates() {
+      if (updateInterval) clearInterval(updateInterval);
+      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+      resetCountdown();
+      resetAlbumCover();
+      resetAlbumDetails();
+      currentTrackInfo = null;
+      songTitle.textContent = 'Seleccionar estación';
+      songArtist.textContent = '';
+      songAlbum.textContent = '';
+      updateShareButtonVisibility();
+    }
+
+    // ==========================================================================
+    // REPRODUCCIÓN
+    // ==========================================================================
+
+    function handlePlaybackError() {
+      if (audioPlayer.isReconnecting) return;
+      if (!audioPlayerEl.paused && audioPlayerEl.currentTime > 0) {
+        console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
+        return;
+      }
+
+      leaveStation(currentStationId);
+      resetCountdown();
+      resetAlbumCover();
+      resetAlbumDetails();
+      showWelcomeScreen();
+      songTitle.textContent = 'Reconectando...';
+      songArtist.textContent = 'La reproducción se reanudará automáticamente.';
+      songAlbum.textContent = '';
+      updateShareButtonVisibility();
+      logErrorForAnalysis('Playback error', {
+        station: currentStation?.id || 'unknown',
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      });
+
+      audioPlayer.handlePlaybackError(() => {
+        if (currentStation && currentStation.service !== 'nrk') {
+          startSongInfoUpdates();
+        }
+      });
+    }
+
+    async function playStation() {
+      if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
+      if (updateInterval) clearInterval(updateInterval);
+      if (countdownInterval) clearInterval(countdownInterval);
+      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
+
+      currentTrackInfo = null;
+      trackDuration = 0;
+      trackStartTime = 0;
+      resetCountdown();
+      resetAlbumDetails();
+
+      songTitle.textContent = 'Conectando...';
+      songArtist.textContent = '';
+      songAlbum.textContent = '';
+      resetAlbumCover();
+      updateShareButtonVisibility();
+
+      if (currentStation.service === 'nrk') {
+        audioPlayerEl.addEventListener('loadedmetadata', () => {
+          trackDuration = audioPlayerEl.duration;
+          trackStartTime = Date.now();
+          const newTrackInfo = {
+            title: currentStation.name,
+            artist: currentStation.description,
+            album: `Emisión del ${extractDateFromUrl(currentStation.url)}`
+          };
+          currentTrackInfo = newTrackInfo;
+          updateUIWithTrackInfo(newTrackInfo);
+          resetAlbumCover();
+          resetAlbumDetails();
+          startCountdown();
+          updateShareButtonVisibility();
+        }, { once: true });
+      }
+
+      try {
+        await audioPlayer.play(currentStation.url);
+        showPlaybackInfo();
+        if (currentStation.id) joinStation(currentStation.id);
+
+        if (currentStation.service === 'somafm') {
+          startSomaFmPolling();
+        } else {
+          setTimeout(() => startSongInfoUpdates(), 5000);
+        }
+
+        if (installInvitationTimeout === null) {
+          setTimeout(showInstallInvitation, 600000);
+        }
+        setTimeout(() => {
+          if (audioPlayer.isPlaying) startPlaybackChecks();
+        }, 2000);
+      } catch (error) {
+        handlePlaybackError();
+      }
+    }
+
+    // ==========================================================================
+    // INICIALIZACIÓN
     // ==========================================================================
 
     async function initializeApp() {
@@ -548,9 +828,7 @@ filter="url(#glow)"
         const customSelect = new CustomSelect(stationSelect);
 
         const favoriteIds = getFavorites();
-        favoriteIds.forEach(id => {
-          updateFavoriteButtonUI(id, true);
-        });
+        favoriteIds.forEach(id => updateFavoriteButtonUI(id, true));
 
         const lastSelectedStationId = getLastSelectedStationId();
         if (lastSelectedStationId && stationsById[lastSelectedStationId]) {
@@ -583,7 +861,7 @@ filter="url(#glow)"
         }
         showWelcomeScreen();
       } catch (error) {
-        if (loadingStations) loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
+        if (loadingStations) loadingStations.textContent = 'Error al cargar las estaciones...';
         logErrorForAnalysis('Station loading error', { error: error.message, timestamp: new Date().toISOString() });
       }
     }
@@ -612,9 +890,10 @@ filter="url(#glow)"
 
     initializeApp();
 
-    // =======================================================================
-    // ACTUALIZADO: Integración del botón de filtro de favoritos
-    // =======================================================================
+    // ==========================================================================
+    // EVENT LISTENERS
+    // ==========================================================================
+
     if (filterToggleStar) {
       filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
       filterToggleStar.title = 'Solo estaciones favoritas';
@@ -655,463 +934,8 @@ filter="url(#glow)"
       });
     }
 
-    // =======================================================================
-    // ✅ MANEJO DE ERRORES Y REPRODUCCIÓN
-    // =======================================================================
-
-    function handlePlaybackError() {
-      if (audioPlayer.isReconnecting) { return; }
-      if (!audioPlayerEl.paused && audioPlayerEl.currentTime > 0) {
-        console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
-        return;
-      }
-      leaveStation(currentStationId);
-      isPlaying = false;
-      audioPlayerEl.pause();
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-      if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-      currentTrackInfo = null;
-      trackDuration = 0;
-      trackStartTime = 0;
-      resetCountdown();
-      resetAlbumCover();
-      resetAlbumDetails();
-      showWelcomeScreen();
-      songTitle.textContent = 'Reconectando...';
-      songArtist.textContent = 'La reproducción se reanudará automáticamente.';
-      songAlbum.textContent = '';
-      updateShareButtonVisibility();
-      logErrorForAnalysis('Playback error', {
-        station: currentStation ? currentStation.id : 'unknown',
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
-      });
-      audioPlayer.handlePlaybackError(() => {
-        if (currentStation && currentStation.service !== 'nrk') {
-          if (updateInterval) clearInterval(updateInterval);
-          updateSongInfo(true).then(() => {
-            updateInterval = setInterval(updateSongInfo, 30000);
-          }).catch(error => {
-            console.error('Error al actualizar información de la canción:', error);
-          });
-        }
-      });
-    }
-
-    async function playStation() {
-      if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
-      if (updateInterval) clearInterval(updateInterval);
-      if (countdownInterval) clearInterval(countdownInterval);
-      if (rapidCheckInterval) clearInterval(rapidCheckInterval);
-      currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
-      resetCountdown(); resetAlbumDetails();
-      audioPlayerEl.src = currentStation.url;
-      songTitle.textContent = 'Conectando...';
-      songArtist.textContent = ''; songAlbum.textContent = '';
-      resetAlbumCover(); updateShareButtonVisibility();
-      if (currentStation.service === 'nrk') {
-        audioPlayerEl.addEventListener('loadedmetadata', () => {
-          trackDuration = audioPlayerEl.duration; trackStartTime = Date.now();
-          const newTrackInfo = { title: currentStation.name, artist: currentStation.description, album: `Emisión del ${extractDateFromUrl(currentStation.url)}` };
-          currentTrackInfo = newTrackInfo; updateUIWithTrackInfo(newTrackInfo);
-          resetAlbumCover(); resetAlbumDetails(); startCountdown(); updateShareButtonVisibility();
-        }, { once: true });
-      }
-      try {
-        await audioPlayer.play(currentStation.url);
-        showPlaybackInfo();
-        if (currentStation && currentStation.id) {
-          joinStation(currentStation.id);
-        }
-        if (currentStation.service === 'somafm') {
-          startSomaFmPolling();
-          updateSongInfo(true);
-        } else {
-          setTimeout(() => startSongInfoUpdates(), 5000);
-        }
-        if (installInvitationTimeout === null) {
-          setTimeout(showInstallInvitation, 600000);
-        }
-        setTimeout(() => {
-          if (audioPlayer.isPlaying) {
-            startPlaybackChecks();
-          }
-        }, 2000);
-      } catch (error) {
-        handlePlaybackError();
-      }
-    }
-
-    function extractDateFromUrl(url) {
-      const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
-      if (match) {
-        const dateStr = match[1];
-        const year = dateStr.substring(0, 4);
-        const month = dateStr.substring(4, 6);
-        const day = dateStr.substring(6, 8);
-        return `${day}-${month}-${year}`;
-      }
-      return 'Fecha desconocida';
-    }
-
-    async function updateSongInfo(bypassRateLimit = false) {
-      if (!currentStation || !currentStation.service) return;
-      if (currentStation.service === 'somafm') await updateSomaFmInfo(bypassRateLimit);
-      else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
-    }
-
-    async function updateSomaFmInfo(bypassRateLimit = false) {
-      if (!bypassRateLimit && !canMakeApiCall('somaFM')) { return; }
-      try {
-        const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (data.songs && data.songs.length > 0) {
-          const currentSong = data.songs[0];
-          const newTrackInfo = {
-            title: currentSong.title || 'Título desconocido',
-            artist: currentSong.artist || 'Artista desconocido',
-            album: currentSong.album || '',
-            date: currentSong.date || null
-          };
-          const isNewTrack = !currentTrackInfo ||
-            currentTrackInfo.title !== newTrackInfo.title ||
-            currentTrackInfo.artist !== newTrackInfo.artist;
-          if (isNewTrack) {
-            resetAlbumDetails();
-            currentTrackInfo = newTrackInfo;
-            updateUIWithTrackInfo(newTrackInfo);
-            resetAlbumCover();
-            trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
-            trackDuration = 0;
-            startCountdown();
-            fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-            if (rapidCheckInterval) {
-              clearInterval(rapidCheckInterval);
-              rapidCheckInterval = null;
-            }
-            songTransitionDetected = true;
-          }
-        } else {
-          resetUI();
-        }
-      } catch (error) {
-        logErrorForAnalysis('SomaFM API error', {
-          error: error.message,
-          stationId: currentStation.id,
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-
-    function startSomaFmPolling() {
-      if (updateInterval) clearInterval(updateInterval);
-      updateInterval = setInterval(() => {
-        updateSongInfo(true);
-      }, 6000);
-    }
-
-    async function updateRadioParadiseInfo(bypassRateLimit = false) {
-      if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
-      try {
-        const workerUrl = 'https://core.chcs.workers.dev/radioparadise';
-        const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`;
-        const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
-        const response = await fetch(finalUrl);
-        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-        const data = await response.json();
-        const newTrackInfo = {
-          title: data.title || 'Título desconocido',
-          artist: data.artist || 'Artista desconocido',
-          album: data.album || '',
-        };
-        const isNewTrack = !currentTrackInfo ||
-          currentTrackInfo.title !== newTrackInfo.title ||
-          currentTrackInfo.artist !== newTrackInfo.artist;
-        if (isNewTrack) {
-          resetCountdown();
-          resetAlbumDetails();
-          currentTrackInfo = newTrackInfo;
-          updateUIWithTrackInfo(newTrackInfo);
-          resetAlbumCover();
-          if (data.song_duration && typeof data.song_duration === 'number') {
-            trackDuration = data.song_duration;
-          } else {
-            trackStartTime = Date.now() - 15000;
-            trackDuration = 0;
-          }
-          startCountdown();
-          await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-        }
-      } catch (error) {
-        logErrorForAnalysis('Radio Paradise API error', {
-          error: error.message,
-          stationId: currentStation.id,
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-
-    async function fetchSongDetails(artist, title, album) {
-      if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') {
-        return;
-      }
-      const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-      const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-      const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
-      try {
-        const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify';
-        const fullUrl = `${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`;
-        const response = await fetch(fullUrl);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data && data.imageUrl) {
-          displayAlbumCoverFromUrl(data.imageUrl);
-          updateAlbumDetailsWithSpotifyData(data);
-          if (data.duration) {
-            trackDuration = data.duration;
-            const totalMinutes = Math.floor(trackDuration / 60);
-            const totalSeconds = Math.floor(trackDuration % 60);
-            totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-            return;
-          } else {
-            await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
-          }
-          return;
-        }
-      } catch (error) {
-        logErrorForAnalysis('Spotify API error', {
-          error: error.message,
-          artist: sanitizedArtist,
-          title: sanitizedTitle,
-          timestamp: new Date().toISOString()
-        });
-      }
-      await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
-    }
-
-    async function getMusicBrainzDuration(artist, title) {
-      if (!canMakeApiCall('musicBrainz')) {
-        return;
-      }
-      try {
-        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-        const response = await fetch(searchUrl, {
-          headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' }
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (data.recordings && data.recordings.length > 0) {
-          const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
-          if (bestRecording && bestRecording.length) {
-            trackDuration = Math.floor(bestRecording.length / 1000);
-            const totalMinutes = Math.floor(trackDuration / 60);
-            const totalSeconds = Math.floor(trackDuration % 60);
-            totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-            return;
-          }
-        }
-      } catch (error) {
-        logErrorForAnalysis('MusicBrainz API error', {
-          error: error.message,
-          artist,
-          title,
-          timestamp: new Date().toISOString()
-        });
-      }
-    }
-
-    function updateAlbumDetailsWithSpotifyData(data) {
-      const releaseDateElement = document.getElementById('releaseDate');
-      if (releaseDateElement) releaseDateElement.innerHTML = '';
-      if (data.release_date) {
-        const year = data.release_date.substring(0, 4);
-        let displayText = year;
-        if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
-          displayText += ` (${data.albumTypeDescription})`;
-        }
-        releaseDateElement.textContent = displayText;
-      } else {
-        if (releaseDateElement) releaseDateElement.textContent = '----';
-      }
-      if (data.label && data.label.trim() !== '') {
-        recordLabel.textContent = data.label;
-      } else {
-        recordLabel.textContent = '----';
-      }
-      if (data.totalTracks) {
-        albumTrackCount.textContent = data.totalTracks;
-      } else {
-        albumTrackCount.textContent = '--';
-      }
-      if (data.totalAlbumDuration) {
-        let durationInSeconds = data.totalAlbumDuration;
-        if (durationInSeconds > 10000) {
-          durationInSeconds = Math.floor(durationInSeconds / 1000);
-        }
-        const totalMinutes = Math.floor(durationInSeconds / 60);
-        const totalSeconds = Math.floor(durationInSeconds % 60);
-        albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-      } else {
-        albumTotalDuration.textContent = '--:--';
-      }
-      if (data.genres && data.genres.length > 0) {
-        const displayGenres = data.genres.slice(0, 2).join(', ');
-        trackGenre.textContent = displayGenres;
-      } else {
-        trackGenre.textContent = '--';
-      }
-      if (data.trackNumber && data.totalTracks) {
-        trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
-      } else {
-        trackPosition.textContent = '--/--';
-      }
-      if (trackIsrc) {
-        if (data.isrc && data.isrc.trim() !== '') {
-          trackIsrc.textContent = data.isrc;
-        } else {
-          trackIsrc.textContent = '----';
-        }
-      }
-    }
-
-    function updateUIWithTrackInfo(trackInfo) {
-      songTitle.textContent = trackInfo.title;
-      songArtist.textContent = trackInfo.artist;
-      songAlbum.textContent = trackInfo.album ? `(${trackInfo.album})` : '';
-      updateShareButtonVisibility();
-    }
-
-    function resetUI() {
-      if (audioPlayer.isReconnecting) { return; }
-      songTitle.textContent = 'Reproduciendo...';
-      songArtist.textContent = ''; songAlbum.textContent = '';
-      resetCountdown(); resetAlbumCover(); resetAlbumDetails();
-      updateShareButtonVisibility();
-    }
-
-    function resetCountdown() {
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-      if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
-      if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
-      trackDuration = 0;
-      trackStartTime = 0;
-      countdownTimer.textContent = '--:--';
-      totalDuration.textContent = '(--:--)';
-      trackPosition.textContent = '--/--';
-      countdownTimer.classList.remove('ending');
-      songTransitionDetected = false;
-    }
-
-    function startCountdown() {
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-      if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
-      if (!trackStartTime) {
-        resetCountdown();
-        return;
-      }
-      if (trackDuration > 0) {
-        const totalMinutes = Math.floor(trackDuration / 60);
-        const totalSeconds = Math.floor(trackDuration % 60);
-        totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-      } else {
-        totalDuration.textContent = '(--:--)';
-      }
-      if (currentStation?.service === 'somafm' && !songTransitionDetected) {
-        const checkRapidMode = () => {
-          const elapsed = (Date.now() - trackStartTime) / 1000;
-          if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
-            rapidCheckInterval = setInterval(() => {
-              if (currentStation?.service === 'somafm') {
-                updateSongInfo(true);
-              } else {
-                if (rapidCheckInterval) {
-                  clearInterval(rapidCheckInterval);
-                  rapidCheckInterval = null;
-                }
-              }
-            }, 3000);
-          }
-        };
-        checkRapidMode();
-        const rapidCheckTimer = setInterval(() => {
-          if (!audioPlayer.isPlaying || currentStation?.service !== 'somafm') {
-            clearInterval(rapidCheckTimer);
-            return;
-          }
-          checkRapidMode();
-        }, 10000);
-      }
-
-      function updateTimer() {
-        const now = Date.now();
-        const elapsed = (now - trackStartTime) / 1000;
-        let displayTime = 0;
-        if (trackDuration > 0) {
-          displayTime = Math.max(0, trackDuration - elapsed);
-        } else {
-          displayTime = elapsed;
-        }
-        const minutes = Math.floor(displayTime / 60);
-        const seconds = Math.floor(displayTime % 60);
-        const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        countdownTimer.textContent = formattedTime;
-        if (trackDuration > 0 && displayTime < 10) {
-          countdownTimer.classList.add('ending');
-        } else {
-          countdownTimer.classList.remove('ending');
-        }
-        if (trackDuration > 0 && displayTime > 0) {
-          animationFrameId = requestAnimationFrame(updateTimer);
-        } else if (trackDuration === 0) {
-          animationFrameId = requestAnimationFrame(updateTimer);
-        } else {
-          countdownTimer.textContent = '00:00';
-          countdownTimer.classList.remove('ending');
-          if (currentStation && currentStation.service === 'nrk') {
-            stopBtn.click();
-          } else {
-            updateSongInfo(true);
-            if (updateInterval) clearInterval(updateInterval);
-            updateInterval = setInterval(() => updateSongInfo(), 30000);
-          }
-        }
-      }
-      updateTimer();
-    }
-
-    function resetAlbumDetails() {
-      if (!document.querySelector('.release-date-tooltip')) {
-        releaseDate.textContent = '----';
-      }
-      recordLabel.textContent = '----';
-      albumTrackCount.textContent = '--';
-      if (trackIsrc) trackIsrc.textContent = '----';
-      albumTotalDuration.textContent = '--:--';
-      trackGenre.textContent = '--';
-      trackPosition.textContent = '--/--';
-    }
-
-    function startSongInfoUpdates() {
-      updateSongInfo();
-      if (updateInterval) clearInterval(updateInterval);
-      updateInterval = setInterval(updateSongInfo, 30000);
-    }
-
-    function stopSongInfoUpdates() {
-      if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-      if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
-      resetCountdown(); resetAlbumCover(); resetAlbumDetails();
-      currentTrackInfo = null;
-      songTitle.textContent = 'Seleccionar estación';
-      songArtist.textContent = ''; songAlbum.textContent = '';
-      updateShareButtonVisibility();
-    }
-
     if (stopBtn) {
-      stopBtn.addEventListener('click', function () {
+      stopBtn.addEventListener('click', () => {
         leaveStation(currentStationId);
         audioPlayer.stop();
         stopSongInfoUpdates();
@@ -1120,9 +944,7 @@ filter="url(#glow)"
       });
     }
 
-    // =======================================================================
-    // MEDIA SESSION (controles en lock screen)
-    // =======================================================================
+    // MEDIA SESSION
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'RadioMax',
@@ -1147,9 +969,7 @@ filter="url(#glow)"
       });
     }
 
-    // =======================================================================
-    // EVENTOS DE VISIBILIDAD Y FOCO
-    // =======================================================================
+    // VISIBILIDAD Y FOCO
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         audioPlayer.wasPlayingBeforeFocusLoss = audioPlayer.isPlaying;
@@ -1162,10 +982,7 @@ filter="url(#glow)"
           startFacebookDetection();
           setTimeout(() => {
             facebookVideoDetected = false;
-            if (pageFocusCheckInterval) {
-              clearInterval(pageFocusCheckInterval);
-              pageFocusCheckInterval = null;
-            }
+            if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
           }, 30000);
         }
       }
@@ -1184,17 +1001,12 @@ filter="url(#glow)"
         startFacebookDetection();
         setTimeout(() => {
           facebookVideoDetected = false;
-          if (pageFocusCheckInterval) {
-            clearInterval(pageFocusCheckInterval);
-            pageFocusCheckInterval = null;
-          }
+          if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
         }, 30000);
       }
     });
 
-    // =======================================================================
     // PWA INSTALL
-    // =======================================================================
     let deferredPrompt;
     const installPwaBtnAndroid = document.getElementById('install-pwa-btn-android');
     const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
@@ -1246,9 +1058,7 @@ filter="url(#glow)"
 
     setTimeout(showInstallPwaButtons, 1000);
 
-    // =======================================================================
     // COMPARTIR
-    // =======================================================================
     if (shareButton) {
       shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
     }
@@ -1334,9 +1144,7 @@ filter="url(#glow)"
       });
     }
 
-    // =======================================================================
-    // TECLADO (navegación rápida por estaciones)
-    // =======================================================================
+    // TECLADO
     let lastKeyPressed = null;
     let lastMatchIndex = -1;
     document.addEventListener('keydown', function (event) {
@@ -1371,16 +1179,12 @@ filter="url(#glow)"
       }
     });
 
-    // =======================================================================
-    // ACTUALIZACIÓN DE POSICIÓN DEL ÍCONO DE VOLUMEN
-    // =======================================================================
+    // VOLUMEN
     if (volumeIcon) {
       audioPlayer.updateVolumeIconPosition();
     }
 
-    // =======================================================================
-    // VERSIÓN y SERVICE WORKER
-    // =======================================================================
+    // VERSIÓN Y SERVICE WORKER
     const versionSpan = document.getElementById('version-number');
     if (versionSpan) {
       fetch('/sw.js')
@@ -1442,10 +1246,10 @@ filter="url(#glow)"
     }
 
   } catch (error) {
-    console.error("Error fatal durante la inicialización de la aplicación:", error);
+    console.error("Error fatal:", error);
     const loadingElement = document.getElementById('loadingStations');
     if (loadingElement) {
-      loadingElement.textContent = `Error crítico: ${error.message}. Revisa la consola para más detalles.`;
+      loadingElement.textContent = `Error crítico: ${error.message}`;
       loadingElement.style.color = '#ff6600';
     }
   }
