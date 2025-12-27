@@ -1,4 +1,4 @@
-// scripts/main.js - v3.2.8 (modularizado completo + ui-controller)
+// scripts/main.js - v3.2.8
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { getUserUniqueID, joinStation, leaveStation } from './supabase-presence.js';
 import {
@@ -364,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     async function updateSongInfo() {
       if (!currentStation?.service) return;
-
       try {
         let trackInfo;
         if (currentStation.service === 'somafm') {
@@ -374,11 +373,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           return;
         }
-
         const isNewTrack = !currentTrackInfo ||
           currentTrackInfo.title !== trackInfo.title ||
           currentTrackInfo.artist !== trackInfo.artist;
-
         if (isNewTrack) {
           resetAlbumDetails();
           currentTrackInfo = trackInfo;
@@ -391,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           trackDuration = trackInfo.duration || 0;
           startCountdown();
-
           if (trackInfo.artist && trackInfo.title) {
             enrichTrackMetadata(trackInfo.artist, trackInfo.title, trackInfo.album);
           }
@@ -419,7 +415,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (spotifyError) {
         logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
       }
-
       try {
         const duration = await fetchMusicBrainzDuration(artist, title);
         trackDuration = duration;
@@ -448,13 +443,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function startCountdown() {
       resetCountdown();
       if (!trackStartTime) return;
-
       if (trackDuration > 0) {
         updateTotalDurationDisplay(trackDuration);
       } else {
         totalDuration.textContent = '(--:--)';
       }
-
       if (currentStation?.service === 'somafm' && !songTransitionDetected) {
         const checkRapidMode = () => {
           const elapsed = (Date.now() - trackStartTime) / 1000;
@@ -474,7 +467,6 @@ document.addEventListener('DOMContentLoaded', () => {
           checkRapidMode();
         }, 10000);
       }
-
       function updateTimer() {
         const now = Date.now();
         const elapsed = (now - trackStartTime) / 1000;
@@ -483,7 +475,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const seconds = Math.floor(displayTime % 60);
         countdownTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         countdownTimer.classList.toggle('ending', trackDuration > 0 && displayTime < 10);
-
         if ((trackDuration > 0 && displayTime > 0) || trackDuration === 0) {
           animationFrameId = requestAnimationFrame(updateTimer);
         } else {
@@ -510,8 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
         return;
       }
-
-      leaveStation(currentStationId);
+      leaveStation(supabase); // ✅ Corregido: solo pasa `supabase`
       resetCountdown();
       resetAlbumCover();
       resetAlbumDetails();
@@ -525,7 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent
       });
-
       audioPlayer.handlePlaybackError(() => {
         if (currentStation && currentStation.service !== 'nrk') {
           startSongInfoUpdates();
@@ -538,19 +527,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (updateInterval) clearInterval(updateInterval);
       if (countdownInterval) clearInterval(countdownInterval);
       if (rapidCheckInterval) clearInterval(rapidCheckInterval);
-
       currentTrackInfo = null;
       trackDuration = 0;
       trackStartTime = 0;
       resetCountdown();
       resetAlbumDetails();
-
       songTitle.textContent = 'Conectando...';
       songArtist.textContent = '';
       songAlbum.textContent = '';
       resetAlbumCover();
       updateShareButtonVisibility();
-
       if (currentStation.service === 'nrk') {
         audioPlayerEl.addEventListener('loadedmetadata', () => {
           trackDuration = audioPlayerEl.duration;
@@ -568,18 +554,17 @@ document.addEventListener('DOMContentLoaded', () => {
           updateShareButtonVisibility();
         }, { once: true });
       }
-
       try {
         await audioPlayer.play(currentStation.url);
         showPlaybackInfo();
-        if (currentStation.id) joinStation(currentStation.id);
-
+        if (currentStation.id) {
+          await joinStation(supabase, currentStation.id); // ✅ Corregido: pasa `supabase` y `stationId`
+        }
         if (currentStation.service === 'somafm') {
           startSomaFmPolling();
         } else {
           setTimeout(() => startSongInfoUpdates(), 5000);
         }
-
         if (installInvitationTimeout === null) {
           setTimeout(showInstallInvitation, 600000);
         }
@@ -635,10 +620,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stationName) stationName.textContent = 'RadioMax';
         populateStationSelect(groupedStations);
         const customSelect = new CustomSelect(stationSelect);
-
         const favoriteIds = getFavorites();
         favoriteIds.forEach(id => updateFavoriteButtonUI(id, true));
-
         const lastSelectedStationId = getLastSelectedStationId();
         if (lastSelectedStationId && stationsById[lastSelectedStationId]) {
           stationSelect.value = lastSelectedStationId;
@@ -660,7 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
             stationName.textContent = displayName;
           }
         }
-
         if (currentStation) {
           audioPlayerEl.src = currentStation.url;
           songTitle.textContent = 'A sonar';
@@ -744,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (stopBtn) {
       stopBtn.addEventListener('click', () => {
-        leaveStation(currentStationId);
+        leaveStation(supabase); // ✅ Corregido: solo pasa `supabase`
         audioPlayer.stop();
         stopSongInfoUpdates();
         stopPlaybackChecks();
