@@ -1,5 +1,7 @@
 // scripts/supabase-presence.js
 
+let currentChannel = null;
+
 export function getUserUniqueID() {
   let userId = localStorage.getItem('radio_user_id');
   if (!userId) {
@@ -10,28 +12,42 @@ export function getUserUniqueID() {
 }
 
 export async function joinStation(supabase, stationId) {
-  const userId = getUserUniqueID();
-  const { data, error } = await supabase
-    .from('listeners')
-    .insert({ station_id: stationId, user_id: userId, last_seen: new Date().toISOString() })
-    .select()
-    .single();
-
-  if (error) {
-    console.warn('Error joining station:', error);
-    return null;
+  // Salir del canal anterior si existe
+  if (currentChannel) {
+    await supabase.removeChannel(currentChannel);
   }
-  return data;
+
+  const channelName = `station:${stationId}`;
+  const userId = getUserUniqueID();
+
+  currentChannel = supabase
+    .channel(channelName, {
+      config: {
+        presence: { key: userId }
+      }
+    })
+    .on('presence', { event: 'sync' }, () => {
+      const state = currentChannel.presenceState();
+      const count = Object.keys(state).length;
+      const counterElement = document.getElementById('totalListeners');
+      if (counterElement) {
+        counterElement.textContent = count;
+      }
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await currentChannel.track({ online_at: new Date().toISOString() });
+      }
+    });
+
+  return currentChannel;
 }
 
-export async function leaveStation(supabase, channel) {
-  const userId = getUserUniqueID();
-  const { error } = await supabase
-    .from('listeners')
-    .delete()
-    .match({ station_id: channel, user_id: userId });
-
-  if (error) {
-    console.warn('Error leaving station:', error);
+export async function leaveStation(supabase) {
+  if (currentChannel) {
+    await supabase.removeChannel(currentChannel);
+    currentChannel = null;
+    const counterElement = document.getElementById('totalListeners');
+    if (counterElement) counterElement.textContent = '0';
   }
 }
