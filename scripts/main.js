@@ -1,5 +1,6 @@
 // app.js - v3.2.8
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { getUserUniqueID, joinStation, leaveStation } from './supabase-presence.js';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
@@ -99,74 +100,6 @@ let songTransitionDetected = false;
 const RAPID_CHECK_THRESHOLD = 210; // 3.5 minutos en segundos
 
 audioPlayer.volume = 0.5;
-
-// ==========================================================================
-// NUEVAS FUNCIONES: SUPABASE PRESENCE (CONTADOR DE OYENTES)
-// ==========================================================================
-function getUserUniqueID() {
-    // Generar ID único simple para el navegador
-    let uid = localStorage.getItem('rm_uid');
-    if (!uid) {
-        uid = 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('rm_uid', uid);
-    }
-    return uid;
-}
-
-async function joinStation(stationId) {
-    // Si ya estábamos en otra estación, salimos primero
-    if (currentChannel && currentStationId !== stationId) {
-        await leaveStation(currentStationId);
-    }
-    currentStationId = stationId;
-    const channelName = `station:${stationId}`;
-
-    // Crear el canal con configuración de "Presence" (Presencia)
-    const channel = supabase.channel(channelName, {
-        config: {
-            presence: {
-                key: getUserUniqueID() // Un ID único para este usuario
-            }
-        }
-    });
-
-    // Escuchar cambios de presencia (usuarios entrando/saliendo)
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            // 'sync' se dispara cuando Supabase sincroniza el estado inicial o cambios
-            const state = channel.presenceState();
-            // Calculamos el total de claves únicas (usuarios)
-            const count = Object.keys(state).length;
-            // Actualizar el DOM
-            const counterElement = document.getElementById('totalListeners');
-            if (counterElement) {
-                counterElement.innerText = count;
-            }
-        })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                // Una vez suscrito, nos "track" (marcamos) como online
-                await channel.track({
-                    user_at: new Date().toISOString(),
-                    agent: navigator.userAgent
-                });
-            }
-        });
-
-    currentChannel = channel;
-}
-
-async function leaveStation(stationId) {
-    if (currentChannel) {
-        // Des-suscribirse del canal
-        await supabase.removeChannel(currentChannel);
-        currentChannel = null;
-        currentStationId = null;
-        // Resetear contador visual
-        const counterElement = document.getElementById('totalListeners');
-        if (counterElement) counterElement.innerText = '0';
-    }
-}
 
 // ==========================================================================
 // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
