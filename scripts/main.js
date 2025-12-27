@@ -1,4 +1,4 @@
-// scripts/main.js - v3.2.8 (modularizado)
+// scripts/main.js - v3.2.8 (modularizado + AudioPlayer integrado)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { getUserUniqueID, joinStation, leaveStation } from './supabase-presence.js';
 import {
@@ -12,23 +12,19 @@ import {
   saveLastSelectedStation,
   findStationById
 } from './station-manager.js';
+import { AudioPlayer } from './audio-player.js';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
 // ==========================================================================
-// Reemplaza con tus claves reales de Supabase
 const SUPABASE_URL = 'https://xahbzlhjolnugpbpnbmo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_G_dlO7Q6PPT7fDQCvSN5lA_mbcqtxVl';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Variables globales para manejar canales de presencia
 let currentChannel = null;
 let currentStationId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // =======================================================================
-  // MANEJO DE ERRORES GLOBAL PARA CAPTURAR CUALQUIER FALLO
-  // =======================================================================
   try {
     // ==========================================================================
     // SELECCIÓN DE ELEMENTOS DEL DOM
@@ -37,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const volumeSlider = document.getElementById('volumeSlider');
-    const audioPlayer = document.getElementById('audioPlayer');
+    const audioPlayerEl = document.getElementById('audioPlayer');
     const stationName = document.getElementById('stationName');
     const songTitle = document.getElementById('songTitle');
     const songArtist = document.getElementById('songArtist');
@@ -53,56 +49,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const albumTotalDuration = document.getElementById('albumTotalDuration');
     const trackGenre = document.getElementById('trackGenre');
     const trackPosition = document.getElementById('trackPosition');
-    // AGREGADO: Referencia al elemento del ISRC
     const trackIsrc = document.getElementById('trackIsrc');
     const shareButton = document.getElementById('shareButton');
     const shareOptions = document.getElementById('shareOptions');
     const shareWhatsApp = document.getElementById('shareWhatsApp');
     const notification = document.getElementById('notification');
-    // Elementos para la invitación PWA
     const installPwaInvitation = document.getElementById('install-pwa-invitation');
     const closeInvitationBtn = document.getElementById('close-invitation');
     const installWindowsBtn = document.getElementById('install-windows');
     const installAndroidBtn = document.getElementById('install-android');
     const installIosBtn = document.getElementById('install-ios');
-    // Elementos para controlar la visibilidad de la pantalla de bienvenida y reproducción
     const welcomeScreen = document.getElementById('welcomeScreen');
     const playbackInfo = document.getElementById('playbackInfo');
-    // NUEVO: Elementos del encabezado del reproductor
     const playerHeader = document.querySelector('.player-header');
     const filterToggleStar = document.getElementById('filterToggleStar');
 
+    // === VARIABLES DE ESTADO (solo las necesarias fuera del reproductor) ===
     let stationsById = {};
     let currentStation = null;
     let updateInterval = null;
     let countdownInterval = null;
-    let isMuted = false;
-    let previousVolume = 50;
-    let isPlaying = false;
-    let trackDuration = 0;
-    let trackStartTime = 0;
-    let currentTrackInfo = null;
-    let lastPlaybackTime = 0;
-    let timeStuckCheckInterval = null;
     let installInvitationTimeout = null;
-    let showOnlyFavorites = false; // NUEVO: Variable para controlar el filtro de favoritos
-    // Variable para rastrear el estado de reproducción antes de perder el foco
-    let wasPlayingBeforeFocusLoss = false;
-    // Variables adicionales para el manejo de Facebook
+    let showOnlyFavorites = false;
     let pageFocusCheckInterval = null;
-    let lastAudioContextTime = 0;
     let audioContextCheckInterval = null;
     let facebookVideoDetected = false;
-    // Variable para requestAnimationFrame del contador
     let animationFrameId = null;
-    // Variables para mejorar la detección de nuevas canciones en SomaFM
-    let lastSongCheckTime = 0;
     let rapidCheckInterval = null;
     let songTransitionDetected = false;
-    // === NUEVO: Constante para activar verificación rápida en SomaFM ===
     const RAPID_CHECK_THRESHOLD = 210; // 3.5 minutos en segundos
 
-    audioPlayer.volume = 0.5;
+    // Variables para track info
+    let currentTrackInfo = null;
+    let trackDuration = 0;
+    let trackStartTime = 0;
+
+    // ==========================================================================
+    // ✅ INSTANCIA DEL REPRODUCTOR DE AUDIO
+    // ==========================================================================
+    const audioPlayer = new AudioPlayer(
+      audioPlayerEl,
+      playBtn,
+      stopBtn,
+      volumeSlider,
+      volumeIcon,
+      notification
+    );
 
     // ==========================================================================
     // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
@@ -113,30 +105,14 @@ document.addEventListener('DOMContentLoaded', () => {
       musicBrainz: { lastCall: 0, minInterval: 1000 }
     };
 
-    // Función para mostrar la pantalla de bienvenida (logo SVG)
     function showWelcomeScreen() {
       if (welcomeScreen) welcomeScreen.style.display = 'flex';
       if (playbackInfo) playbackInfo.style.display = 'none';
     }
 
-    // Función para mostrar la información de reproducción
     function showPlaybackInfo() {
       if (welcomeScreen) welcomeScreen.style.display = 'none';
       if (playbackInfo) playbackInfo.style.display = 'flex';
-    }
-
-    function startTimeStuckCheck() {
-      if (timeStuckCheckInterval) clearInterval(timeStuckCheckInterval);
-      lastPlaybackTime = audioPlayer.currentTime;
-      timeStuckCheckInterval = setInterval(() => {
-        if (isPlaying) {
-          if (audioPlayer.currentTime === lastPlaybackTime) {
-            handlePlaybackError();
-            return;
-          }
-          lastPlaybackTime = audioPlayer.currentTime;
-        }
-      }, 3000);
     }
 
     function canMakeApiCall(service) {
@@ -150,14 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function logErrorForAnalysis(type, details) {
       console.error(`Error logged: ${type}`, details);
-    }
-
-    function updateVolumeIconPosition() {
-      const sliderWidth = volumeSlider.offsetWidth;
-      const percent = volumeSlider.value / volumeSlider.max;
-      const iconWidth = volumeIcon.offsetWidth;
-      const newPosition = percent * sliderWidth - (iconWidth / 2);
-      volumeIcon.style.left = `${newPosition}px`;
     }
 
     function updateShareButtonVisibility() {
@@ -176,16 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         shareButton.classList.remove('visible');
         shareOptions.classList.remove('active');
-      }
-    }
-
-    function showNotification(message) {
-      if (notification) {
-        notification.textContent = message;
-        notification.classList.add('show');
-        setTimeout(() => {
-          notification.classList.remove('show');
-        }, 3000);
       }
     }
 
@@ -214,29 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
       installPwaInvitation.style.display = 'none';
     }
 
-    function attemptResumePlayback() {
-      if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
-        setTimeout(() => {
-          if (!isPlaying) {
-            audioPlayer.play().then(() => {
-              isPlaying = true;
-              updateStatus(true);
-              startTimeStuckCheck();
-              showNotification('Reproducción reanudada automáticamente');
-            }).catch(error => {
-              showNotification('Toca para reanudar la reproducción');
-              playBtn.style.animation = 'pulse 2s infinite';
-            });
-          }
-        }, 1000);
-      }
-    }
-
+    // === Facebook / Focus Detection ===
     function isFacebookActive() {
       return document.visibilityState === 'visible' &&
         document.hasFocus() &&
-        wasPlayingBeforeFocusLoss &&
-        !isPlaying &&
+        audioPlayer.wasPlayingBeforeFocusLoss &&
+        !audioPlayer.isPlaying &&
         currentStation;
     }
 
@@ -244,28 +185,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
       pageFocusCheckInterval = setInterval(() => {
         if (isFacebookActive()) {
-          attemptResumePlayback();
+          audioPlayer.attemptResumePlayback();
         }
       }, 2000);
-    }
-
-    function checkAudioContext() {
-      if (!audioPlayer.paused && isPlaying) {
-        lastAudioContextTime = Date.now();
-      } else if (isPlaying && !audioPlayer.paused) {
-        if (audioPlayer.currentTime === lastAudioContextTime) {
-          attemptResumePlayback();
-        }
-        lastAudioContextTime = audioPlayer.currentTime;
-      }
     }
 
     function startAudioContextCheck() {
       if (audioContextCheckInterval) clearInterval(audioContextCheckInterval);
       audioContextCheckInterval = setInterval(() => {
-        if (isPlaying && currentStation) {
-          checkAudioContext();
-        }
+        // El reproductor ya gestiona el estado, así que solo iniciamos detección si es necesario
       }, 3000);
     }
 
@@ -287,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // NUEVO: LÓGICA PARA GESTIONAR FAVORITOS (UI solo, lógica en station-manager.js)
+    // FAVORITOS Y FILTROS (UI)
     // ==========================================================================
 
     function updateFavoriteButtonUI(stationId, isFavorite) {
@@ -307,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // NUEVO: Funciones para filtrar estaciones por favoritos
     function filterStationsByFavorites() {
       const favorites = getFavorites();
       const customOptions = document.querySelectorAll('.custom-option');
@@ -408,10 +335,8 @@ document.addEventListener('DOMContentLoaded', () => {
           tags = station.tags || [];
           promotions = station.promotions || [];
         }
-        // MODIFICADO: Crear contenedor principal para la info y el botón
         const stationInfoContainer = document.createElement('div');
         stationInfoContainer.className = 'station-info';
-        // MODIFICADO: Contenedor para los detalles de la estación (texto)
         const stationDetails = document.createElement('div');
         stationDetails.className = 'station-details';
         const nameElement = document.createElement('span');
@@ -435,15 +360,12 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           stationDetails.appendChild(tagsContainer);
         }
-        // Añadir el contenedor de detalles al contenedor principal
         stationInfoContainer.appendChild(stationDetails);
-        // ======== NUEVO: AÑADIR BOTÓN DE FAVORITOS ========
         const favoriteBtn = document.createElement('button');
         favoriteBtn.className = 'favorite-btn';
-        favoriteBtn.innerHTML = '☆'; // Estrella vacía por defecto
+        favoriteBtn.innerHTML = '☆';
         favoriteBtn.dataset.stationId = option.value;
         favoriteBtn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
-        // Prevenir que el clic en la estrella cierre el selector
         favoriteBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           const stationId = e.target.dataset.stationId;
@@ -454,8 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
             addFavorite(stationId);
           }
         });
-        // =====================================================
-        // Añadir el botón de favoritos al contenedor principal
         stationInfoContainer.appendChild(favoriteBtn);
         if (promotions && promotions.length > 0) {
           const promotionsContainer = document.createElement('div');
@@ -542,21 +462,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ✅ FUNCIONES OPTIMIZADAS PARA PORTADA (v3.2.8)
     // ==========================================================================
 
-    /**
-     * Muestra una portada desde una URL, con carga progresiva y transición suave
-     * @param {string} imageUrl - URL de la imagen
-     */
     function displayAlbumCoverFromUrl(imageUrl) {
       if (!imageUrl) {
         resetAlbumCover();
         return;
       }
-      // Mostrar indicador de carga
       albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
       const img = new Image();
       img.decoding = 'async';
       img.onload = function () {
-        // ✅ Antes de insertar: ocultar suavemente el placeholder
         const placeholder = albumCover.querySelector('.album-cover-placeholder');
         if (placeholder) {
           placeholder.style.opacity = '0';
@@ -567,21 +481,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }, 300);
         }
-        // Insertar la imagen con fade-in
         displayAlbumCover(this);
       };
       img.onerror = function () {
         console.warn('Error al cargar la portada:', imageUrl);
         resetAlbumCover();
       };
-      // Iniciar carga
       img.src = imageUrl;
     }
 
-    /**
-     * Inserta la imagen descargada en el contenedor de portada
-     * @param {HTMLImageElement} img - Imagen ya cargada
-     */
     function displayAlbumCover(img) {
       albumCover.innerHTML = '';
       const displayImg = document.createElement('img');
@@ -591,9 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
       albumCover.appendChild(displayImg);
     }
 
-    /**
-     * Restablece el contenedor a su estado inicial (logo RM)
-     */
     function resetAlbumCover() {
       albumCover.innerHTML = `
 <div class="album-cover-placeholder">
@@ -642,7 +547,6 @@ filter="url(#glow)"
         populateStationSelect(groupedStations);
         const customSelect = new CustomSelect(stationSelect);
 
-        // NUEVO: Cargar el estado de los favoritos después de crear el selector
         const favoriteIds = getFavorites();
         favoriteIds.forEach(id => {
           updateFavoriteButtonUI(id, true);
@@ -671,12 +575,11 @@ filter="url(#glow)"
         }
 
         if (currentStation) {
-          audioPlayer.src = currentStation.url;
+          audioPlayerEl.src = currentStation.url;
           songTitle.textContent = 'A sonar';
           songArtist.textContent = '';
           songAlbum.textContent = '';
           updateShareButtonVisibility();
-          updateStatus(false);
         }
         showWelcomeScreen();
       } catch (error) {
@@ -710,7 +613,7 @@ filter="url(#glow)"
     initializeApp();
 
     // =======================================================================
-    // ACTUALIZADO: Integración del botón de filtro de favoritos (sin innerHTML)
+    // ACTUALIZADO: Integración del botón de filtro de favoritos
     // =======================================================================
     if (filterToggleStar) {
       filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
@@ -752,39 +655,20 @@ filter="url(#glow)"
       });
     }
 
-    if (playBtn) {
-      playBtn.addEventListener('click', function () {
-        this.style.animation = '';
-        if (isPlaying) {
-          audioPlayer.pause();
-          isPlaying = false;
-          updateStatus(false);
-          if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-          if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-          wasPlayingBeforeFocusLoss = false;
-          stopPlaybackChecks();
-        } else {
-          if (currentStation) {
-            playStation();
-          } else {
-            alert('Por favor, seleccionar una estación');
-          }
-        }
-      });
-    }
+    // =======================================================================
+    // ✅ MANEJO DE ERRORES Y REPRODUCCIÓN
+    // =======================================================================
 
     function handlePlaybackError() {
-      if (connectionManager.isReconnecting) { return; }
-      if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
+      if (audioPlayer.isReconnecting) { return; }
+      if (!audioPlayerEl.paused && audioPlayerEl.currentTime > 0) {
         console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
         return;
       }
-      // NUEVO: Salir del contador de oyentes
       leaveStation(currentStationId);
       isPlaying = false;
-      updateStatus(false);
-      audioPlayer.pause();
-      if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
+      audioPlayerEl.pause();
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
       if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
       currentTrackInfo = null;
       trackDuration = 0;
@@ -802,55 +686,60 @@ filter="url(#glow)"
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent
       });
-      connectionManager.start();
+      audioPlayer.handlePlaybackError(() => {
+        if (currentStation && currentStation.service !== 'nrk') {
+          if (updateInterval) clearInterval(updateInterval);
+          updateSongInfo(true).then(() => {
+            updateInterval = setInterval(updateSongInfo, 30000);
+          }).catch(error => {
+            console.error('Error al actualizar información de la canción:', error);
+          });
+        }
+      });
     }
 
-    function playStation() {
+    async function playStation() {
       if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
       if (updateInterval) clearInterval(updateInterval);
       if (countdownInterval) clearInterval(countdownInterval);
       if (rapidCheckInterval) clearInterval(rapidCheckInterval);
       currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
       resetCountdown(); resetAlbumDetails();
-      audioPlayer.src = currentStation.url;
+      audioPlayerEl.src = currentStation.url;
       songTitle.textContent = 'Conectando...';
       songArtist.textContent = ''; songAlbum.textContent = '';
       resetAlbumCover(); updateShareButtonVisibility();
       if (currentStation.service === 'nrk') {
-        audioPlayer.addEventListener('loadedmetadata', () => {
-          trackDuration = audioPlayer.duration; trackStartTime = Date.now();
+        audioPlayerEl.addEventListener('loadedmetadata', () => {
+          trackDuration = audioPlayerEl.duration; trackStartTime = Date.now();
           const newTrackInfo = { title: currentStation.name, artist: currentStation.description, album: `Emisión del ${extractDateFromUrl(currentStation.url)}` };
           currentTrackInfo = newTrackInfo; updateUIWithTrackInfo(newTrackInfo);
           resetAlbumCover(); resetAlbumDetails(); startCountdown(); updateShareButtonVisibility();
         }, { once: true });
       }
-      audioPlayer.play()
-        .then(() => {
-          isPlaying = true; updateStatus(true); startTimeStuckCheck();
-          showPlaybackInfo();
-          wasPlayingBeforeFocusLoss = true;
-          // NUEVO: Unirse al contador de oyentes si es una estación válida
-          if (currentStation && currentStation.id) {
-            joinStation(currentStation.id);
+      try {
+        await audioPlayer.play(currentStation.url);
+        showPlaybackInfo();
+        if (currentStation && currentStation.id) {
+          joinStation(currentStation.id);
+        }
+        if (currentStation.service === 'somafm') {
+          startSomaFmPolling();
+          updateSongInfo(true);
+        } else {
+          setTimeout(() => startSongInfoUpdates(), 5000);
+        }
+        if (installInvitationTimeout === null) {
+          setTimeout(showInstallInvitation, 600000);
+        }
+        setTimeout(() => {
+          if (audioPlayer.isPlaying) {
+            startPlaybackChecks();
           }
-          if (currentStation.service === 'somafm') {
-            startSomaFmPolling();
-            updateSongInfo(true);
-          } else {
-            setTimeout(() => startSongInfoUpdates(), 5000);
-          }
-          if (installInvitationTimeout === null) {
-            setTimeout(showInstallInvitation, 600000);
-          }
-          setTimeout(() => {
-            if (isPlaying) {
-              startPlaybackChecks();
-            }
-          }, 2000);
-        })
-        .catch(error => {
-          handlePlaybackError();
-        });
+        }, 2000);
+      } catch (error) {
+        handlePlaybackError();
+      }
     }
 
     function extractDateFromUrl(url) {
@@ -897,7 +786,6 @@ filter="url(#glow)"
             trackDuration = 0;
             startCountdown();
             fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-            // === NUEVO: Limpiar rapidCheck al detectar transición ===
             if (rapidCheckInterval) {
               clearInterval(rapidCheckInterval);
               rapidCheckInterval = null;
@@ -916,18 +804,13 @@ filter="url(#glow)"
       }
     }
 
-    // === MODIFICADO: Reducir intervalo de polling y agregar soporte para rapidCheck ===
     function startSomaFmPolling() {
       if (updateInterval) clearInterval(updateInterval);
-      // Intervalo base: 6 segundos
       updateInterval = setInterval(() => {
         updateSongInfo(true);
       }, 6000);
     }
 
-    // =======================================================================
-    // MODIFICADO: Función mejorada para Radio Paradise
-    // =======================================================================
     async function updateRadioParadiseInfo(bypassRateLimit = false) {
       if (!bypassRateLimit && !canMakeApiCall('radioParadise')) { return; }
       try {
@@ -951,17 +834,13 @@ filter="url(#glow)"
           currentTrackInfo = newTrackInfo;
           updateUIWithTrackInfo(newTrackInfo);
           resetAlbumCover();
-          // NUEVO: Intentar obtener la duración desde la propia API de Radio Paradise
           if (data.song_duration && typeof data.song_duration === 'number') {
             trackDuration = data.song_duration;
           } else {
-            // Si no hay duración en la API de RP, estimamos un tiempo de inicio
             trackStartTime = Date.now() - 15000;
-            trackDuration = 0; // Forzar a buscar en otras APIs
+            trackDuration = 0;
           }
-          // Iniciar el contador con la duración que tengamos (0 si no se encontró)
           startCountdown();
-          // Llamar a las otras APIs para obtener más detalles (portada, etc.)
           await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
         }
       } catch (error) {
@@ -1089,7 +968,6 @@ filter="url(#glow)"
       } else {
         trackPosition.textContent = '--/--';
       }
-      // AGREGADO: Mostrar el ISRC
       if (trackIsrc) {
         if (data.isrc && data.isrc.trim() !== '') {
           trackIsrc.textContent = data.isrc;
@@ -1107,14 +985,13 @@ filter="url(#glow)"
     }
 
     function resetUI() {
-      if (connectionManager.isReconnecting) { return; }
+      if (audioPlayer.isReconnecting) { return; }
       songTitle.textContent = 'Reproduciendo...';
       songArtist.textContent = ''; songAlbum.textContent = '';
       resetCountdown(); resetAlbumCover(); resetAlbumDetails();
       updateShareButtonVisibility();
     }
 
-    // === MODIFICADO: resetCountdown() ahora también limpia rapidCheck ===
     function resetCountdown() {
       if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
       if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
@@ -1128,7 +1005,6 @@ filter="url(#glow)"
       songTransitionDetected = false;
     }
 
-    // === MODIFICADO: startCountdown() ahora activa rapidCheck si es SomaFM y ha pasado el umbral ===
     function startCountdown() {
       if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
       if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
@@ -1143,7 +1019,6 @@ filter="url(#glow)"
       } else {
         totalDuration.textContent = '(--:--)';
       }
-      // === NUEVO: Lógica para activar rapidCheck en SomaFM ===
       if (currentStation?.service === 'somafm' && !songTransitionDetected) {
         const checkRapidMode = () => {
           const elapsed = (Date.now() - trackStartTime) / 1000;
@@ -1160,17 +1035,15 @@ filter="url(#glow)"
             }, 3000);
           }
         };
-        // Ejecutar inmediatamente y luego cada 10s
         checkRapidMode();
         const rapidCheckTimer = setInterval(() => {
-          if (!isPlaying || currentStation?.service !== 'somafm') {
+          if (!audioPlayer.isPlaying || currentStation?.service !== 'somafm') {
             clearInterval(rapidCheckTimer);
             return;
           }
           checkRapidMode();
         }, 10000);
       }
-      // === Fin de la lógica nueva ===
 
       function updateTimer() {
         const now = Date.now();
@@ -1215,7 +1088,6 @@ filter="url(#glow)"
       }
       recordLabel.textContent = '----';
       albumTrackCount.textContent = '--';
-      // AGREGADO: Resetear ISRC
       if (trackIsrc) trackIsrc.textContent = '----';
       albumTotalDuration.textContent = '--:--';
       trackGenre.textContent = '--';
@@ -1240,250 +1112,17 @@ filter="url(#glow)"
 
     if (stopBtn) {
       stopBtn.addEventListener('click', function () {
-        // NUEVO: Salir del contador de oyentes
         leaveStation(currentStationId);
-        connectionManager.stop();
-        audioPlayer.pause(); audioPlayer.src = '';
-        isPlaying = false; updateStatus(false);
+        audioPlayer.stop();
         stopSongInfoUpdates();
-        wasPlayingBeforeFocusLoss = false;
         stopPlaybackChecks();
         showWelcomeScreen();
       });
     }
 
-    if (audioPlayer) {
-      audioPlayer.addEventListener('error', (e) => {
-        const error = audioPlayer.error;
-        if (error) {
-          if (error.code == 1 || error.code == 4) { return; }
-          logErrorForAnalysis('Audio element error', {
-            errorCode: error.code,
-            errorMessage: error.message,
-            station: currentStation ? currentStation.id : 'unknown',
-            timestamp: new Date().toISOString()
-          });
-          if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for media resource was aborted')) {
-            wasPlayingBeforeFocusLoss = true;
-            setTimeout(() => {
-              if (wasPlayingBeforeFocusLoss && currentStation) {
-                audioPlayer.play().then(() => {
-                  isPlaying = true;
-                  updateStatus(true);
-                  startTimeStuckCheck();
-                  showNotification('Reproducción reanudada automáticamente');
-                }).catch(error => {
-                  showNotification('Toca para reanudar la reproducción');
-                  playBtn.style.animation = 'pulse 2s infinite';
-                });
-              }
-            }, 2000);
-          } else {
-            handlePlaybackError();
-          }
-        }
-      });
-
-      audioPlayer.addEventListener('pause', () => {
-        if (isPlaying && !document.hidden) {
-          wasPlayingBeforeFocusLoss = true;
-          setTimeout(() => {
-            if (wasPlayingBeforeFocusLoss && currentStation) {
-              audioPlayer.play().then(() => {
-                isPlaying = true;
-                updateStatus(true);
-                startTimeStuckCheck();
-                showNotification('Reproducción reanudada automáticamente');
-              }).catch(error => {
-                showNotification('Toca para reanudar la reproducción');
-                playBtn.style.animation = 'pulse 2s infinite';
-              });
-            }
-          }, 1000);
-        } else {
-          isPlaying = false;
-          updateStatus(false);
-        }
-      });
-
-      audioPlayer.addEventListener('stalled', () => {
-        if (isPlaying) {
-          wasPlayingBeforeFocusLoss = true;
-          setTimeout(() => {
-            if (wasPlayingBeforeFocusLoss && currentStation) {
-              audioPlayer.play().then(() => {
-                isPlaying = true;
-                updateStatus(true);
-                startTimeStuckCheck();
-              }).catch(error => {
-                console.error('Error al reanudar la reproducción:', error);
-              });
-            }
-          }, 2000);
-        }
-      });
-    }
-
-    if (volumeSlider) {
-      volumeSlider.addEventListener('input', function () {
-        const volume = this.value / 100;
-        audioPlayer.volume = volume;
-        updateVolumeIconPosition();
-        if (this.value == 0) { volumeIcon.classList.add('muted'); isMuted = true; }
-        else { volumeIcon.classList.remove('muted'); isMuted = false; previousVolume = this.value; }
-      });
-    }
-
-    if (volumeIcon) {
-      volumeIcon.addEventListener('click', function () {
-        if (isMuted) {
-          volumeSlider.value = previousVolume;
-          audioPlayer.volume = previousVolume / 100;
-          volumeIcon.classList.remove('muted'); isMuted = false;
-        } else {
-          previousVolume = volumeSlider.value;
-          volumeSlider.value = 0;
-          audioPlayer.volume = 0;
-          volumeIcon.classList.add('muted'); isMuted = true;
-        }
-        updateVolumeIconPosition();
-      });
-    }
-
-    function updateStatus(isPlayingNow) {
-      if (playBtn) {
-        if (isPlayingNow) { playBtn.textContent = '⏸ PAUSAR'; }
-        else { playBtn.textContent = '▶ SONAR'; }
-      }
-    }
-
-    if (audioPlayer) {
-      audioPlayer.addEventListener('playing', () => {
-        isPlaying = true;
-        updateStatus(true);
-        wasPlayingBeforeFocusLoss = true;
-        if (connectionManager.isReconnecting) {
-          connectionManager.stop();
-          showNotification('Conexión restaurada con éxito.');
-          if (currentStation && currentStation.service !== 'nrk') {
-            if (updateInterval) clearInterval(updateInterval);
-            updateSongInfo(true).then(() => {
-              updateInterval = setInterval(updateSongInfo, 30000);
-            }).catch(error => {
-              console.error('Error al actualizar información de la canción:', error);
-              setTimeout(() => {
-                updateSongInfo(true).then(() => {
-                  updateInterval = setInterval(updateSongInfo, 30000);
-                }).catch(err => {
-                  console.error('Error al actualizar información de la canción (reintento):', err);
-                });
-              }, 5000);
-            });
-          }
-        }
-      });
-
-      audioPlayer.addEventListener('ended', () => {
-        isPlaying = false;
-        updateStatus(false);
-        wasPlayingBeforeFocusLoss = false;
-      });
-    }
-
-    const connectionManager = {
-      isReconnecting: false,
-      reconnectAttempts: 0,
-      maxReconnectAttempts: 5,
-      initialReconnectDelay: 1000,
-      maxReconnectDelay: 30000,
-      reconnectTimeoutId: null,
-      audioCheckInterval: null,
-      start() {
-        if (this.isReconnecting) return;
-        this.isReconnecting = true;
-        this.reconnectAttempts = 0;
-        this.attemptReconnect();
-        this.startAudioCheck();
-      },
-      stop() {
-        this.isReconnecting = false;
-        this.reconnectAttempts = 0;
-        if (this.reconnectTimeoutId) {
-          clearTimeout(this.reconnectTimeoutId);
-          this.reconnectTimeoutId = null;
-        }
-        if (this.audioCheckInterval) {
-          clearInterval(this.audioCheckInterval);
-          this.audioCheckInterval = null;
-        }
-      },
-      startAudioCheck() {
-        this.audioCheckInterval = setInterval(() => {
-          if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
-            this.stop();
-            isPlaying = true;
-            updateStatus(true);
-            showPlaybackInfo();
-            showNotification('Conexión restaurada con éxito.');
-            if (currentStation && currentStation.service !== 'nrk') {
-              if (updateInterval) clearInterval(updateInterval);
-              updateSongInfo(true).then(() => {
-                updateInterval = setInterval(updateSongInfo, 30000);
-              }).catch(error => {
-                console.error('Error al actualizar información de la canción:', error);
-              });
-            }
-          }
-        }, 1000);
-      },
-      attemptReconnect() {
-        if (!this.isReconnecting || !currentStation) {
-          this.stop();
-          return;
-        }
-        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-          songTitle.textContent = 'Error de conexión: no se pudo restaurar';
-          songArtist.textContent = 'Presionar SONAR para intentar manualmente';
-          songAlbum.textContent = '';
-          updateShareButtonVisibility();
-          this.stop();
-          return;
-        }
-        this.reconnectAttempts++;
-        const delay = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
-        this.reconnectTimeoutId = setTimeout(async () => {
-          try {
-            audioPlayer.src = currentStation.url;
-            await audioPlayer.play();
-            isPlaying = true;
-            updateStatus(true);
-            startTimeStuckCheck();
-            showPlaybackInfo();
-            this.stop();
-            showNotification('Conexión restaurada con éxito.');
-            if (currentStation.service !== 'nrk') {
-              if (updateInterval) clearInterval(updateInterval);
-              updateSongInfo(true).then(() => {
-                updateInterval = setInterval(updateSongInfo, 30000);
-              }).catch(error => {
-                console.error('Error al actualizar información de la canción:', error);
-              });
-            }
-          } catch (error) {
-            this.attemptReconnect();
-          }
-        }, delay);
-      }
-    };
-
-    window.addEventListener('online', () => {
-      if (connectionManager.isReconnecting) {
-        connectionManager.attemptReconnect();
-      }
-    });
-
-    window.addEventListener('offline', () => { });
-
+    // =======================================================================
+    // MEDIA SESSION (controles en lock screen)
+    // =======================================================================
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'RadioMax',
@@ -1496,35 +1135,29 @@ filter="url(#glow)"
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        if (!isPlaying && currentStation) {
-          audioPlayer.play().then(() => {
-            isPlaying = true;
-            updateStatus(true);
-            wasPlayingBeforeFocusLoss = true;
-          }).catch(error => {
-            console.error('Error al reanudar la reproducción:', error);
-          });
+        if (!audioPlayer.isPlaying && currentStation) {
+          audioPlayer.play(currentStation.url).catch(console.error);
         }
       });
 
       navigator.mediaSession.setActionHandler('pause', () => {
-        if (isPlaying) {
+        if (audioPlayer.isPlaying) {
           audioPlayer.pause();
-          isPlaying = false;
-          updateStatus(false);
-          wasPlayingBeforeFocusLoss = false;
         }
       });
     }
 
+    // =======================================================================
+    // EVENTOS DE VISIBILIDAD Y FOCO
+    // =======================================================================
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        wasPlayingBeforeFocusLoss = isPlaying;
+        audioPlayer.wasPlayingBeforeFocusLoss = audioPlayer.isPlaying;
         if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
           facebookVideoDetected = true;
         }
       } else {
-        attemptResumePlayback();
+        audioPlayer.attemptResumePlayback();
         if (facebookVideoDetected) {
           startFacebookDetection();
           setTimeout(() => {
@@ -1539,14 +1172,14 @@ filter="url(#glow)"
     });
 
     window.addEventListener('blur', () => {
-      wasPlayingBeforeFocusLoss = isPlaying;
+      audioPlayer.wasPlayingBeforeFocusLoss = audioPlayer.isPlaying;
       if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
         facebookVideoDetected = true;
       }
     });
 
     window.addEventListener('focus', () => {
-      attemptResumePlayback();
+      audioPlayer.attemptResumePlayback();
       if (facebookVideoDetected) {
         startFacebookDetection();
         setTimeout(() => {
@@ -1559,16 +1192,9 @@ filter="url(#glow)"
       }
     });
 
-    document.addEventListener('click', () => {
-      if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
-        setTimeout(() => {
-          if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
-            attemptResumePlayback();
-          }
-        }, 500);
-      }
-    });
-
+    // =======================================================================
+    // PWA INSTALL
+    // =======================================================================
     let deferredPrompt;
     const installPwaBtnAndroid = document.getElementById('install-pwa-btn-android');
     const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
@@ -1599,7 +1225,7 @@ filter="url(#glow)"
       installPwaBtnAndroid.addEventListener('click', async (e) => {
         e.preventDefault();
         if (!deferredPrompt) {
-          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
           return;
         }
         deferredPrompt.prompt();
@@ -1614,12 +1240,15 @@ filter="url(#glow)"
     if (installPwaBtnIos) {
       installPwaBtnIos.addEventListener('click', (e) => {
         e.preventDefault();
-        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+        audioPlayer.showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
       });
     }
 
     setTimeout(showInstallPwaButtons, 1000);
 
+    // =======================================================================
+    // COMPARTIR
+    // =======================================================================
     if (shareButton) {
       shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
     }
@@ -1639,7 +1268,7 @@ filter="url(#glow)"
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
           const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
           if (isBraveAndroid) {
-            showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
+            audioPlayer.showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
             setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
           } else if (isMobile) {
             const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
@@ -1652,7 +1281,7 @@ filter="url(#glow)"
           }
           if (shareOptions) shareOptions.classList.remove('active');
         } else {
-          showNotification('Por favor, espera a que comience una canción para compartir');
+          audioPlayer.showNotification('Por favor, espera a que comience una canción para compartir');
         }
       });
     }
@@ -1675,7 +1304,7 @@ filter="url(#glow)"
           });
           hideInstallInvitation();
         } else {
-          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
         }
       });
     }
@@ -1692,7 +1321,7 @@ filter="url(#glow)"
           });
           hideInstallInvitation();
         } else {
-          showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+          audioPlayer.showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
         }
       });
     }
@@ -1700,11 +1329,14 @@ filter="url(#glow)"
     if (installIosBtn) {
       installIosBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
+        audioPlayer.showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
         hideInstallInvitation();
       });
     }
 
+    // =======================================================================
+    // TECLADO (navegación rápida por estaciones)
+    // =======================================================================
     let lastKeyPressed = null;
     let lastMatchIndex = -1;
     document.addEventListener('keydown', function (event) {
@@ -1739,10 +1371,16 @@ filter="url(#glow)"
       }
     });
 
+    // =======================================================================
+    // ACTUALIZACIÓN DE POSICIÓN DEL ÍCONO DE VOLUMEN
+    // =======================================================================
     if (volumeIcon) {
-      updateVolumeIconPosition();
+      audioPlayer.updateVolumeIconPosition();
     }
 
+    // =======================================================================
+    // VERSIÓN y SERVICE WORKER
+    // =======================================================================
     const versionSpan = document.getElementById('version-number');
     if (versionSpan) {
       fetch('/sw.js')
@@ -1803,9 +1441,6 @@ filter="url(#glow)"
       });
     }
 
-    // =======================================================================
-    // FIN DEL BLOQUE TRY...CATCH
-    // =======================================================================
   } catch (error) {
     console.error("Error fatal durante la inicialización de la aplicación:", error);
     const loadingElement = document.getElementById('loadingStations');
