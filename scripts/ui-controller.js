@@ -137,24 +137,34 @@ export function resetAlbumDetails() {
 }
 
 export function updateAlbumDetailsWithSpotifyData(data) {
+  // Año de publicación
   if (data.release_date) {
     const year = data.release_date.substring(0, 4);
     let displayText = year;
-    if (data.albumType && data.albumType !== 'album') {
-      displayText += ` (${data.albumType})`;
+    if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
+      displayText += ` (${data.albumTypeDescription})`;
     }
     elements.releaseDate.textContent = displayText;
   } else {
     elements.releaseDate.textContent = '----';
   }
 
+  // Otros metadatos
   elements.recordLabel.textContent = (data.label && data.label.trim()) ? data.label : '----';
   elements.albumTrackCount.textContent = data.totalTracks || '--';
   if (elements.trackIsrc) {
     elements.trackIsrc.textContent = (data.isrc && data.isrc.trim()) ? data.isrc : '----';
   }
-  elements.albumTotalDuration.textContent = data.totalAlbumDuration ? formatDuration(data.totalAlbumDuration) : '--:--';
-  elements.trackGenre.textContent = (data.genres && data.genres.length) ? data.genres.slice(0,2).join(', ') : '--';
+
+  // Duración del álbum: Spotify envía totalAlbumDuration en MILISEGUNDOS
+  if (data.totalAlbumDuration) {
+    const durationInSeconds = data.totalAlbumDuration > 10000 ? Math.floor(data.totalAlbumDuration / 1000) : data.totalAlbumDuration;
+    elements.albumTotalDuration.textContent = formatDuration(durationInSeconds);
+  } else {
+    elements.albumTotalDuration.textContent = '--:--';
+  }
+
+  elements.trackGenre.textContent = (data.genres && data.genres.length) ? data.genres.slice(0, 2).join(', ') : '--';
   elements.trackPosition.textContent = (data.trackNumber && data.totalTracks)
     ? `Track ${data.trackNumber}/${data.totalTracks}`
     : '--/--';
@@ -183,6 +193,7 @@ export function updateShareButtonVisibility() {
   }
 }
 
+// ✅ Exportamos esta función (¡FALTABA!)
 export function updateTotalDurationDisplay(durationSeconds) {
   if (durationSeconds > 0) {
     elements.totalDuration.textContent = formatDuration(durationSeconds);
@@ -191,6 +202,7 @@ export function updateTotalDurationDisplay(durationSeconds) {
   }
 }
 
+// Asume que `seconds` es un número entero en segundos
 export function formatDuration(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
@@ -207,7 +219,6 @@ export function showPlaybackInfo() {
   if (elements.playbackInfo) elements.playbackInfo.style.display = 'flex';
 }
 
-// Opcional: para debugging o logs visuales
 export function showNotification(message, notificationElement) {
   if (notificationElement) {
     notificationElement.textContent = message;
