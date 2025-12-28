@@ -193,8 +193,11 @@ export function updateShareButtonVisibility() {
   }
 }
 
-// ✅ Exportamos esta función (¡FALTABA!)
 export function updateTotalDurationDisplay(durationSeconds) {
+  if (!elements.totalDuration) {
+    console.warn('⚠️ Elemento totalDuration no inicializado');
+    return;
+  }
   if (durationSeconds > 0) {
     elements.totalDuration.textContent = formatDuration(durationSeconds);
   } else {
