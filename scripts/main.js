@@ -376,7 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
           startCountdown();
         }
 
-        // ✅ CORRECCIÓN CLAVE: Llamar SIEMPRE a enrichTrackMetadata si hay datos
         if (trackInfo.artist && trackInfo.title) {
           enrichTrackMetadata(trackInfo.artist, trackInfo.title, trackInfo.album);
         }
@@ -390,31 +389,37 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    async function enrichTrackMetadata(artist, title, album) {
-      try {
-        const spotifyData = await fetchSpotifyDetails(artist, title, album);
-        displayAlbumCoverFromUrl(spotifyData.imageUrl);
-        updateAlbumDetailsWithSpotifyData(spotifyData);
-        if (spotifyData.duration) {
-           trackDuration = spotifyData.duration; // Actualiza la duración global
-           updateTotalDurationDisplay(trackDuration);
+// scripts/main.js
+
+     async function enrichTrackMetadata(artist, title, album) {
+     try {
+     const spotifyData = await fetchSpotifyDetails(artist, title, album);
+     displayAlbumCoverFromUrl(spotifyData.imageUrl);
+     updateAlbumDetailsWithSpotifyData(spotifyData);
+    
+     if (spotifyData.duration) {
+      trackDuration = spotifyData.duration; // Actualiza la duración global
+      updateTotalDurationDisplay(trackDuration);
       
-          if (countdownTimer.textContent === '--:--' || trackDuration === 0) {
-            // Opcional: Lógica para reiniciar visualización si es necesario
-         }
-        }
-      } catch (spotifyError) {
-        logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
-      }
-      try {
-        const duration = await fetchMusicBrainzDuration(artist, title);
-        trackDuration = duration;
-        updateTotalDurationDisplay(trackDuration);
-      } catch (mbError) {
-        logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
+      if (countdownTimer.textContent === '--:--' || trackDuration === 0) {
+         // Opcional: Lógica para reiniciar visualización si es necesario
       }
     }
-
+    } catch (spotifyError) {
+    logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
+    // Si Spotify falla, intenta usar MusicBrainz para la duración
+    try {
+      const duration = await fetchMusicBrainzDuration(artist, title);
+      if (duration) {
+        trackDuration = duration;
+        updateTotalDurationDisplay(trackDuration);
+      }
+    } catch (mbError) {
+      logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
+    }
+    }
+    }
+    
     // 8. Temporizador
     function resetCountdown() {
       if (countdownInterval) clearInterval(countdownInterval);
