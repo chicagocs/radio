@@ -137,6 +137,7 @@ export function resetAlbumDetails() {
 }
 
 export function updateAlbumDetailsWithSpotifyData(data) {
+  const releaseDate = data.release_date || (data.album && data.album.release_date);
   // Año de publicación
   if (data.release_date) {
     const year = data.release_date.substring(0, 4);
