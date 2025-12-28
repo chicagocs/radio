@@ -399,27 +399,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function enrichTrackMetadata(artist, title, album) {
-      try {
-        const spotifyData = await fetchSpotifyDetails(artist, title, album);
-        displayAlbumCoverFromUrl(spotifyData.imageUrl);
-        updateAlbumDetailsWithSpotifyData(spotifyData); // ✅ Llama a la función de ui-controller.js
-        if (spotifyData.duration) {
-          trackDuration = spotifyData.duration;
-          updateTotalDurationDisplay(trackDuration);
-          return;
-        }
-      } catch (spotifyError) {
-        logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
-      }
-      try {
-        const duration = await fetchMusicBrainzDuration(artist, title);
-        trackDuration = duration;
-        updateTotalDurationDisplay(trackDuration);
-      } catch (mbError) {
-        logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
-      }
+    try {
+    const spotifyData = await fetchSpotifyDetails(artist, title, album);
+    displayAlbumCoverFromUrl(spotifyData.imageUrl);
+    updateAlbumDetailsWithSpotifyData(spotifyData);
+    if (spotifyData.duration) {
+      trackDuration = spotifyData.duration;
+      updateTotalDurationDisplay(trackDuration); // ✅ Usa la función del ui-controller
+      return;
+    }
+    } catch (spotifyError) {
+    logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
     }
 
+    try {
+    const duration = await fetchMusicBrainzDuration(artist, title);
+    trackDuration = duration;
+    updateTotalDurationDisplay(trackDuration); // ✅ Usa la función del ui-controller
+    } catch (mbError) {
+    logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
+    }
+    }
+    
     // ==========================================================================
     // TEMPORIZADOR Y CONTADOR
     // ==========================================================================
