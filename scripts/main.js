@@ -402,25 +402,24 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
     const spotifyData = await fetchSpotifyDetails(artist, title, album);
     displayAlbumCoverFromUrl(spotifyData.imageUrl);
+    // ✅ Delegar TODA la actualización de metadatos a ui-controller.js
     updateAlbumDetailsWithSpotifyData(spotifyData);
     if (spotifyData.duration) {
       trackDuration = spotifyData.duration;
-      updateTotalDurationDisplay(trackDuration); // ✅ Usa la función del ui-controller
+      updateTotalDurationDisplay(trackDuration); // ✅ Usa la función de ui-controller.js
       return;
     }
     } catch (spotifyError) {
     logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
     }
-
     try {
     const duration = await fetchMusicBrainzDuration(artist, title);
     trackDuration = duration;
-    updateTotalDurationDisplay(trackDuration); // ✅ Usa la función del ui-controller
+    updateTotalDurationDisplay(trackDuration); // ✅ Usa la función de ui-controller.js
     } catch (mbError) {
     logErrorForAnalysis('MusicBrainz fallback failed', { error: mbError.message });
     }
-    }
-    
+    }    
     // ==========================================================================
     // TEMPORIZADOR Y CONTADOR
     // ==========================================================================
