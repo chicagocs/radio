@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (trackDuration > 0) {
         updateTotalDurationDisplay(trackDuration);
       } else {
-        totalDuration.textContent = '(--:--)';
+        updateTotalDurationDisplay(trackDuration);
       }
       if (currentStation?.service === 'somafm' && !songTransitionDetected) {
         const checkRapidMode = () => {
