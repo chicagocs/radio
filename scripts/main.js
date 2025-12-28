@@ -396,9 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
         displayAlbumCoverFromUrl(spotifyData.imageUrl);
         updateAlbumDetailsWithSpotifyData(spotifyData);
         if (spotifyData.duration) {
-          trackDuration = spotifyData.duration;
-          updateTotalDurationDisplay(trackDuration);
-          return;
+           trackDuration = spotifyData.duration; // Actualiza la duración global
+           updateTotalDurationDisplay(trackDuration);
+      
+          if (countdownTimer.textContent === '--:--' || trackDuration === 0) {
+            // Opcional: Lógica para reiniciar visualización si es necesario
+         }
         }
       } catch (spotifyError) {
         logErrorForAnalysis('Spotify enrichment failed', { error: spotifyError.message });
