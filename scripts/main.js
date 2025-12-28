@@ -44,7 +44,7 @@ let currentStationId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
-    // 1. Seleccionar todos los elementos del DOM
+    // 1. Seleccionar elementos del DOM
     const stationSelect = document.getElementById('stationSelect');
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notification
     );
 
-    // 5. Funciones de favoritos (solo actualizan el DOM, no la lógica)
+    // 5. Funciones de favoritos
     function updateFavoriteButtonUI(stationId, isFavorite) {
       const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
       if (!btn) return;
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(el => el.style.display = '');
     }
 
-    // 6. Clase CustomSelect (con corrección: actualiza favoritos solo después de crear el DOM)
+    // 6. Clase CustomSelect (CORREGIDA)
     class CustomSelect {
       constructor(originalSelect) {
         this.originalSelect = originalSelect;
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (selectedOption) {
             selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
           }
-          // ✅ CORRECCIÓN CLAVE: Actualizar favoritos SOLO DESPUÉS de crear los elementos
+          // ✅ Actualizar favoritos SOLO después de crear el DOM
           const favoriteIds = getFavorites();
           favoriteIds.forEach(id => updateFavoriteButtonUI(id, true));
         }, 100);
@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // 7. Funciones de metadatos
+    // 7. Funciones de metadatos (CORREGIDAS)
     async function updateSongInfo() {
       if (!currentStation?.service) return;
       try {
@@ -357,9 +357,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           return;
         }
+
         const isNewTrack = !currentTrackInfo ||
           currentTrackInfo.title !== trackInfo.title ||
           currentTrackInfo.artist !== trackInfo.artist;
+
         if (isNewTrack) {
           resetAlbumDetails();
           currentTrackInfo = trackInfo;
@@ -372,9 +374,11 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           trackDuration = trackInfo.duration || 0;
           startCountdown();
-          if (trackInfo.artist && trackInfo.title) {
-            enrichTrackMetadata(trackInfo.artist, trackInfo.title, trackInfo.album);
-          }
+        }
+
+        // ✅ CORRECCIÓN CLAVE: Llamar SIEMPRE a enrichTrackMetadata si hay datos
+        if (trackInfo.artist && trackInfo.title) {
+          enrichTrackMetadata(trackInfo.artist, trackInfo.title, trackInfo.album);
         }
       } catch (error) {
         logErrorForAnalysis('Metadata update error', {
@@ -704,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // ... resto de listeners (PWA, share, teclado, SW, etc.) — mantén igual que en tu versión anterior
+    // ... resto de listeners (sin cambios)
 
     // === FUNCIONES DE UTILIDAD ===
     function showInstallInvitation() {
@@ -749,7 +753,6 @@ document.addEventListener('DOMContentLoaded', () => {
       facebookVideoDetected = false;
     }
 
-    // MEDIA SESSION
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'RadioMax',
@@ -774,7 +777,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // VISIBILIDAD Y FOCO
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         audioPlayer.wasPlayingBeforeFocusLoss = audioPlayer.isPlaying;
@@ -811,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // PWA, SHARE, TECLADO, SW, etc. (mantén igual)
+    // ... resto de PWA, share, teclado, SW (sin cambios)
 
     let deferredPrompt;
     const installPwaBtnAndroid = document.getElementById('install-pwa-btn-android');
