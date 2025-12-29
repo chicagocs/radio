@@ -1030,42 +1030,39 @@ footer strong { color: var(--text-main); font-weight: bold; }
 ================================================================
 */
 
+/* Contenedor principal de la insignia */
 .listeners-badge {
-    display: inline-flex; 
-    align-items: center; /* Asegura que las cajas estén alineadas entre sí */
-    gap: 4px; 
-    padding: 6px;
-    background-color: #1a1a1a; /* Marco metálico */
-    border-radius: 4px;
-    border: 1px solid #333;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Fondo oscuro para contraste */
+    background-color: #111111; 
+    border: 1px solid #333333;       /* Borde metálico sutil */
+    border-radius: 4px;              /* Esquinas ligeramente redondeadas */
+    
+    padding: 6px 12px;               /* Espacio interior */
+    
+    /* Sombras para dar profundidad (efecto "hundido" o elevado) */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 
+                0 1px 2px rgba(255,255,255,0.05);
+    
+    gap: 8px; /* Espacio si añades un icono después */
+    margin-left: 10px; /* Separación del título si está al lado */
 }
 
-.digit {
-    /* Usamos Flexbox para un centrado perfecto tanto horizontal como vertical */
-    display: flex;
-    justify-content: center; /* CENTRADO HORIZONTAL */
-    align-items: center;     /* Centrado Vertical */
-
-    background-color: #000000; /* Fondo negro */
-    color: #ffffff; /* Números blancos */
-    font-family: 'Oswald', sans-serif;
-    font-size: 16px; /* TAMAÑO FUENTE REDUCIDO */
-    font-weight: 700;
+/* Estilo específico para el número (reemplaza el style inline) */
+.listeners-badge div {
+    font-family: 'Oswald', 'Segoe UI', sans-serif; /* Fuente técnica/robusta */
+    font-size: 16px; 
+    font-weight: 700; 
     
-    /* Tamaño de la ventanilla */
-    width: 35px;
-    height: 45px;
+    color: #ff6600; /* El naranja solicitado */
     
-    border-radius: 2px;
+    /* Efecto de brillo neón para el look 80s */
+    text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
     
-    /* Efecto de cristal opaco/hundido */
-    box-shadow: inset 0 2px 5px rgba(0,0,0,1), 
-                inset 0 0 2px rgba(255,255,255,0.1);
-    
-    border: 1px solid #222;
-    user-select: none;
-    cursor: default;
+    letter-spacing: 0.5px;
 }
 
 .listeners-badge2 {
