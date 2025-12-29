@@ -512,7 +512,7 @@ try {
     async function loadStations() {
         try {
             if (loadingStations) loadingStations.style.display = 'block';
-            const response = await fetch('../stations.json');
+            const response = await fetch('stations.json');
             if (!response.ok) throw new Error(`HTTP ${response.status}: No se pudo cargar stations.json`);
             
             const stations = await response.json();
