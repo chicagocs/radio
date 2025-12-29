@@ -1024,7 +1024,46 @@ footer strong { color: var(--text-main); font-weight: bold; }
     100% { transform: scale(1); }
 }
 
+/* 
+================================================================
+   CONTADOR MECÁNICO (5 DÍGITOS)
+================================================================
+*/
 .listeners-badge {
+            display: inline-flex; 
+            gap: 4px; /* Espacio entre cajas */
+            padding: 6px;
+            background-color: #1a1a1a; /* Marco metálico */
+            border-radius: 4px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+
+ .digit {
+            background-color: #000000; /* Fondo negro */
+            color: #ffffff; /* Números blancos */
+            font-family: 'Oswald', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            
+            /* Tamaño de la ventanilla */
+            width: 35px;
+            height: 45px;
+            line-height: 45px; /* Centrado vertical */
+            text-align: center;
+            
+            border-radius: 2px;
+            
+            /* Efecto de cristal opaco/hundido */
+            box-shadow: inset 0 2px 5px rgba(0,0,0,1), 
+                        inset 0 0 2px rgba(255,255,255,0.1);
+            
+            border: 1px solid #222;
+            user-select: none;
+            cursor: default;
+        }
+
+.listeners-badge2 {
     background-color: #FF6600;
     color: #fff;
     font-size: 10px;
