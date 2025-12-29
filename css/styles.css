@@ -1030,40 +1030,42 @@ footer strong { color: var(--text-main); font-weight: bold; }
 ================================================================
 */
 
-/* Contenedor principal de la insignia */
 .listeners-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    
-    /* Fondo oscuro para contraste */
-    background-color: #111111; 
-    border: 1px solid #333333;       /* Borde metálico sutil */
-    border-radius: 4px;              /* Esquinas ligeramente redondeadas */
-    
-    padding: 6px 12px;               /* Espacio interior */
-    
-    /* Sombras para dar profundidad (efecto "hundido" o elevado) */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 
-                0 1px 2px rgba(255,255,255,0.05);
-    
-    gap: 8px; /* Espacio si añades un icono después */
-    margin-left: 10px; /* Separación del título si está al lado */
-}
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            
+            background-color: #111111; 
+            border: 1px solid #333333;
+            border-radius: 4px;
+            
+            padding: 6px 12px; 
+            
+            /* AJUSTE CLAVE: Ancho mínimo fijo para evitar contracciones */
+            /* 85px es suficiente para 5 caracteres con la fuente Oswald */
+            min-width: 85px; 
+            
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 
+                        0 1px 2px rgba(255,255,255,0.05);
+            
+            gap: 8px;
+        }
 
-/* Estilo específico para el número (reemplaza el style inline) */
-.listeners-badge div {
-    font-family: 'Oswald', 'Segoe UI', sans-serif; /* Fuente técnica/robusta */
-    font-size: 16px; 
-    font-weight: 700; 
-    
-    color: #ff6600; /* El naranja solicitado */
-    
-    /* Efecto de brillo neón para el look 80s */
-    text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
-    
-    letter-spacing: 0.5px;
-}
+ .listeners-badge div {
+            font-family: 'Oswald', 'Segoe UI', sans-serif;
+            font-size: 16px; 
+            font-weight: 700; 
+            
+            color: #ff6600;
+            text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
+            
+            letter-spacing: 0.5px;
+            
+            /* Asegura que todos los números tengan el mismo ancho (tabular) */
+            font-variant-numeric: tabular-nums; 
+            text-align: center;
+            width: 100%; /* Ocupa todo el ancho disponible del padre */
+        }
 
 .listeners-badge2 {
     background-color: #FF6600;
