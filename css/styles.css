@@ -1043,7 +1043,7 @@ footer strong { color: var(--text-main); font-weight: bold; }
             background-color: #000000; /* Fondo negro */
             color: #ffffff; /* Números blancos */
             font-family: 'Oswald', sans-serif;
-            font-size: 32px;
+            font-size: 16px;
             font-weight: 700;
             
             /* Tamaño de la ventanilla */
