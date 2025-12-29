@@ -143,7 +143,9 @@ async function joinStation(stationId) {
             // Actualizar el DOM
             const counterElement = document.getElementById('totalListeners');
             if (counterElement) {
-                counterElement.innerText = count;
+                // 000 counterElement.innerText = count;
+                const countStr = String(count).padStart(5, '0'); 
+                counterElement.innerHTML = countStr.split('').map(digit => `<span class="digit">${digit}</span>`).join('');
             }
         })
         .subscribe(async (status) => {
