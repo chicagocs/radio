@@ -116,28 +116,31 @@ body {
 /* Header */
 .player-header {
     position: relative;
+    /* FUSIONADO: Flex dirección columna para apilar el badge debajo */
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
     margin-bottom: 20px;
-    /* AJUSTE: Eliminado padding-top para permitir que la cinta suba */
     padding-bottom: 10px;
     background-color: transparent;
+    gap: 5px; /* Espacio entre título y badge */
 }
 
 .station-name {
     font-size: 24px;
     font-weight: bold;
     color: var(--primary);
-    margin: auto;
-    /* AJUSTE: Añadido padding-top para compensar y alinear el texto */
+    /* FUSIONADO: Ajustes de padding y margin para centrado vertical */
+    margin: 0;
     padding-top: 10px;
-    padding-right: 30px;
+    padding-right: 0; /* Eliminado padding original innecesario */
+    text-align: center;
 }
 
-/* ✨ Cinta de favoritos - AJUSTE APLICADO */
+/* ✨ Cinta de favoritos */
 #filterToggleStar {
   position: absolute;
-  /* AJUSTE: top: -25px para compensar el padding de .player-container y pegarse al borde superior */
   top: -25px;
   right: 0;
   width: 2.6rem;
@@ -399,7 +402,6 @@ body {
     height: 100%;
     object-fit: cover;
     opacity: 0;
-    // transition: opacity var(--transition) ease;
     transition: opacity 0.3s;
 }
 .album-cover img.loaded { opacity: 1; }
@@ -1025,9 +1027,8 @@ footer strong { color: var(--text-main); font-weight: bold; }
 }
 
 /* ==========================================================================
-   CONTADOR MECÁNICO (5 DÍGITOS)
+   CONTADOR MECÁNICO (5 DÍGITOS - FUSIONADO)
    ========================================================================== */
-
 .listeners-badge {
     display: inline-flex;
     align-items: center;
@@ -1037,11 +1038,9 @@ footer strong { color: var(--text-main); font-weight: bold; }
     border: 1px solid #333333;
     border-radius: 4px;
     
-    padding: 6px 12px; 
-    
-    /* AJUSTE CLAVE: Ancho mínimo fijo para evitar contracciones */
-    /* 85px es suficiente para 5 caracteres con la fuente Oswald */
-    min-width: 85px; 
+    /* FUSIONADO: Tamaño ajustado al 50% y fijo */
+    padding: 2px 8px; 
+    min-width: 60px; 
     
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 
                 0 1px 2px rgba(255,255,255,0.05);
@@ -1051,7 +1050,8 @@ footer strong { color: var(--text-main); font-weight: bold; }
 
 .listeners-badge div {
     font-family: 'Oswald', 'Segoe UI', sans-serif;
-    font-size: 16px; 
+    /* FUSIONADO: Tamaño de fuente reducido a 12px */
+    font-size: 12px; 
     font-weight: 700; 
     
     color: #ff6600;
@@ -1092,29 +1092,4 @@ footer strong { color: var(--text-main); font-weight: bold; }
     .station-selector { margin-bottom: 25px; }
     .station-tags { gap: 4px; margin-top: 8px; }
     .station-tag { font-size: 11px; padding: 1px 4px; }
-}
-
-/* ==========================================================================
-   AJUSTES ESPECÍFICOS (BADGE DEBAJO Y 50%)
-   ========================================================================== */
-
-/* 1. Cambiamos la dirección del header a columna para apilar el badge debajo */
-.player-header {
-    flex-direction: column !important; 
-}
-
-/* 2. Ajustamos el nombre de estación */
-.station-name {
-    padding-right: 0; /* Quitamos el padding derecho original ya que no hay elementos al lado */
-    margin-bottom: 5px; /* Pequeño espacio entre título y badge */
-}
-
-/* 3. Sobrescribimos estilos del badge para el 50% y fijo */
-.listeners-badge {
-    min-width: 60px; /* Ancho fijo más pequeño para 5 dígitos pequeños */
-    padding: 2px 8px; /* Padding ajustado a la nueva escala */
-}
-
-.listeners-badge div {
-    font-size: 12px !important; /* 50% de 24px (tamaño de .station-name) */
 }
