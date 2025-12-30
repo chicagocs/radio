@@ -2,20 +2,20 @@
    FUENTES – OSWALD (AUTO HOST)
    ====================================================================== */
 
-/* Oswald Medium */
 @font-face {
     font-family: 'Oswald';
-    src: url('/fonts/oswald-medium.woff2') format('woff2');
+    src: url('/fonts/Oswald-Medium.woff2') format('woff2'),
+        url('/fonts/Oswald-Medium.woff') format('woff');
     font-weight: 500;
     font-style: normal;
     font-display: swap;
 }
 
-/* Oswald Bold */
 @font-face {
     font-family: 'Oswald';
-    src: url('/fonts/oswald-bold.woff2') format('woff2');
-    font-weight: 700;
+    src: url('/fonts/Oswald-Bold.woff2') format('woff2'),
+        url('/fonts/Oswald-Bold.woff') format('woff');
+    font-weight: bold;
     font-style: normal;
     font-display: swap;
 }
