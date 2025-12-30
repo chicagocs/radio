@@ -918,8 +918,9 @@ function updateAlbumDetailsWithSpotifyData(d) {
     } else albumTotalDuration.textContent = '--:--';
     if (d.genres && d.genres.length > 0) trackGenre.textContent = d.genres.slice(0, 2).join(', '); else trackGenre.textContent = '--';
     if (d.trackNumber && d.totalTracks) trackPosition.textContent = `Track ${d.trackNumber}/${d.totalTracks}`; else trackPosition.textContent = '--/--';
-    if (trackIsrc) {
-        if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc; else trackIsrc.textContent = '----';
+    if (trackIsrc) { 
+        // if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc; else trackIsrc.textContent = '----';
+        if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = data.isrc.toUpperCase(); else trackIsrc.textContent = '----';
     }
 }
 
