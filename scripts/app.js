@@ -1,4 +1,4 @@
-// app.js - v3.3.0
+// app.js - v3.3.1
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -67,24 +67,25 @@ let lastPlaybackTime = 0;
 let timeStuckCheckInterval = null;
 let installInvitationTimeout = null;
 let showOnlyFavorites = false;
-
 let wasPlayingBeforeFocusLoss = false;
 let pageFocusCheckInterval = null;
 let lastAudioContextTime = 0;
 let audioContextCheckInterval = null;
 let facebookVideoDetected = false;
 let animationFrameId = null;
-
 let lastSongCheckTime = 0;
 let rapidCheckInterval = null;
 let songTransitionDetected = false;
 let isUpdatingSongInfo = false;
 
+// NUEVA: BANDERA PARA EVITAR DESTRUCCIÓN DEL CANAL AL CAMBIAR ESTACIÓN MANUALMENTE
+let isManualStationSwitch = false;
+
 const RAPID_CHECK_THRESHOLD = 150;
 audioPlayer.volume = 0.5;
 
 // ==========================================================================
-// FUNCIONES: SUPABASE PRESENCE (CONTADOR DE OYENTES)
+// SUPABASE PRESENCE
 // ==========================================================================
 function getUserUniqueID() {
     let uid = localStorage.getItem('rm_uid');
@@ -96,27 +97,20 @@ function getUserUniqueID() {
 }
 
 async function joinStation(stationId) {
-    // FIX CRÍTICO: Verificación inmediata para evitar subscripciones dobles o faltas
-    if (stationId === currentStationId) {
-        return;
-    }
+    // Verificación inmediata para evitar doble suscripción
+    if (stationId === currentStationId) return;
 
-    // Si hay un canal activo y el ID es diferente, limpiarlo
+    // Si hay canal activo, salir primero (limpiar)
     if (currentChannel) {
         await leaveStation(currentStationId);
     }
     
-    // Asignar ID global inmediatamente para evitar race conditions con pulsaciones rápidas
+    // Asignar ID inmediatamente
     currentStationId = stationId;
     
     const channelName = `station:${stationId}`;
-
     const channel = supabase.channel(channelName, {
-        config: {
-            presence: {
-                key: getUserUniqueID()
-            }
-        }
+        config: { presence: { key: getUserUniqueID() } }
     });
 
     channel
@@ -124,6 +118,7 @@ async function joinStation(stationId) {
             const state = channel.presenceState();
             const count = Object.keys(state).length;
             
+            // Actualizar contador
             const counterElement = document.getElementById('totalListenersValue');
             if (counterElement) {
                 const countStr = String(count).padStart(5, '0');
@@ -156,7 +151,7 @@ async function leaveStation(stationId) {
 }
 
 // ==========================================================================
-// FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
+// UTILIDADES
 // ==========================================================================
 const apiCallTracker = {
     somaFM: { lastCall: 0, minInterval: 5000 },
@@ -239,23 +234,15 @@ function showNotification(message) {
 }
 
 function showInstallInvitation() {
-    if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) {
-        return;
-    }
+    if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) return;
     let os = 'other';
-    if (/android/i.test(navigator.userAgent)) {
-        os = 'android';
-    } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-        os = 'ios';
-    } else if (/win/i.test(navigator.userAgent)) {
-        os = 'windows';
-    }
+    if (/android/i.test(navigator.userAgent)) os = 'android';
+    else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) os = 'ios';
+    else if (/win/i.test(navigator.userAgent)) os = 'windows';
 
     [installWindowsBtn, installAndroidBtn, installIosBtn].forEach(btn => btn.classList.add('disabled'));
     const activeBtn = os === 'android' ? installAndroidBtn : (os === 'ios' ? installIosBtn : (os === 'windows' ? installWindowsBtn : null));
-    if(activeBtn) {
-        activeBtn.classList.remove('disabled');
-    }
+    if(activeBtn) activeBtn.classList.remove('disabled');
 
     installPwaInvitation.style.display = 'flex';
     installInvitationTimeout = true;
@@ -294,19 +281,14 @@ function isFacebookActive() {
 function startFacebookDetection() {
     if (pageFocusCheckInterval) clearInterval(pageFocusCheckInterval);
     pageFocusCheckInterval = setInterval(() => {
-        if (isFacebookActive()) {
-            attemptResumePlayback();
-        }
+        if (isFacebookActive()) attemptResumePlayback();
     }, 2000);
 }
 
 function checkAudioContext() {
-    if (!audioPlayer.paused && isPlaying) {
-        lastAudioContextTime = Date.now();
-    } else if (isPlaying && !audioPlayer.paused) {
-        if (audioPlayer.currentTime === lastAudioContextTime) {
-            attemptResumePlayback();
-        }
+    if (!audioPlayer.paused && isPlaying) lastAudioContextTime = Date.now();
+    else if (isPlaying && !audioPlayer.paused) {
+        if (audioPlayer.currentTime === lastAudioContextTime) attemptResumePlayback();
         lastAudioContextTime = audioPlayer.currentTime;
     }
 }
@@ -314,9 +296,7 @@ function checkAudioContext() {
 function startAudioContextCheck() {
     if (audioContextCheckInterval) clearInterval(audioContextCheckInterval);
     audioContextCheckInterval = setInterval(() => {
-        if (isPlaying && currentStation) {
-            checkAudioContext();
-        }
+        if (isPlaying && currentStation) checkAudioContext();
     }, 3000);
 }
 
@@ -326,108 +306,70 @@ function startPlaybackChecks() {
 }
 
 function stopPlaybackChecks() {
-    if (pageFocusCheckInterval) {
-        clearInterval(pageFocusCheckInterval);
-        pageFocusCheckInterval = null;
-    }
-    if (audioContextCheckInterval) {
-        clearInterval(audioContextCheckInterval);
-        audioContextCheckInterval = null;
-    }
+    if (pageFocusCheckInterval) { clearInterval(pageFocusCheckInterval); pageFocusCheckInterval = null; }
+    if (audioContextCheckInterval) { clearInterval(audioContextCheckInterval); audioContextCheckInterval = null; }
     facebookVideoDetected = false;
 }
 
 // ==========================================================================
-// LÓGICA PARA GESTIONAR FAVORITOS
+// FAVORITOS
 // ==========================================================================
 const FAVORITES_KEY = 'radioMax_favorites';
-
 function getFavorites() {
-    try {
-        const favorites = localStorage.getItem(FAVORITES_KEY);
-        return favorites ? JSON.parse(favorites) : [];
-    } catch (error) {
-        console.error("Error al leer favoritos de localStorage:", error);
-        return [];
+    try { return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []; }
+    catch (error) { return []; }
+}
+function saveFavorites(list) { try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(list)); } catch (e) {} }
+function updateFavoriteButtonUI(id, fav) {
+    const btn = document.querySelector(`.favorite-btn[data-station-id="${id}"]`);
+    if (!btn) return;
+    const name = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
+    if (fav) {
+        btn.innerHTML = '★';
+        btn.classList.add('is-favorite');
+        btn.setAttribute('aria-label', `Quitar ${name} de favoritos`);
+    } else {
+        btn.innerHTML = '☆';
+        btn.classList.remove('is-favorite');
+        btn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
     }
 }
-
-function saveFavorites(favoritesList) {
-    try {
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoritesList));
-    } catch (error) {
-        console.error("Error al guardar favoritos en localStorage:", error);
-    }
-}
-
-function updateFavoriteButtonUI(stationId, isFavorite) {
-    const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
-    if (btn) {
-        if (isFavorite) {
-            btn.innerHTML = '★';
-            btn.classList.add('is-favorite');
-            const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
-            btn.setAttribute('aria-label', `Quitar ${stationName} de favoritos`);
-        } else {
-            btn.innerHTML = '☆';
-            btn.classList.remove('is-favorite');
-            const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
-            btn.setAttribute('aria-label', `Añadir ${stationName} a favoritos`);
-        }
-    }
-}
-
-function addFavorite(stationId) {
-    let favorites = getFavorites();
-    if (!favorites.includes(stationId)) {
-        favorites.push(stationId);
-        saveFavorites(favorites);
-        updateFavoriteButtonUI(stationId, true);
+function addFavorite(id) {
+    const favs = getFavorites();
+    if (!favs.includes(id)) {
+        favs.push(id);
+        saveFavorites(favs);
+        updateFavoriteButtonUI(id, true);
         showNotification('Estación añadida a favoritos');
     }
 }
-
-function removeFavorite(stationId) {
-    let favorites = getFavorites();
-    favorites = favorites.filter(id => id !== stationId);
-    saveFavorites(favorites);
-    updateFavoriteButtonUI(stationId, false);
+function removeFavorite(id) {
+    const favs = getFavorites().filter(fid => fid !== id);
+    saveFavorites(favs);
+    updateFavoriteButtonUI(id, false);
     showNotification('Estación eliminada de favoritos');
 }
-
 function filterStationsByFavorites() {
-    const favorites = getFavorites();
-    const customOptions = document.querySelectorAll('.custom-option');
-    customOptions.forEach(option => {
-        const stationId = option.dataset.value;
-        if (favorites.includes(stationId)) {
-            option.style.display = 'block';
-        } else {
-            option.style.display = 'none';
-        }
+    const favs = getFavorites();
+    document.querySelectorAll('.custom-option').forEach(opt => {
+        opt.style.display = favs.includes(opt.dataset.value) ? 'block' : 'none';
     });
     document.querySelectorAll('.custom-optgroup-label').forEach(label => {
-        let hasVisibleOptions = false;
-        let nextElement = label.nextElementSibling;
-        while (nextElement && nextElement.classList.contains('custom-option')) {
-            if (nextElement.style.display !== 'none') {
-                hasVisibleOptions = true;
-                break;
-            }
-            nextElement = nextElement.nextElementSibling;
+        let next = label.nextElementSibling;
+        let has = false;
+        while (next && next.classList.contains('custom-option')) {
+            if (next.style.display !== 'none') { has = true; break; }
+            next = next.nextElementSibling;
         }
-        label.style.display = hasVisibleOptions ? 'block' : 'none';
+        label.style.display = has ? 'block' : 'none';
     });
 }
-
 function showAllStations() {
-    document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(element => {
-        element.style.display = '';
-    });
+    document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(el => el.style.display = '');
 }
 
 // ==========================================================================
-// CLASE PARA EL SELECTOR DE ESTACIONES PERSONALIZADO
+// SELECTOR PERSONALIZADO
 // ==========================================================================
 class CustomSelect {
     constructor(originalSelect) {
@@ -454,23 +396,19 @@ class CustomSelect {
         this.updateSelectedOption();
         setTimeout(() => {
             const selectedOption = this.customOptions.querySelector('.custom-option.selected');
-            if (selectedOption) {
-                selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-            }
+            if (selectedOption) selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }, 100);
     }
 
     populateOptions() {
         this.customOptions.innerHTML = '';
-        const children = Array.from(this.originalSelect.children);
-        children.forEach(child => {
+        Array.from(this.originalSelect.children).forEach(child => {
             if (child.tagName === 'OPTGROUP') {
-                const optgroupLabel = document.createElement('div');
-                optgroupLabel.className = 'custom-optgroup-label';
-                optgroupLabel.textContent = child.label;
-                this.customOptions.appendChild(optgroupLabel);
-                const groupOptions = child.querySelectorAll('option');
-                groupOptions.forEach(opt => this.createCustomOption(opt));
+                const label = document.createElement('div');
+                label.className = 'custom-optgroup-label';
+                label.textContent = child.label;
+                this.customOptions.appendChild(label);
+                child.querySelectorAll('option').forEach(opt => this.createCustomOption(opt));
             } else if (child.tagName === 'OPTION' && child.value) {
                 this.createCustomOption(child);
             }
@@ -481,90 +419,70 @@ class CustomSelect {
         const customOption = document.createElement('div');
         customOption.className = 'custom-option';
         customOption.dataset.value = option.value;
-
         const station = stationsById[option.value];
         let name = option.textContent;
-        let description = '';
+        let desc = '';
         let tags = [];
-        let promotions = [];
-
+        let promos = [];
         if (station) {
-            name = station.name;
-            if (station.service === 'radioparadise') {
-                name = station.name.split(' - ')[1] || station.name;
-            }
-            description = station.description || '';
+            name = station.service === 'radioparadise' ? station.name.split(' - ')[1] || station.name : station.name;
+            desc = station.description || '';
             tags = station.tags || [];
-            promotions = station.promotions || [];
+            promos = station.promotions || [];
         }
-
-        const stationInfoContainer = document.createElement('div');
-        stationInfoContainer.className = 'station-info';
-
-        const stationDetails = document.createElement('div');
-        stationDetails.className = 'station-details';
-
-        const nameElement = document.createElement('span');
-        nameElement.className = 'custom-option-name';
-        nameElement.textContent = name;
-        stationDetails.appendChild(nameElement);
-
-        if (description) {
-            const descElement = document.createElement('span');
-            descElement.className = 'custom-option-description';
-            descElement.textContent = description;
-            stationDetails.appendChild(descElement);
+        const container = document.createElement('div');
+        container.className = 'station-info';
+        const details = document.createElement('div');
+        details.className = 'station-details';
+        const nameEl = document.createElement('span');
+        nameEl.className = 'custom-option-name';
+        nameEl.textContent = name;
+        details.appendChild(nameEl);
+        if (desc) {
+            const descEl = document.createElement('span');
+            descEl.className = 'custom-option-description';
+            descEl.textContent = desc;
+            details.appendChild(descEl);
         }
-
-        if (tags && tags.length > 0) {
+        if (tags.length > 0) {
             const tagsContainer = document.createElement('div');
             tagsContainer.className = 'station-tags-container';
-            tags.forEach(tag => {
-                const tagElement = document.createElement('span');
-                tagElement.className = 'station-tag';
-                tagElement.textContent = tag;
-                tagsContainer.appendChild(tagElement);
+            tags.forEach(t => {
+                const tagEl = document.createElement('span');
+                tagEl.className = 'station-tag';
+                tagEl.textContent = t;
+                tagsContainer.appendChild(tagEl);
             });
-            stationDetails.appendChild(tagsContainer);
+            details.appendChild(tagsContainer);
         }
-
-        stationInfoContainer.appendChild(stationDetails);
-
-        const favoriteBtn = document.createElement('button');
-        favoriteBtn.className = 'favorite-btn';
-        favoriteBtn.innerHTML = '☆';
-        favoriteBtn.dataset.stationId = option.value;
-        favoriteBtn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
-
-        favoriteBtn.addEventListener('click', (e) => {
+        container.appendChild(details);
+        const favBtn = document.createElement('button');
+        favBtn.className = 'favorite-btn';
+        favBtn.innerHTML = '☆';
+        favBtn.dataset.stationId = option.value;
+        favBtn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
+        favBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const stationId = e.target.dataset.stationId;
-            const isFavorite = e.target.classList.contains('is-favorite');
-            if (isFavorite) {
-                removeFavorite(stationId);
-            } else {
-                addFavorite(stationId);
-            }
+            const sid = e.target.dataset.stationId;
+            const isFav = e.target.classList.contains('is-favorite');
+            if (isFav) removeFavorite(sid); else addFavorite(sid);
         });
-
-        stationInfoContainer.appendChild(favoriteBtn);
-
-        if (promotions && promotions.length > 0) {
-            const promotionsContainer = document.createElement('div');
-            promotionsContainer.className = 'station-promotions-container';
-            promotions.forEach(promo => {
-                const promoLink = document.createElement('a');
-                promoLink.href = promo.url;
-                promoLink.textContent = promo.text;
-                promoLink.className = `station-promotion-link station-promotion-link-${promo.type}`;
-                promoLink.target = '_blank';
-                promoLink.rel = 'noopener noreferrer';
-                promotionsContainer.appendChild(promoLink);
+        container.appendChild(favBtn);
+        if (promos.length > 0) {
+            const promosContainer = document.createElement('div');
+            promosContainer.className = 'station-promotions-container';
+            promos.forEach(p => {
+                const link = document.createElement('a');
+                link.href = p.url;
+                link.textContent = p.text;
+                link.className = `station-promotion-link station-promotion-link-${p.type}`;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                promosContainer.appendChild(link);
             });
-            stationDetails.appendChild(promotionsContainer);
+            details.appendChild(promosContainer);
         }
-
-        customOption.appendChild(stationInfoContainer);
+        customOption.appendChild(container);
         this.customOptions.appendChild(customOption);
     }
 
@@ -573,102 +491,65 @@ class CustomSelect {
             this.toggle();
             this.updateSelectedOption();
             if (!this.hasScrolledToSelection) {
-                const selectedOption = this.customOptions.querySelector('.custom-option.selected');
-                if (selectedOption) {
-                    setTimeout(() => {
-                        selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    }, 50);
+                const opt = this.customOptions.querySelector('.custom-option.selected');
+                if (opt) {
+                    setTimeout(() => opt.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
                 }
                 this.hasScrolledToSelection = true;
             }
         });
-
-        const customOptions = this.customOptions.querySelectorAll('.custom-option');
-        customOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
+        this.customOptions.querySelectorAll('.custom-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const value = option.dataset.value;
-                this.originalSelect.value = value;
+                this.originalSelect.value = opt.dataset.value;
                 this.updateTriggerText();
                 this.updateSelectedOption();
                 this.close();
                 this.originalSelect.dispatchEvent(new Event('change'));
             });
         });
-
         document.addEventListener('click', (e) => {
-            if (!this.customSelectWrapper.contains(e.target)) {
-                this.close();
-            }
+            if (!this.customSelectWrapper.contains(e.target)) this.close();
         });
     }
-
     toggle() { this.customSelectWrapper.classList.toggle('open'); }
     open() { this.customSelectWrapper.classList.add('open'); }
     close() { this.customSelectWrapper.classList.remove('open'); }
-
     updateSelectedOption() {
-        const selectedValue = this.originalSelect.value;
-        const customOptions = this.customOptions.querySelectorAll('.custom-option');
-        customOptions.forEach(option => {
-            if (option.dataset.value === selectedValue) {
-                option.classList.add('selected');
-            } else {
-                option.classList.remove('selected');
-            }
+        const val = this.originalSelect.value;
+        this.customOptions.querySelectorAll('.custom-option').forEach(opt => {
+            opt.classList.toggle('selected', opt.dataset.value === val);
         });
     }
-
     updateTriggerText() {
-        const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
-        const station = stationsById[selectedOption.value];
-        let text = selectedOption.textContent;
-        if (station) {
-            text = station.name;
-            if (station.service === 'radioparadise') {
-                text = station.name.split(' - ')[1] || station.name;
-            }
-        }
-        this.customSelectTrigger.textContent = text || " Seleccionar Estación ";
+        const selOpt = this.originalSelect.options[this.originalSelect.selectedIndex];
+        const st = stationsById[selOpt.value];
+        let txt = selOpt.textContent;
+        if (st) txt = st.service === 'radioparadise' ? st.name.split(' - ')[1] || st.name : st.name;
+        this.customSelectTrigger.textContent = txt || " Seleccionar Estación ";
     }
 }
 
 // ==========================================================================
-// FUNCIONES OPTIMIZADAS PARA PORTADA (v3.2.9)
+// PORTADA
 // ==========================================================================
 function displayAlbumCoverFromUrl(imageUrl) {
-    if (!imageUrl) {
-        resetAlbumCover();
-        return;
-    }
-
+    if (!imageUrl) { resetAlbumCover(); return; }
     albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
-
     const img = new Image();
     img.decoding = 'async';
-
     img.onload = function () {
         const placeholder = albumCover.querySelector('.album-cover-placeholder');
         if (placeholder) {
             placeholder.style.opacity = '0';
             placeholder.style.pointerEvents = 'none';
-            setTimeout(() => {
-                if (placeholder.parentNode === albumCover) {
-                    placeholder.remove();
-                }
-            }, 300);
+            setTimeout(() => { if (placeholder.parentNode === albumCover) placeholder.remove(); }, 300);
         }
         displayAlbumCover(this);
     };
-
-    img.onerror = function () {
-        console.warn('Error al cargar la portada:', imageUrl);
-        resetAlbumCover();
-    };
-
+    img.onerror = function () { console.warn('Error al cargar portada:', imageUrl); resetAlbumCover(); };
     img.src = imageUrl;
 }
-
 function displayAlbumCover(img) {
     albumCover.innerHTML = '';
     const displayImg = document.createElement('img');
@@ -677,96 +558,55 @@ function displayAlbumCover(img) {
     displayImg.classList.add('loaded');
     albumCover.appendChild(displayImg);
 }
-
 function resetAlbumCover() {
     albumCover.innerHTML = `
         <div class="album-cover-placeholder">
             <svg viewBox="0 0 640 640" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <filter id="glow">
-                        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                </defs>
+                <defs><filter id="glow"><feGaussianBlur stdDeviation="6" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
                 <rect width="640" height="640" fill="#0A0A0A" />
-                <g stroke="#333333" stroke-width="2" fill="none">
-                    <circle cx="320" cy="320" r="280" />
-                    <circle cx="320" cy="320" r="220" />
-                    <circle cx="320" cy="320" r="160" />
-                </g>
-                <g transform="translate(320, 320)">
-                    <path 
-                        d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" 
-                        stroke="#FF7A00" 
-                        stroke-width="20" 
-                        stroke-linecap="round" 
-                        stroke-linejoin="round" 
-                        fill="none"
-                        filter="url(#glow)"
-                    />
-                </g>
+                <g stroke="#333333" stroke-width="2" fill="none"><circle cx="320" cy="320" r="280" /><circle cx="320" cy="320" r="220" /><circle cx="320" cy="320" r="160" /></g>
+                <g transform="translate(320, 320)"><path d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" stroke="#FF7A00" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)" /></g>
             </svg>
         </div>
     `;
 }
 
 // ==========================================================================
-// LÓGICA DE LA APLICACIÓN
+// LÓGICA
 // ==========================================================================
 async function loadStations() {
     try {
         const response = await fetch('/stations.json');
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const allStations = await response.json();
-        const groupedStations = allStations.reduce((acc, station) => {
-            const serviceName = station.service === 'somafm' ? 'SomaFM' : station.service === 'radioparadise' ? 'Radio Paradise' : station.service === 'nrk' ? 'NRK Radio' : 'Otro';
-            if (!acc[serviceName]) acc[serviceName] = [];
-            acc[serviceName].push(station);
+        const grouped = allStations.reduce((acc, s) => {
+            const name = s.service === 'somafm' ? 'SomaFM' : s.service === 'radioparadise' ? 'Radio Paradise' : s.service === 'nrk' ? 'NRK Radio' : 'Otro';
+            if (!acc[name]) acc[name] = [];
+            acc[name].push(s);
             return acc;
         }, {});
-
-        for (const serviceName in groupedStations) {
-            groupedStations[serviceName].sort((a, b) => a.name.localeCompare(b.name));
-        }
-
+        for (const n in grouped) grouped[n].sort((a, b) => a.name.localeCompare(b.name));
         if (loadingStations) loadingStations.style.display = 'none';
         if (stationSelect) stationSelect.style.display = 'block';
         if (stationName) stationName.textContent = 'RadioMax';
-
-        populateStationSelect(groupedStations);
+        populateStationSelect(grouped);
         const customSelect = new CustomSelect(stationSelect);
-
-        const favoriteIds = getFavorites();
-        favoriteIds.forEach(id => {
-            updateFavoriteButtonUI(id, true);
-        });
-
-        const lastSelectedStation = localStorage.getItem('lastSelectedStation');
-        if (lastSelectedStation && stationsById[lastSelectedStation]) {
-            stationSelect.value = lastSelectedStation;
+        getFavorites().forEach(id => updateFavoriteButtonUI(id, true));
+        const last = localStorage.getItem('lastSelectedStation');
+        if (last && stationsById[last]) {
+            stationSelect.value = last;
             customSelect.updateTriggerText();
             customSelect.updateSelectedOption();
             setTimeout(() => {
-                const selectedOption = customSelect.customOptions.querySelector('.custom-option.selected');
-                if (selectedOption) {
-                    selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                }
+                const sel = customSelect.customOptions.querySelector('.custom-option.selected');
+                if (sel) sel.scrollIntoView({ block: 'center', behavior: 'smooth' });
             }, 100);
-
-            const station = stationsById[lastSelectedStation];
-            if (station) {
-                currentStation = station;
-                let displayName = station.name;
-                if (station.service === 'radioparadise') {
-                    displayName = station.name.split(' - ')[1] || station.name;
-                }
-                stationName.textContent = displayName;
+            const st = stationsById[last];
+            if (st) {
+                currentStation = st;
+                stationName.textContent = st.service === 'radioparadise' ? st.name.split(' - ')[1] || st.name : st.name;
             }
         }
-
         if (currentStation) {
             audioPlayer.src = currentStation.url;
             songTitle.textContent = 'A sonar';
@@ -775,45 +615,37 @@ async function loadStations() {
             updateShareButtonVisibility();
             updateStatus(false);
         }
-
         showWelcomeScreen();
-        return groupedStations;
-    } catch (error) {
-        if (loadingStations) loadingStations.textContent = 'Error al cargar las estaciones. Por favor, recarga la página.';
-        logErrorForAnalysis('Station loading error', { error: error.message, timestamp: new Date().toISOString() });
+        return grouped;
+    } catch (e) {
+        if (loadingStations) { loadingStations.textContent = 'Error al cargar estaciones. Recarga.'; loadingStations.style.color = '#ff6600'; }
+        logErrorForAnalysis('Load error', { error: e.message, timestamp: new Date().toISOString() });
         return [];
     }
 }
 
-function populateStationSelect(groupedStations) {
+function populateStationSelect(grouped) {
     while (stationSelect.firstChild) stationSelect.removeChild(stationSelect.firstChild);
-
-    const defaultOption = document.createElement('option');
-    defaultOption.value = "";
-    defaultOption.textContent = " Seleccionar Estación ";
-    defaultOption.disabled = true;
-    defaultOption.selected = true;
-    stationSelect.appendChild(defaultOption);
-
+    const def = document.createElement('option');
+    def.value = ""; def.textContent = " Seleccionar Estación "; def.disabled = true; def.selected = true;
+    stationSelect.appendChild(def);
     stationsById = {};
-    for (const serviceName in groupedStations) {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = serviceName;
-        groupedStations[serviceName].forEach(station => {
-            const option = document.createElement('option');
-            option.value = station.id;
-            stationsById[station.id] = station;
-            optgroup.appendChild(option);
+    for (const n in grouped) {
+        const grp = document.createElement('optgroup');
+        grp.label = n;
+        grouped[n].forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            stationsById[s.id] = s;
+            grp.appendChild(opt);
         });
-        stationSelect.appendChild(optgroup);
+        stationSelect.appendChild(grp);
     }
 }
 
 loadStations();
 
 if (filterToggleStar) {
-    filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
-    filterToggleStar.title = 'Solo estaciones favoritas';
     filterToggleStar.addEventListener('click', function() {
         showOnlyFavorites = !showOnlyFavorites;
         this.classList.toggle('active', showOnlyFavorites);
@@ -833,19 +665,14 @@ if (stationSelect) {
     stationSelect.addEventListener('change', function() {
         if (this.value) {
             localStorage.setItem('lastSelectedStation', this.value);
-            const selectedStationId = this.value;
-            const station = stationsById[selectedStationId];
-            if (station) {
-                currentStation = station;
-                let displayName = station.name;
-                if (station.service === 'radioparadise') {
-                    displayName = station.name.split(' - ')[1] || station.name;
-                }
-                stationName.textContent = displayName;
+            const st = stationsById[this.value];
+            if (st) {
+                currentStation = st;
+                stationName.textContent = st.service === 'radioparadise' ? st.name.split(' - ')[1] || st.name : st.name;
                 showWelcomeScreen();
                 playStation();
             } else {
-                logErrorForAnalysis('Station selection error', { selectedStationId, timestamp: new Date().toISOString() });
+                logErrorForAnalysis('Selection error', { id: this.value, timestamp: new Date().toISOString() });
             }
         }
     });
@@ -863,19 +690,16 @@ if (playBtn) {
             wasPlayingBeforeFocusLoss = false;
             stopPlaybackChecks();
         } else {
-            if (currentStation) {
-                playStation();
-            } else {
-                alert('Por favor, seleccionar una estación');
-            }
+            if (currentStation) playStation();
+            else alert('Por favor, seleccionar una estación');
         }
     });
 }
 
 function handlePlaybackError() {
-    if (connectionManager.isReconnecting) { return; }
+    if (connectionManager.isReconnecting) return;
     if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
-        console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
+        console.log('Audio reproduciendo, no iniciar reconexión');
         return;
     }
     leaveStation(currentStationId);
@@ -904,22 +728,15 @@ function handlePlaybackError() {
     connectionManager.start();
 }
 
-// ==========================================================================
-// FIX FINAL: INTENT ID + JOINSTATION AL INICIO
-// ==========================================================================
 let currentPlayPromiseId = 0;
 
 function playStation() {
     if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
-    
-    // FIX: Generar ID único
     const thisPlayId = ++currentPlayPromiseId;
-    
-    // FIX CRÍTICO: Llamar a joinStation ANTES de play() para actualizar contador inmediatamente
-    // Esto evita la condición de carrera con las pulsaciones de teclado.
-    joinStation(currentStation.id);
-    
-    // Limpieza de intervalos previos
+
+    // FIX: Activar bandera de cambio manual
+    isManualStationSwitch = true;
+
     if (updateInterval) clearInterval(updateInterval);
     if (countdownInterval) clearInterval(countdownInterval);
     if (rapidCheckInterval) clearInterval(rapidCheckInterval);
@@ -931,28 +748,31 @@ function playStation() {
     songArtist.textContent = ''; songAlbum.textContent = '';
     resetAlbumCover(); updateShareButtonVisibility();
 
+    // FIX: Unirse al contador ANTES de play() para actualizar visual inmediatamente
+    joinStation(currentStation.id);
+
     if (currentStation.service === 'nrk') {
         audioPlayer.addEventListener('loadedmetadata', () => {
             trackDuration = audioPlayer.duration; trackStartTime = Date.now();
-            const newTrackInfo = { title: currentStation.name, artist: currentStation.description, album: `Emisión del ${extractDateFromUrl(currentStation.url)}` };
-            currentTrackInfo = newTrackInfo; updateUIWithTrackInfo(newTrackInfo);
+            const newTrack = { title: currentStation.name, artist: currentStation.description, album: `Emisión del ${extractDateFromUrl(currentStation.url)}` };
+            currentTrackInfo = newTrack; updateUIWithTrackInfo(newTrack);
             resetAlbumCover(); resetAlbumDetails(); startCountdown(); updateShareButtonVisibility();
         }, { once: true });
     }
 
     audioPlayer.play()
         .then(() => {
-            // FIX: Verificar que este promise corresponde al último playStation
+            // FIX: Resetear bandera solo al final de todo el proceso
+            isManualStationSwitch = false;
+
             if (thisPlayId !== currentPlayPromiseId) {
-                console.log("Play promise ignorada: la estación ya cambió");
+                console.log("Play promise ignorada");
                 return;
             }
-            
             isPlaying = true; updateStatus(true); startTimeStuckCheck();
             showPlaybackInfo();
             wasPlayingBeforeFocusLoss = true;
 
-            // v3.2.9: Inicio optimizado del sistema de polling por servicio
             if (currentStation.service === 'somafm') {
                 updateSongInfo(true);
                 startSomaFmPolling(); 
@@ -962,313 +782,196 @@ function playStation() {
             } else {
                 setTimeout(() => startSongInfoUpdates(), 5000);
             }
-
-            if (installInvitationTimeout === null) {
-                setTimeout(showInstallInvitation, 600000);
-            }
-
-            setTimeout(() => {
-                if (isPlaying) {
-                    startPlaybackChecks();
-                }
-            }, 2000);
+            if (installInvitationTimeout === null) setTimeout(showInstallInvitation, 600000);
+            setTimeout(() => { if (isPlaying) startPlaybackChecks(); }, 2000);
         })
         .catch(error => {
+            console.warn("Play rejected:", error);
+            // FIX: Si es un aborto manual, no llamar a handlePlaybackError (que mata el canal)
+            if (error.name === 'AbortError' && isManualStationSwitch) {
+                isManualStationSwitch = false;
+                return; 
+            }
+            // Si es otro error real, manejarlo
             handlePlaybackError();
+            // Asegurar reset de bandera
+            isManualStationSwitch = false;
         });
 }
 
 function extractDateFromUrl(url) {
-    const match = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
-    if (match) {
-        const dateStr = match[1];
-        const year = dateStr.substring(0, 4);
-        const month = dateStr.substring(4, 6);
-        const day = dateStr.substring(6, 8);
-        return `${day}-${month}-${year}`;
-    }
-    return 'Fecha desconocida';
+    const m = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
+    return m ? `${m[1].substring(6, 8)}-${m[1].substring(4, 6)}-${m[1].substring(0, 4)}` : 'Fecha desconocida';
 }
 
 async function updateSongInfo(bypassRateLimit = false) {
     if (!currentStation || !currentStation.service) return;
-    
     if (isUpdatingSongInfo) return;
-
     if (currentStation.service === 'somafm') await updateSomaFmInfo(bypassRateLimit);
     else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
 }
 
 async function updateSomaFmInfo(bypassRateLimit = false) {
-    if (isUpdatingSongInfo) return; 
-    isUpdatingSongInfo = true;
-
+    if (isUpdatingSongInfo) return; isUpdatingSongInfo = true;
     try {
-        const response = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        const res = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
         if (data.songs && data.songs.length > 0) {
-            const currentSong = data.songs[0];
-            const newTrackInfo = {
-                title: currentSong.title || 'Título desconocido',
-                artist: currentSong.artist || 'Artista desconocido',
-                album: currentSong.album || '',
-                date: currentSong.date || null
-            };
-            const isNewTrack = !currentTrackInfo ||
-                currentTrackInfo.title !== newTrackInfo.title ||
-                currentTrackInfo.artist !== newTrackInfo.artist;
-
-            if (isNewTrack) {
+            const s = data.songs[0];
+            const newTrack = { title: s.title || 'Título desconocido', artist: s.artist || 'Artista desconocido', album: s.album || '', date: s.date || null };
+            const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
+            if (isNew) {
                 resetAlbumDetails();
-                currentTrackInfo = newTrackInfo;
-                updateUIWithTrackInfo(newTrackInfo);
+                currentTrackInfo = newTrack;
+                updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
-                trackStartTime = newTrackInfo.date ? newTrackInfo.date * 1000 : Date.now();
+                trackStartTime = newTrack.date ? newTrack.date * 1000 : Date.now();
                 trackDuration = 0;
                 startCountdown();
-                fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
-
-                if (rapidCheckInterval) {
-                    clearInterval(rapidCheckInterval);
-                    rapidCheckInterval = null;
-                }
+                fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
+                if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
                 songTransitionDetected = true;
             }
-        } else {
-            resetUI();
-        }
-    } catch (error) {
-        logErrorForAnalysis('SomaFM API error', {
-            error: error.message,
-            stationId: currentStation.id,
-            timestamp: new Date().toISOString()
-        });
-    } finally {
-        isUpdatingSongInfo = false;
-    }
+        } else resetUI();
+    } catch (e) {
+        logErrorForAnalysis('SomaFM error', { error: e.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
+    } finally { isUpdatingSongInfo = false; }
 }
 
 function startSomaFmPolling() {
     if (updateInterval) clearInterval(updateInterval);
-    updateInterval = setInterval(() => {
-        updateSongInfo(true);
-    }, 4000);
+    updateInterval = setInterval(() => updateSongInfo(true), 4000);
 }
 
 async function updateRadioParadiseInfo(bypassRateLimit = false) {
-    if (isUpdatingSongInfo) return;
-    isUpdatingSongInfo = true;
-
+    if (isUpdatingSongInfo) return; isUpdatingSongInfo = true;
     try {
-        const workerUrl = 'https://core.chcs.workers.dev/radioparadise';
-        const apiPath = `api/now_playing?chan=${currentStation.channelId || 1}`;
-        const finalUrl = `${workerUrl}?url=${encodeURIComponent(apiPath)}`;
-        const response = await fetch(finalUrl);
-        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-        const data = await response.json();
-        const newTrackInfo = {
-            title: data.title || 'Título desconocido',
-            artist: data.artist || 'Artista desconocido',
-            album: data.album || '',
-        };
-        const isNewTrack = !currentTrackInfo ||
-            currentTrackInfo.title !== newTrackInfo.title ||
-            currentTrackInfo.artist !== newTrackInfo.artist;
-
-        if (isNewTrack) {
+        const w = 'https://core.chcs.workers.dev/radioparadise';
+        const p = `api/now_playing?chan=${currentStation.channelId || 1}`;
+        const u = `${w}?url=${encodeURIComponent(p)}`;
+        const res = await fetch(u);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const d = await res.json();
+        const newTrack = { title: d.title || 'Título desconocido', artist: d.artist || 'Artista desconocido', album: d.album || '' };
+        const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
+        if (isNew) {
             resetCountdown();
             resetAlbumDetails();
-            currentTrackInfo = newTrackInfo;
-            updateUIWithTrackInfo(newTrackInfo);
+            currentTrackInfo = newTrack;
+            updateUIWithTrackInfo(newTrack);
             resetAlbumCover();
-
-            if (data.song_duration && typeof data.song_duration === 'number') {
-                trackDuration = data.song_duration;
-            } else {
-                trackStartTime = Date.now() - 15000;
-                trackDuration = 0;
-            }
+            if (d.song_duration && typeof d.song_duration === 'number') trackDuration = d.song_duration;
+            else { trackStartTime = Date.now() - 15000; trackDuration = 0; }
             startCountdown();
-            await fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
+            await fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
         }
-    } catch (error) {
-        logErrorForAnalysis('Radio Paradise API error', {
-            error: error.message,
-            stationId: currentStation.id,
-            timestamp: new Date().toISOString()
-        });
-    } finally {
-        isUpdatingSongInfo = false;
-    }
+    } catch (e) {
+        logErrorForAnalysis('Radio Paradise error', { error: e.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
+    } finally { isUpdatingSongInfo = false; }
 }
 
 function startRadioParadisePolling() {
     if (updateInterval) clearTimeout(updateInterval);
-
     const rpLoop = async () => {
         if (!isPlaying || currentStation?.service !== 'radioparadise') return;
-
         await updateRadioParadiseInfo(true);
-
-        let nextDelay = 5000;
-
+        let next = 5000;
         if (trackDuration > 0 && trackStartTime > 0) {
-            const elapsed = (Date.now() - trackStartTime) / 1000;
-            const remaining = trackDuration - elapsed;
-
-            if (remaining > 0 && remaining < 30) {
-                nextDelay = 2000;
-            }
+            const rem = trackDuration - (Date.now() - trackStartTime) / 1000;
+            if (rem > 0 && rem < 30) next = 2000;
         }
-
-        updateInterval = setTimeout(rpLoop, nextDelay);
+        updateInterval = setTimeout(rpLoop, next);
     };
-
     rpLoop();
 }
 
 async function fetchSongDetails(artist, title, album) {
-    if (!artist || !title || typeof artist !== 'string' || typeof title !== 'string') {
-        return;
-    }
-    const sanitizedArtist = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-    const sanitizedTitle = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-    const sanitizedAlbum = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
-
+    if (!artist || !title) return;
+    const sA = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+    const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+    const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
     try {
-        const netlifyApiUrl = 'https://core.chcs.workers.dev/spotify';
-        const fullUrl = `${netlifyApiUrl}?artist=${encodeURIComponent(sanitizedArtist)}&title=${encodeURIComponent(sanitizedTitle)}&album=${encodeURIComponent(sanitizedAlbum)}`;
-        const response = await fetch(fullUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data && data.imageUrl) {
-            displayAlbumCoverFromUrl(data.imageUrl);
-            updateAlbumDetailsWithSpotifyData(data);
-            if (data.duration) {
-                trackDuration = data.duration;
-                const totalMinutes = Math.floor(trackDuration / 60);
-                const totalSeconds = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
+        const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
+        const res = await fetch(u);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const d = await res.json();
+        if (d && d.imageUrl) {
+            displayAlbumCoverFromUrl(d.imageUrl);
+            updateAlbumDetailsWithSpotifyData(d);
+            if (d.duration) {
+                trackDuration = d.duration;
+                const m = Math.floor(trackDuration / 60);
+                const s = Math.floor(trackDuration % 60);
+                totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                 return;
-            } else {
-                await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
-            }
-            return;
+            } else await getMusicBrainzDuration(sA, sT);
         }
-    } catch (error) {
-        logErrorForAnalysis('Spotify API error', {
-            error: error.message,
-            artist: sanitizedArtist,
-            title: sanitizedTitle,
-            timestamp: new Date().toISOString()
-        });
+    } catch (e) {
+        logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
     }
-    await getMusicBrainzDuration(sanitizedArtist, sanitizedTitle);
+    await getMusicBrainzDuration(sA, sT);
 }
 
 async function getMusicBrainzDuration(artist, title) {
-    if (!canMakeApiCall('musicBrainz')) {
-        return;
-    }
+    if (!canMakeApiCall('musicBrainz')) return;
     try {
-        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
-        const response = await fetch(searchUrl, {
-            headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' }
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-        if (data.recordings && data.recordings.length > 0) {
-            const bestRecording = data.recordings.find(r => r.length) || data.recordings[0];
-            if (bestRecording && bestRecording.length) {
-                trackDuration = Math.floor(bestRecording.length / 1000);
-                const totalMinutes = Math.floor(trackDuration / 60);
-                const totalSeconds = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-                return;
+        const u = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+        const res = await fetch(u, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const d = await res.json();
+        if (d.recordings && d.recordings.length > 0) {
+            const r = d.recordings.find(r => r.length) || d.recordings[0];
+            if (r && r.length) {
+                trackDuration = Math.floor(r.length / 1000);
+                const m = Math.floor(trackDuration / 60);
+                const s = Math.floor(trackDuration % 60);
+                totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
             }
         }
-    } catch (error) {
-        logErrorForAnalysis('MusicBrainz API error', {
-            error: error.message,
-            artist,
-            title,
-            timestamp: new Date().toISOString()
-        });
+    } catch (e) {
+        logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
     }
 }
 
-function updateAlbumDetailsWithSpotifyData(data) {
-    const releaseDateElement = document.getElementById('releaseDate');
-    if (releaseDateElement) releaseDateElement.innerHTML = '';
-    if (data.release_date) {
-        const year = data.release_date.substring(0, 4);
-        let displayText = year;
-        if (data.albumTypeDescription && data.albumTypeDescription !== 'Álbum') {
-            displayText += ` (${data.albumTypeDescription})`;
-        }
-        releaseDateElement.textContent = displayText;
-    } else {
-        if (releaseDateElement) releaseDateElement.textContent = '----';
-    }
+function updateAlbumDetailsWithSpotifyData(d) {
+    const el = document.getElementById('releaseDate');
+    if (el) el.innerHTML = '';
+    if (d.release_date) {
+        const y = d.release_date.substring(0, 4);
+        let t = y;
+        if (d.albumTypeDescription && d.albumTypeDescription !== 'Álbum') t += ` (${d.albumTypeDescription})`;
+        el.textContent = t;
+    } else if (el) el.textContent = '----';
 
-    if (data.label && data.label.trim() !== '') {
-        recordLabel.textContent = data.label;
-    } else {
-        recordLabel.textContent = '----';
-    }
+    if (d.label && d.label.trim() !== '') recordLabel.textContent = d.label; else recordLabel.textContent = '----';
+    if (d.totalTracks) albumTrackCount.textContent = d.totalTracks; else albumTrackCount.textContent = '--';
+    
+    if (d.totalAlbumDuration) {
+        let s = d.totalAlbumDuration;
+        if (s > 10000) s = Math.floor(s / 1000);
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        albumTotalDuration.textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    } else albumTotalDuration.textContent = '--:--';
 
-    if (data.totalTracks) {
-        albumTrackCount.textContent = data.totalTracks;
-    } else {
-        albumTrackCount.textContent = '--';
-    }
-
-    if (data.totalAlbumDuration) {
-        let durationInSeconds = data.totalAlbumDuration;
-        if (durationInSeconds > 10000) {
-            durationInSeconds = Math.floor(durationInSeconds / 1000);
-        }
-        const totalMinutes = Math.floor(durationInSeconds / 60);
-        const totalSeconds = Math.floor(durationInSeconds % 60);
-        albumTotalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-    } else {
-        albumTotalDuration.textContent = '--:--';
-    }
-
-    if (data.genres && data.genres.length > 0) {
-        const displayGenres = data.genres.slice(0, 2).join(', ');
-        trackGenre.textContent = displayGenres;
-    } else {
-        trackGenre.textContent = '--';
-    }
-
-    if (data.trackNumber && data.totalTracks) {
-        trackPosition.textContent = `Track ${data.trackNumber}/${data.totalTracks}`;
-    } else {
-        trackPosition.textContent = '--/--';
-    }
-
+    if (d.genres && d.genres.length > 0) trackGenre.textContent = d.genres.slice(0, 2).join(', '); else trackGenre.textContent = '--';
+    if (d.trackNumber && d.totalTracks) trackPosition.textContent = `Track ${d.trackNumber}/${d.totalTracks}`; else trackPosition.textContent = '--/--';
+    
     if (trackIsrc) {
-        if (data.isrc && data.isrc.trim() !== '') {
-            trackIsrc.textContent = data.isrc;
-        } else {
-            trackIsrc.textContent = '----';
-        }
+        if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc; else trackIsrc.textContent = '----';
     }
 }
 
-function updateUIWithTrackInfo(trackInfo) {
-    songTitle.textContent = trackInfo.title;
-    songArtist.textContent = trackInfo.artist;
-    songAlbum.textContent = trackInfo.album ? `(${trackInfo.album})` : '';
+function updateUIWithTrackInfo(t) {
+    songTitle.textContent = t.title;
+    songArtist.textContent = t.artist;
+    songAlbum.textContent = t.album ? `(${t.album})` : '';
     updateShareButtonVisibility();
 }
 
 function resetUI() {
-    if (connectionManager.isReconnecting) { return; }
+    if (connectionManager.isReconnecting) return;
     songTitle.textContent = 'Reproduciendo...';
     songArtist.textContent = ''; songAlbum.textContent = '';
     resetCountdown(); resetAlbumCover(); resetAlbumDetails();
@@ -1279,8 +982,7 @@ function resetCountdown() {
     if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
-    trackDuration = 0;
-    trackStartTime = 0;
+    trackDuration = 0; trackStartTime = 0;
     countdownTimer.textContent = '--:--';
     totalDuration.textContent = '(--:--)';
     trackPosition.textContent = '--/--';
@@ -1291,76 +993,46 @@ function resetCountdown() {
 function startCountdown() {
     if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
-
-    if (!trackStartTime) {
-        resetCountdown();
-        return;
-    }
+    if (!trackStartTime) { resetCountdown(); return; }
 
     if (trackDuration > 0) {
-        const totalMinutes = Math.floor(trackDuration / 60);
-        const totalSeconds = Math.floor(trackDuration % 60);
-        totalDuration.textContent = `${String(totalMinutes).padStart(2, '0')}:${String(totalSeconds).padStart(2, '0')}`;
-    } else {
-        totalDuration.textContent = '(--:--)';
-    }
+        const m = Math.floor(trackDuration / 60);
+        const s = Math.floor(trackDuration % 60);
+        totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    } else totalDuration.textContent = '(--:--)';
 
     if (currentStation?.service === 'somafm' && !songTransitionDetected) {
-        const checkRapidMode = () => {
-            const elapsed = (Date.now() - trackStartTime) / 1000;
-            if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
+        const checkRapid = () => {
+            const el = (Date.now() - trackStartTime) / 1000;
+            if (el > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
                 rapidCheckInterval = setInterval(() => {
-                    if (currentStation?.service === 'somafm') {
-                        updateSongInfo(true);
-                    } else {
-                        if (rapidCheckInterval) {
-                            clearInterval(rapidCheckInterval);
-                            rapidCheckInterval = null;
-                        }
-                    }
+                    if (currentStation?.service === 'somafm') updateSongInfo(true);
+                    else { if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; } }
                 }, 2000); 
             }
         };
-        checkRapidMode();
-        const rapidCheckTimer = setInterval(() => {
-            if (!isPlaying || currentStation?.service !== 'somafm') {
-                clearInterval(rapidCheckTimer);
-                return;
-            }
-            checkRapidMode();
+        checkRapid();
+        const t = setInterval(() => {
+            if (!isPlaying || currentStation?.service !== 'somafm') { clearInterval(t); return; }
+            checkRapid();
         }, 10000);
     }
 
     function updateTimer() {
         const now = Date.now();
-        const elapsed = (now - trackStartTime) / 1000;
-        let displayTime = 0;
-        if (trackDuration > 0) {
-            displayTime = Math.max(0, trackDuration - elapsed);
-        } else {
-            displayTime = elapsed;
-        }
-        const minutes = Math.floor(displayTime / 60);
-        const seconds = Math.floor(displayTime % 60);
-        const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        countdownTimer.textContent = formattedTime;
-
-        if (trackDuration > 0 && displayTime < 10) {
-            countdownTimer.classList.add('ending');
-        } else {
-            countdownTimer.classList.remove('ending');
-        }
-
-        if (trackDuration > 0 && displayTime > 0) {
-            animationFrameId = requestAnimationFrame(updateTimer);
-        } else if (trackDuration === 0) {
-            animationFrameId = requestAnimationFrame(updateTimer);
-        } else {
+        const el = (now - trackStartTime) / 1000;
+        let d = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
+        const m = Math.floor(d / 60);
+        const s = Math.floor(d % 60);
+        const f = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        countdownTimer.textContent = f;
+        if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
+        if ((trackDuration > 0 && d > 0) || trackDuration === 0) animationFrameId = requestAnimationFrame(updateTimer);
+        else {
             countdownTimer.textContent = '00:00';
             countdownTimer.classList.remove('ending');
-            if (currentStation && currentStation.service === 'nrk') {
-                stopBtn.click();
-            } else {
+            if (currentStation && currentStation.service === 'nrk') stopBtn.click();
+            else {
                 updateSongInfo(true);
                 if (updateInterval) clearInterval(updateInterval);
                 updateInterval = setInterval(() => updateSongInfo(), 30000);
@@ -1371,9 +1043,7 @@ function startCountdown() {
 }
 
 function resetAlbumDetails() {
-    if (!document.querySelector('.release-date-tooltip')) {
-        releaseDate.textContent = '----';
-    }
+    if (!document.querySelector('.release-date-tooltip')) releaseDate.textContent = '----';
     recordLabel.textContent = '----';
     albumTrackCount.textContent = '--';
     if (trackIsrc) trackIsrc.textContent = '----';
@@ -1413,33 +1083,28 @@ if (stopBtn) {
 
 if (audioPlayer) {
     audioPlayer.addEventListener('error', (e) => {
-        const error = audioPlayer.error;
-        if (error) {
-            if (error.code == 1 || error.code == 4) { return; }
-            logErrorForAnalysis('Audio element error', {
-                errorCode: error.code,
-                errorMessage: error.message,
+        const err = audioPlayer.error;
+        if (err) {
+            if (err.code == 1 || err.code == 4) { return; }
+            logErrorForAnalysis('Audio error', {
+                code: err.code, msg: err.message,
                 station: currentStation ? currentStation.id : 'unknown',
                 timestamp: new Date().toISOString()
             });
-            if (error.message.includes('The play() request was interrupted') || error.message.includes('The fetching process for media resource was aborted')) {
+            if (err.message.includes('interrupt') || err.message.includes('aborted')) {
                 wasPlayingBeforeFocusLoss = true;
                 setTimeout(() => {
                     if (wasPlayingBeforeFocusLoss && currentStation) {
                         audioPlayer.play().then(() => {
-                            isPlaying = true;
-                            updateStatus(true);
-                            startTimeStuckCheck();
+                            isPlaying = true; updateStatus(true); startTimeStuckCheck();
                             showNotification('Reproducción reanudada automáticamente');
-                        }).catch(error => {
-                            showNotification('Toca para reanudar la reproducción');
+                        }).catch(er => {
+                            showNotification('Toca para reanudar');
                             playBtn.style.animation = 'pulse 2s infinite';
                         });
                     }
                 }, 2000);
-            } else {
-                handlePlaybackError();
-            }
+            } else handlePlaybackError();
         }
     });
 
@@ -1449,20 +1114,15 @@ if (audioPlayer) {
             setTimeout(() => {
                 if (wasPlayingBeforeFocusLoss && currentStation) {
                     audioPlayer.play().then(() => {
-                        isPlaying = true;
-                        updateStatus(true);
-                        startTimeStuckCheck();
+                        isPlaying = true; updateStatus(true); startTimeStuckCheck();
                         showNotification('Reproducción reanudada automáticamente');
-                    }).catch(error => {
-                        showNotification('Toca para reanudar la reproducción');
+                    }).catch(er => {
+                        showNotification('Toca para reanudar');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
                 }
             }, 1000);
-        } else {
-            isPlaying = false;
-            updateStatus(false);
-        }
+        } else { isPlaying = false; updateStatus(false); }
     });
 
     audioPlayer.addEventListener('stalled', () => {
@@ -1470,13 +1130,7 @@ if (audioPlayer) {
             wasPlayingBeforeFocusLoss = true;
             setTimeout(() => {
                 if (wasPlayingBeforeFocusLoss && currentStation) {
-                    audioPlayer.play().then(() => {
-                        isPlaying = true;
-                        updateStatus(true);
-                        startTimeStuckCheck();
-                    }).catch(error => {
-                        console.error('Error al reanudar la reproducción:', error);
-                    });
+                    audioPlayer.play().then(() => { isPlaying = true; updateStatus(true); startTimeStuckCheck(); }).catch(e => {});
                 }
             }, 2000);
         }
@@ -1485,8 +1139,8 @@ if (audioPlayer) {
 
 if (volumeSlider) {
     volumeSlider.addEventListener('input', function() {
-        const volume = this.value / 100;
-        audioPlayer.volume = volume;
+        const v = this.value / 100;
+        audioPlayer.volume = v;
         updateVolumeIconPosition();
         if (this.value == 0) { volumeIcon.classList.add('muted'); isMuted = true; }
         else { volumeIcon.classList.remove('muted'); isMuted = false; previousVolume = this.value; }
@@ -1509,39 +1163,25 @@ if (volumeIcon) {
     });
 }
 
-function updateStatus(isPlayingNow) {
-    if (playBtn) {
-        if (isPlayingNow) { playBtn.textContent = '⏸ PAUSAR'; }
-        else { playBtn.textContent = '▶ SONAR'; }
-    }
+function updateStatus(now) {
+    if (playBtn) playBtn.textContent = now ? '⏸ PAUSAR' : '▶ SONAR';
 }
 
 if (audioPlayer) {
     audioPlayer.addEventListener('playing', () => {
-        isPlaying = true;
-        updateStatus(true);
-        wasPlayingBeforeFocusLoss = true;
+        isPlaying = true; updateStatus(true); wasPlayingBeforeFocusLoss = true;
         if (connectionManager.isReconnecting) {
             connectionManager.stop();
             showNotification('Conexión restaurada con éxito.');
             if (currentStation && currentStation.service !== 'nrk') {
-                if (currentStation.service === 'somafm') {
-                    startSomaFmPolling();
-                } else if (currentStation.service === 'radioparadise') {
-                    startRadioParadisePolling();
-                } else {
-                    startSongInfoUpdates();
-                }
+                if (currentStation.service === 'somafm') startSomaFmPolling();
+                else if (currentStation.service === 'radioparadise') startRadioParadisePolling();
+                else startSongInfoUpdates();
                 updateSongInfo(true);
             }
         }
     });
-
-    audioPlayer.addEventListener('ended', () => {
-        isPlaying = false;
-        updateStatus(false);
-        wasPlayingBeforeFocusLoss = false;
-    });
+    audioPlayer.addEventListener('ended', () => { isPlaying = false; updateStatus(false); wasPlayingBeforeFocusLoss = false; });
 }
 
 const connectionManager = {
@@ -1562,138 +1202,80 @@ const connectionManager = {
     stop() {
         this.isReconnecting = false;
         this.reconnectAttempts = 0;
-        if (this.reconnectTimeoutId) {
-            clearTimeout(this.reconnectTimeoutId);
-            this.reconnectTimeoutId = null;
-        }
-        if (this.audioCheckInterval) {
-            clearInterval(this.audioCheckInterval);
-            this.audioCheckInterval = null;
-        }
+        if (this.reconnectTimeoutId) { clearTimeout(this.reconnectTimeoutId); this.reconnectTimeoutId = null; }
+        if (this.audioCheckInterval) { clearInterval(this.audioCheckInterval); this.audioCheckInterval = null; }
     },
     startAudioCheck() {
         this.audioCheckInterval = setInterval(() => {
             if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
                 this.stop();
-                isPlaying = true;
-                updateStatus(true);
-                showPlaybackInfo();
+                isPlaying = true; updateStatus(true); showPlaybackInfo();
                 showNotification('Conexión restaurada con éxito.');
                 if (currentStation && currentStation.service !== 'nrk') {
-                     if (currentStation.service === 'somafm') {
-                        startSomaFmPolling();
-                    } else if (currentStation.service === 'radioparadise') {
-                        startRadioParadisePolling();
-                    } else {
-                        startSongInfoUpdates();
-                    }
+                    if (currentStation.service === 'somafm') startSomaFmPolling();
+                    else if (currentStation.service === 'radioparadise') startRadioParadisePolling();
+                    else startSongInfoUpdates();
                     updateSongInfo(true);
                 }
             }
         }, 1000);
     },
     attemptReconnect() {
-        if (!this.isReconnecting || !currentStation) {
-            this.stop();
-            return;
-        }
-
+        if (!this.isReconnecting || !currentStation) { this.stop(); return; }
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             songTitle.textContent = 'Error de conexión: no se pudo restaurar';
             songArtist.textContent = 'Presionar SONAR para intentar manualmente';
-            songAlbum.textContent = '';
-            updateShareButtonVisibility();
-            this.stop();
-            return;
+            songAlbum.textContent = ''; updateShareButtonVisibility();
+            this.stop(); return;
         }
-
         this.reconnectAttempts++;
-        const delay = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
-
+        const d = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
         this.reconnectTimeoutId = setTimeout(async () => {
             try {
                 audioPlayer.src = currentStation.url;
                 await audioPlayer.play();
-                isPlaying = true;
-                updateStatus(true);
-                startTimeStuckCheck();
+                isPlaying = true; updateStatus(true); startTimeStuckCheck();
                 showPlaybackInfo();
                 this.stop();
                 showNotification('Conexión restaurada con éxito.');
                 if (currentStation.service !== 'nrk') {
-                     if (currentStation.service === 'somafm') {
-                        startSomaFmPolling();
-                    } else if (currentStation.service === 'radioparadise') {
-                        startRadioParadisePolling();
-                    } else {
-                        startSongInfoUpdates();
-                    }
+                    if (currentStation.service === 'somafm') startSomaFmPolling();
+                    else if (currentStation.service === 'radioparadise') startRadioParadisePolling();
+                    else startSongInfoUpdates();
                     updateSongInfo(true);
                 }
-            } catch (error) {
-                this.attemptReconnect();
-            }
-        }, delay);
+            } catch (e) { this.attemptReconnect(); }
+        }, d);
     }
 };
 
-window.addEventListener('online', () => {
-    if (connectionManager.isReconnecting) {
-        connectionManager.attemptReconnect();
-    }
-});
-
-window.addEventListener('offline', () => { });
+window.addEventListener('online', () => { if (connectionManager.isReconnecting) connectionManager.attemptReconnect(); });
+window.addEventListener('offline', () => {});
 
 if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'RadioMax',
-        artist: 'Una experiencia inmersiva',
-        album: 'inmersiva',
-        artwork: [
-            { src: '/images/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
-            { src: '/images/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }
-        ]
+        title: 'RadioMax', artist: 'Una experiencia inmersiva', album: 'inmersiva',
+        artwork: [{ src: '/images/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' }, { src: '/images/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }]
     });
-
     navigator.mediaSession.setActionHandler('play', () => {
-        if (!isPlaying && currentStation) {
-            audioPlayer.play().then(() => {
-                isPlaying = true;
-                updateStatus(true);
-                wasPlayingBeforeFocusLoss = true;
-            }).catch(error => {
-                console.error('Error al reanudar la reproducción:', error);
-            });
-        }
+        if (!isPlaying && currentStation) audioPlayer.play().then(() => { isPlaying = true; updateStatus(true); wasPlayingBeforeFocusLoss = true; }).catch(e => {});
     });
-
     navigator.mediaSession.setActionHandler('pause', () => {
-        if (isPlaying) {
-            audioPlayer.pause();
-            isPlaying = false;
-            updateStatus(false);
-            wasPlayingBeforeFocusLoss = false;
-        }
+        if (isPlaying) { audioPlayer.pause(); isPlaying = false; updateStatus(false); wasPlayingBeforeFocusLoss = false; }
     });
 }
 
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         wasPlayingBeforeFocusLoss = isPlaying;
-        if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
-            facebookVideoDetected = true;
-        }
+        if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) facebookVideoDetected = true;
     } else {
         attemptResumePlayback();
         if (facebookVideoDetected) {
             startFacebookDetection();
             setTimeout(() => {
                 facebookVideoDetected = false;
-                if (pageFocusCheckInterval) {
-                    clearInterval(pageFocusCheckInterval);
-                    pageFocusCheckInterval = null;
-                }
+                if (pageFocusCheckInterval) { clearInterval(pageFocusCheckInterval); pageFocusCheckInterval = null; }
             }, 30000);
         }
     }
@@ -1701,9 +1283,7 @@ document.addEventListener('visibilitychange', () => {
 
 window.addEventListener('blur', () => {
     wasPlayingBeforeFocusLoss = isPlaying;
-    if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) {
-        facebookVideoDetected = true;
-    }
+    if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) facebookVideoDetected = true;
 });
 
 window.addEventListener('focus', () => {
@@ -1712,10 +1292,7 @@ window.addEventListener('focus', () => {
         startFacebookDetection();
         setTimeout(() => {
             facebookVideoDetected = false;
-            if (pageFocusCheckInterval) {
-                clearInterval(pageFocusCheckInterval);
-                pageFocusCheckInterval = null;
-            }
+            if (pageFocusCheckInterval) { clearInterval(pageFocusCheckInterval); pageFocusCheckInterval = null; }
         }, 30000);
     }
 });
@@ -1723,9 +1300,7 @@ window.addEventListener('focus', () => {
 document.addEventListener('click', () => {
     if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
         setTimeout(() => {
-            if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
-                attemptResumePlayback();
-            }
+            if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) attemptResumePlayback();
         }, 500);
     }
 });
@@ -1737,10 +1312,8 @@ const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
 function showInstallPwaButtons() {
     if (window.matchMedia('(display-mode: standalone)').matches) {
         if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
-        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
-        return;
+        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none'; return;
     }
-
     const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
     if (isIos) {
         if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
@@ -1750,96 +1323,66 @@ function showInstallPwaButtons() {
         if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
     }
 }
-
 window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    showInstallPwaButtons();
+    e.preventDefault(); deferredPrompt = e; showInstallPwaButtons();
 });
-
 if (installPwaBtnAndroid) {
     installPwaBtnAndroid.addEventListener('click', async (e) => {
         e.preventDefault();
-        if (!deferredPrompt) {
-            showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
-            return;
-        }
+        if (!deferredPrompt) { showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"'); return; }
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
-        }
+        if (outcome === 'accepted') { if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none'; }
         deferredPrompt = null;
     });
 }
-
 if (installPwaBtnIos) {
     installPwaBtnIos.addEventListener('click', (e) => {
         e.preventDefault();
         showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
     });
 }
-
 setTimeout(showInstallPwaButtons, 1000);
 
-if (shareButton) {
-    shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
-}
-
+if (shareButton) shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
 document.addEventListener('click', (e) => {
-    if (shareButton && shareOptions && !shareButton.contains(e.target) && !shareOptions.contains(e.target)) {
-        shareOptions.classList.remove('active');
-    }
+    if (shareButton && shareOptions && !shareButton.contains(e.target) && !shareOptions.contains(e.target)) shareOptions.classList.remove('active');
 });
 
 if (shareWhatsApp) {
     shareWhatsApp.addEventListener('click', () => {
-        const title = songTitle.textContent;
-        const artist = songArtist.textContent;
-        if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
-            const message = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const isBraveAndroid = isMobile && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
-
-            if (isBraveAndroid) {
+        const t = songTitle.textContent; const a = songArtist.textContent;
+        if (t && a && t !== 'a sonar' && t !== 'Conectando...' && t !== 'Seleccionar estación') {
+            const m = `Escuché ${t} de ${a} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
+            const isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isBrave = isMob && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
+            if (isBrave) {
                 showNotification('En Brave, toca el enlace para abrir WhatsApp Web');
-                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1000);
-            } else if (isMobile) {
-                const whatsappUri = `whatsapp://send?text=${encodeURIComponent(message)}`;
-                const link = document.createElement('a');
-                link.href = whatsappUri; link.target = '_blank'; link.rel = 'noopener noreferrer';
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }, 1500);
-            } else {
-                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-            }
+                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank'); }, 1000);
+            } else if (isMob) {
+                const uri = `whatsapp://send?text=${encodeURIComponent(m)}`;
+                const l = document.createElement('a'); l.href = uri; l.target = '_blank'; l.rel = 'noopener noreferrer'; document.body.appendChild(l); l.click(); document.body.removeChild(l);
+                setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank'); }, 1500);
+            } else window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank');
             if (shareOptions) shareOptions.classList.remove('active');
-        } else {
-            showNotification('Por favor, espera a que comience una canción para compartir');
-        }
+        } else showNotification('Por favor, espera a que comience una canción para compartir');
     });
 }
 
-if (closeInvitationBtn) {
-    closeInvitationBtn.addEventListener('click', () => {
-        hideInstallInvitation();
-    });
-}
+if (closeInvitationBtn) closeInvitationBtn.addEventListener('click', hideInstallInvitation);
 
 if (installWindowsBtn) {
     installWindowsBtn.addEventListener('click', (e) => {
         e.preventDefault();
         if (deferredPrompt) {
             deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
+            deferredPrompt.userChoice.then((r) => {
+                if (r.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
                 else { console.log('User dismissed A2HS prompt'); }
                 deferredPrompt = null;
             });
             hideInstallInvitation();
-        } else {
-            showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
-        }
+        } else showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
     });
 }
 
@@ -1848,15 +1391,13 @@ if (installAndroidBtn) {
         e.preventDefault();
         if (deferredPrompt) {
             deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
+            deferredPrompt.userChoice.then((r) => {
+                if (r.outcome === 'accepted') { console.log('User accepted A2HS prompt'); }
                 else { console.log('User dismissed A2HS prompt'); }
                 deferredPrompt = null;
             });
             hideInstallInvitation();
-        } else {
-            showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
-        }
+        } else showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
     });
 }
 
@@ -1868,100 +1409,74 @@ if (installIosBtn) {
     });
 }
 
-let lastKeyPressed = null;
-let lastMatchIndex = -1;
-
+let lastKeyPressed = null; let lastMatchIndex = -1;
 document.addEventListener('keydown', function(event) {
     if (!document.querySelector('.custom-select-wrapper.open') &&
         !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) &&
         /^[a-zA-Z0-9]$/.test(event.key)) {
         event.preventDefault();
         const key = event.key.toLowerCase();
-        const customOptions = document.querySelectorAll('.custom-option');
         const matches = [];
-        customOptions.forEach(option => {
-            const stationName = option.querySelector('.custom-option-name').textContent.toLowerCase();
-            if (stationName.startsWith(key)) { matches.push(option); }
+        document.querySelectorAll('.custom-option').forEach(opt => {
+            const name = opt.querySelector('.custom-option-name').textContent.toLowerCase();
+            if (name.startsWith(key)) matches.push(opt);
         });
-
         if (matches.length > 0) {
-            if (key === lastKeyPressed) { lastMatchIndex = (lastMatchIndex +1) % matches.length; }
+            if (key === lastKeyPressed) { lastMatchIndex = (lastMatchIndex + 1) % matches.length; }
             else { lastMatchIndex = 0; lastKeyPressed = key; }
-            const selectedOption = matches[lastMatchIndex];
-            const stationId = selectedOption.dataset.value;
-            stationSelect.value = stationId;
+            const opt = matches[lastMatchIndex];
+            const id = opt.dataset.value;
+            stationSelect.value = id;
             stationSelect.dispatchEvent(new Event('change'));
-            const customSelect = document.querySelector('.custom-select-wrapper');
-            const trigger = customSelect.querySelector('.custom-select-trigger');
-            const station = stationsById[stationId];
-            let displayName = station.name;
-            if (station.service === 'radioparadise') { displayName = station.name.split(' - ')[1] || station.name; }
-            trigger.textContent = displayName;
-            customOptions.forEach(option => { option.classList.remove('selected'); });
-            selectedOption.classList.add('selected');
-            selectedOption.scrollIntoView({ block: 'nearest' });
+            const custom = document.querySelector('.custom-select-wrapper');
+            const trig = custom.querySelector('.custom-select-trigger');
+            const st = stationsById[id];
+            let txt = st.name;
+            if (st.service === 'radioparadise') txt = st.name.split(' - ')[1] || st.name;
+            trig.textContent = txt;
+            custom.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            opt.scrollIntoView({ block: 'nearest' });
         }
     }
 });
 
-if (volumeIcon) {
-    updateVolumeIconPosition();
-}
+if (volumeIcon) updateVolumeIconPosition();
 
 const versionSpan = document.getElementById('version-number');
 if (versionSpan) {
     fetch('/sw.js')
-        .then(response => {
-            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-            return response.text();
+        .then(r => { if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.text(); })
+        .then(t => {
+            const m = t.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
+            if (m && m[1]) versionSpan.textContent = m[1];
+            else { versionSpan.textContent = 'N/D'; console.warn('No version match in sw.js'); }
         })
-        .then(text => {
-            const versionMatch = text.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
-            if (versionMatch && versionMatch[1]) {
-                versionSpan.textContent = versionMatch[1];
-            } else {
-                versionSpan.textContent = 'N/D';
-                console.warn('No se pudo encontrar el número de versión en sw.js con el formato esperado.');
-            }
-        })
-        .catch(error => {
-            console.error('Error al cargar el archivo sw.js para obtener la versión:', error);
-            versionSpan.textContent = 'Error';
-        });
+        .catch(e => { console.error('Error loading sw version:', e); versionSpan.textContent = 'Error'; });
 }
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         let refreshing = false;
-        const updateNotification = document.getElementById('update-notification');
-        const updateReloadBtn = document.getElementById('update-reload-btn');
-
+        const un = document.getElementById('update-notification');
+        const btn = document.getElementById('update-reload-btn');
         navigator.serviceWorker.register('/sw.js')
             .then(reg => {
-                if (reg.waiting) {
-                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                    if (updateNotification) updateNotification.style.display = 'block';
-                }
+                if (reg.waiting) { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); if (un) un.style.display = 'block'; }
                 reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker?.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            if (updateNotification) updateNotification.style.display = 'block';
-                        }
+                    const nw = reg.installing;
+                    nw?.addEventListener('statechange', () => {
+                        if (nw.state === 'installed' && navigator.serviceWorker.controller) if (un) un.style.display = 'block';
                     });
                 });
             })
-            .catch(err => console.error('SW error:', err));
-
+            .catch(e => console.error('SW error:', e));
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
+            if (!refreshing) { refreshing = true; window.location.reload(); }
         });
-
-        if (updateReloadBtn) {
-            updateReloadBtn.addEventListener('click', () => {
-                if (updateNotification) updateNotification.style.display = 'none';
+        if (btn) {
+            btn.addEventListener('click', () => {
+                if (un) un.style.display = 'none';
                 navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' });
                 setTimeout(() => window.location.reload(), 100);
             });
@@ -1969,15 +1484,9 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// =======================================================================
-// FIN DEL BLOQUE TRY...CATCH
-// =======================================================================
 } catch (error) {
-    console.error("Error fatal durante la inicialización de la aplicación:", error);
-    const loadingElement = document.getElementById('loadingStations');
-    if (loadingElement) {
-        loadingElement.textContent = `Error crítico: ${error.message}. Revisa la consola para más detalles.`;
-        loadingElement.style.color = '#ff6600';
-    }
+    console.error("Error fatal:", error);
+    const le = document.getElementById('loadingStations');
+    if (le) { le.textContent = `Error crítico: ${error.message}.`; le.style.color = '#ff6600'; }
 }
 });
