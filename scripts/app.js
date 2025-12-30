@@ -920,7 +920,7 @@ function updateAlbumDetailsWithSpotifyData(d) {
     if (d.trackNumber && d.totalTracks) trackPosition.textContent = `Track ${d.trackNumber}/${d.totalTracks}`; else trackPosition.textContent = '--/--';
     if (trackIsrc) { 
         // if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc; else trackIsrc.textContent = '----';
-        if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = data.isrc.toUpperCase(); else trackIsrc.textContent = '----';
+        if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc.toUpperCase(); else trackIsrc.textContent = '----';
     }
 }
 
