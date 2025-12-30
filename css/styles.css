@@ -712,7 +712,11 @@ body {
     word-break: break-word;
 }
 
-/* ISRC Specific */
+/* ISRC  */
+#trackIsrc {
+  text-transform: uppercase;
+}
+
 .countdown-timer-column .detail-row {
     display: flex;
     align-items: center;
