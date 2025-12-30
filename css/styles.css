@@ -1092,4 +1092,25 @@ footer strong { color: var(--text-main); font-weight: bold; }
     .station-selector { margin-bottom: 25px; }
     .station-tags { gap: 4px; margin-top: 8px; }
     .station-tag { font-size: 11px; padding: 1px 4px; }
+
+ /* ======================================================================
+   FUENTES – OSWALD (AUTO HOST)
+   ====================================================================== */
+
+@font-face {
+    font-family: 'Oswald';
+    src: url('/fonts/oswald-medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Oswald';
+    src: url('/fonts/oswald-bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+  
 }
