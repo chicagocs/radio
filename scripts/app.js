@@ -1,22 +1,17 @@
-// app.js - v3.2.9
+// app.js - v3.3.0
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
 // ==========================================================================
-// Reemplaza con tus claves reales de Supabase
 const SUPABASE_URL = 'https://xahbzlhjolnugpbpnbmo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_G_dlO7Q6PPT7fDQCvSN5lA_mbcqtxVl';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Variables globales para manejar canales de presencia
 let currentChannel = null;
 let currentStationId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-// =======================================================================
-// MANEJO DE ERRORES GLOBAL PARA CAPTURAR CUALQUIER FALLO
-// =======================================================================
 try {
 // ==========================================================================
 // SELECCIÓN DE ELEMENTOS DEL DOM
@@ -41,25 +36,20 @@ const albumTrackCount = document.getElementById('albumTrackCount');
 const albumTotalDuration = document.getElementById('albumTotalDuration');
 const trackGenre = document.getElementById('trackGenre');
 const trackPosition = document.getElementById('trackPosition');
-// AGREGADO: Referencia al elemento del ISRC
 const trackIsrc = document.getElementById('trackIsrc');
 const shareButton = document.getElementById('shareButton');
 const shareOptions = document.getElementById('shareOptions');
 const shareWhatsApp = document.getElementById('shareWhatsApp');
 const notification = document.getElementById('notification');
 
-// Elementos para la invitación PWA
 const installPwaInvitation = document.getElementById('install-pwa-invitation');
 const closeInvitationBtn = document.getElementById('close-invitation');
 const installWindowsBtn = document.getElementById('install-windows');
 const installAndroidBtn = document.getElementById('install-android');
 const installIosBtn = document.getElementById('install-ios');
 
-// Elementos para controlar la visibilidad de la pantalla de bienvenida y reproducción
 const welcomeScreen = document.getElementById('welcomeScreen');
 const playbackInfo = document.getElementById('playbackInfo');
-
-// NUEVO: Elementos del encabezado del reproductor
 const playerHeader = document.querySelector('.player-header');
 const filterToggleStar = document.getElementById('filterToggleStar');
 
@@ -76,38 +66,27 @@ let currentTrackInfo = null;
 let lastPlaybackTime = 0;
 let timeStuckCheckInterval = null;
 let installInvitationTimeout = null;
-let showOnlyFavorites = false; // NUEVO: Variable para controlar el filtro de favoritos
+let showOnlyFavorites = false;
 
-// Variable para rastrear el estado de reproducción antes de perder el foco
 let wasPlayingBeforeFocusLoss = false;
-
-// Variables adicionales para el manejo de Facebook
 let pageFocusCheckInterval = null;
 let lastAudioContextTime = 0;
 let audioContextCheckInterval = null;
 let facebookVideoDetected = false;
-
-// Variable para requestAnimationFrame del contador
 let animationFrameId = null;
 
-// Variables para mejorar la detección de nuevas canciones en SomaFM
 let lastSongCheckTime = 0;
 let rapidCheckInterval = null;
 let songTransitionDetected = false;
-
-// NUEVO: Bandera global para evitar llamadas concurrentes a la API
 let isUpdatingSongInfo = false;
 
-// === ACTUALIZADO: Constante para activar verificación rápida en SomaFM (2.5 min) ===
-const RAPID_CHECK_THRESHOLD = 150; // 2.5 minutos en segundos
-
+const RAPID_CHECK_THRESHOLD = 150;
 audioPlayer.volume = 0.5;
 
 // ==========================================================================
-// NUEVAS FUNCIONES: SUPABASE PRESENCE (CONTADOR DE OYENTES)
+// FUNCIONES: SUPABASE PRESENCE (CONTADOR DE OYENTES)
 // ==========================================================================
 function getUserUniqueID() {
-    // Generar ID único simple para el navegador
     let uid = localStorage.getItem('rm_uid');
     if (!uid) {
         uid = 'user_' + Math.random().toString(36).substr(2, 9);
@@ -117,11 +96,19 @@ function getUserUniqueID() {
 }
 
 async function joinStation(stationId) {
-    // Si ya estábamos en otra estación, salimos primero
-    if (currentChannel && currentStationId !== stationId) {
+    // FIX CRÍTICO: Verificación inmediata para evitar subscripciones dobles o faltas
+    if (stationId === currentStationId) {
+        return;
+    }
+
+    // Si hay un canal activo y el ID es diferente, limpiarlo
+    if (currentChannel) {
         await leaveStation(currentStationId);
     }
+    
+    // Asignar ID global inmediatamente para evitar race conditions con pulsaciones rápidas
     currentStationId = stationId;
+    
     const channelName = `station:${stationId}`;
 
     const channel = supabase.channel(channelName, {
@@ -137,17 +124,11 @@ async function joinStation(stationId) {
             const state = channel.presenceState();
             const count = Object.keys(state).length;
             
-            // ==================================================================
-            // AJUSTE AQUÍ: Apuntar al ID correcto y simplificar la lógica
-            // ==================================================================
-            const counterElement = document.getElementById('totalListenersValue'); // Usamos el ID del hijo
+            const counterElement = document.getElementById('totalListenersValue');
             if (counterElement) {
-                // Formatear a 5 dígitos con ceros a la izquierda
                 const countStr = String(count).padStart(5, '0');
-                // Actualizar solo el texto (sin crear spans innecesarios)
                 counterElement.textContent = countStr;
             }
-            // ==================================================================
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -163,19 +144,14 @@ async function joinStation(stationId) {
 
 async function leaveStation(stationId) {
     if (currentChannel) {
-        // Des-suscribirse del canal
         await supabase.removeChannel(currentChannel);
         currentChannel = null;
         currentStationId = null;
         
-        // ==================================================================
-        // CORRECCIÓN APLICADA: Resetear apuntando al valor interno
-        // ==================================================================
         const counterElement = document.getElementById('totalListenersValue');
         if (counterElement) {
-            counterElement.textContent = '00000'; // Resetear a 00000 conservando estructura
+            counterElement.textContent = '00000';
         }
-        // ==================================================================
     }
 }
 
@@ -183,18 +159,16 @@ async function leaveStation(stationId) {
 // FUNCIONES DE UTILIDAD Y CONFIGURACIÓN
 // ==========================================================================
 const apiCallTracker = {
-    somaFM: { lastCall: 0, minInterval: 5000 }, // Control externo, ahora manejado por loops internos
+    somaFM: { lastCall: 0, minInterval: 5000 },
     radioParadise: { lastCall: 0, minInterval: 5000 },
     musicBrainz: { lastCall: 0, minInterval: 1000 }
 };
 
-// Función para mostrar la pantalla de bienvenida (logo SVG)
 function showWelcomeScreen() {
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
     if (playbackInfo) playbackInfo.style.display = 'none';
 }
 
-// Función para mostrar la información de reproducción
 function showPlaybackInfo() {
     if (welcomeScreen) welcomeScreen.style.display = 'none';
     if (playbackInfo) playbackInfo.style.display = 'flex';
@@ -214,8 +188,6 @@ function startTimeStuckCheck() {
     }, 3000);
 }
 
-// Simplificado: la gestión de rate limit ahora depende más de los intervalos fijos,
-// pero mantenemos esto para APIs externas como MusicBrainz.
 function canMakeApiCall(service) {
     const now = Date.now();
     if (now - apiCallTracker[service].lastCall >= apiCallTracker[service].minInterval) {
@@ -366,7 +338,7 @@ function stopPlaybackChecks() {
 }
 
 // ==========================================================================
-// NUEVO: LÓGICA PARA GESTIONAR FAVORITOS
+// LÓGICA PARA GESTIONAR FAVORITOS
 // ==========================================================================
 const FAVORITES_KEY = 'radioMax_favorites';
 
@@ -392,12 +364,12 @@ function updateFavoriteButtonUI(stationId, isFavorite) {
     const btn = document.querySelector(`.favorite-btn[data-station-id="${stationId}"]`);
     if (btn) {
         if (isFavorite) {
-            btn.innerHTML = '★'; // Estrella rellena
+            btn.innerHTML = '★';
             btn.classList.add('is-favorite');
             const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
             btn.setAttribute('aria-label', `Quitar ${stationName} de favoritos`);
         } else {
-            btn.innerHTML = '☆'; // Estrella vacía
+            btn.innerHTML = '☆';
             btn.classList.remove('is-favorite');
             const stationName = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
             btn.setAttribute('aria-label', `Añadir ${stationName} a favoritos`);
@@ -423,7 +395,6 @@ function removeFavorite(stationId) {
     showNotification('Estación eliminada de favoritos');
 }
 
-// NUEVO: Funciones para filtrar estaciones por favoritos
 function filterStationsByFavorites() {
     const favorites = getFavorites();
     const customOptions = document.querySelectorAll('.custom-option');
@@ -435,7 +406,6 @@ function filterStationsByFavorites() {
             option.style.display = 'none';
         }
     });
-    // Ocultar grupos que no tienen opciones visibles
     document.querySelectorAll('.custom-optgroup-label').forEach(label => {
         let hasVisibleOptions = false;
         let nextElement = label.nextElementSibling;
@@ -528,11 +498,9 @@ class CustomSelect {
             promotions = station.promotions || [];
         }
 
-        // MODIFICADO: Crear contenedor principal para la info y el botón
         const stationInfoContainer = document.createElement('div');
         stationInfoContainer.className = 'station-info';
 
-        // MODIFICADO: Contenedor para los detalles de la estación (texto)
         const stationDetails = document.createElement('div');
         stationDetails.className = 'station-details';
 
@@ -560,31 +528,25 @@ class CustomSelect {
             stationDetails.appendChild(tagsContainer);
         }
 
-        // Añadir el contenedor de detalles al contenedor principal
         stationInfoContainer.appendChild(stationDetails);
 
-        // ======== NUEVO: AÑADIR BOTÓN DE FAVORITOS ========
         const favoriteBtn = document.createElement('button');
         favoriteBtn.className = 'favorite-btn';
-        favoriteBtn.innerHTML = '☆'; // Estrella vacía por defecto
+        favoriteBtn.innerHTML = '☆';
         favoriteBtn.dataset.stationId = option.value;
         favoriteBtn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
 
-        // Prevenir que el clic en la estrella cierre el selector
         favoriteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const stationId = e.target.dataset.stationId;
             const isFavorite = e.target.classList.contains('is-favorite');
-            // Llama a las funciones globales definidas arriba
             if (isFavorite) {
                 removeFavorite(stationId);
             } else {
                 addFavorite(stationId);
             }
         });
-        // =====================================================
 
-        // Añadir el botón de favoritos al contenedor principal
         stationInfoContainer.appendChild(favoriteBtn);
 
         if (promotions && promotions.length > 0) {
@@ -672,26 +634,20 @@ class CustomSelect {
 }
 
 // ==========================================================================
-// ✅ FUNCIONES OPTIMIZADAS PARA PORTADA (v3.2.9)
+// FUNCIONES OPTIMIZADAS PARA PORTADA (v3.2.9)
 // ==========================================================================
-/**
- * Muestra una portada desde una URL, con carga progresiva y transición suave
- * @param {string} imageUrl - URL de la imagen
- */
 function displayAlbumCoverFromUrl(imageUrl) {
     if (!imageUrl) {
         resetAlbumCover();
         return;
     }
 
-    // Mostrar indicador de carga
     albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
 
     const img = new Image();
     img.decoding = 'async';
 
     img.onload = function () {
-        // ✅ Antes de insertar: ocultar suavemente el placeholder
         const placeholder = albumCover.querySelector('.album-cover-placeholder');
         if (placeholder) {
             placeholder.style.opacity = '0';
@@ -702,8 +658,6 @@ function displayAlbumCoverFromUrl(imageUrl) {
                 }
             }, 300);
         }
-
-        // Insertar la imagen con fade-in
         displayAlbumCover(this);
     };
 
@@ -712,17 +666,11 @@ function displayAlbumCoverFromUrl(imageUrl) {
         resetAlbumCover();
     };
 
-    // Iniciar carga
     img.src = imageUrl;
 }
 
-/**
- * Inserta la imagen descargada en el contenedor de portada
- * @param {HTMLImageElement} img - Imagen ya cargada
- */
 function displayAlbumCover(img) {
     albumCover.innerHTML = '';
-
     const displayImg = document.createElement('img');
     displayImg.src = img.src;
     displayImg.alt = 'Portada del álbum';
@@ -730,9 +678,6 @@ function displayAlbumCover(img) {
     albumCover.appendChild(displayImg);
 }
 
-/**
- * Restablece el contenedor a su estado inicial (logo RM)
- */
 function resetAlbumCover() {
     albumCover.innerHTML = `
         <div class="album-cover-placeholder">
@@ -794,7 +739,6 @@ async function loadStations() {
         populateStationSelect(groupedStations);
         const customSelect = new CustomSelect(stationSelect);
 
-        // NUEVO: Cargar el estado de los favoritos después de crear el selector
         const favoriteIds = getFavorites();
         favoriteIds.forEach(id => {
             updateFavoriteButtonUI(id, true);
@@ -867,9 +811,6 @@ function populateStationSelect(groupedStations) {
 
 loadStations();
 
-// =======================================================================
-// ACTUALIZADO: Integración del botón de filtro de favoritos (sin innerHTML)
-// =======================================================================
 if (filterToggleStar) {
     filterToggleStar.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
     filterToggleStar.title = 'Solo estaciones favoritas';
@@ -937,15 +878,13 @@ function handlePlaybackError() {
         console.log('El audio está reproduciéndose, no se inicia el gestor de reconexión');
         return;
     }
-
-    // NUEVO: Salir del contador de oyentes
     leaveStation(currentStationId);
     isPlaying = false;
     updateStatus(false);
     audioPlayer.pause();
     if (timeStuckCheckInterval) { clearInterval(timeStuckCheckInterval); timeStuckCheckInterval = null; }
     if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
-    if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; } // Limpiar rapid check
+    if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
     currentTrackInfo = null;
     trackDuration = 0;
     trackStartTime = 0;
@@ -965,18 +904,21 @@ function handlePlaybackError() {
     connectionManager.start();
 }
 
-// ========================================================================
-// FIX PARA TECLADO: INTENT ID PARA EVITAR RACE CONDITIONS
-// ========================================================================
+// ==========================================================================
+// FIX FINAL: INTENT ID + JOINSTATION AL INICIO
+// ==========================================================================
 let currentPlayPromiseId = 0;
-// ========================================================================
 
 function playStation() {
     if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
     
-    // FIX: Generar un ID único para esta acción de reproducción
+    // FIX: Generar ID único
     const thisPlayId = ++currentPlayPromiseId;
-
+    
+    // FIX CRÍTICO: Llamar a joinStation ANTES de play() para actualizar contador inmediatamente
+    // Esto evita la condición de carrera con las pulsaciones de teclado.
+    joinStation(currentStation.id);
+    
     // Limpieza de intervalos previos
     if (updateInterval) clearInterval(updateInterval);
     if (countdownInterval) clearInterval(countdownInterval);
@@ -1000,37 +942,24 @@ function playStation() {
 
     audioPlayer.play()
         .then(() => {
-            // ==================================================================
-            // FIX CRÍTICO: Solo proceder si este es el evento de reproducción MÁS reciente
-            // ==================================================================
+            // FIX: Verificar que este promise corresponde al último playStation
             if (thisPlayId !== currentPlayPromiseId) {
-                console.log("Play promise ignorada: la estación ya cambió por teclado");
+                console.log("Play promise ignorada: la estación ya cambió");
                 return;
             }
-            // ==================================================================
             
             isPlaying = true; updateStatus(true); startTimeStuckCheck();
             showPlaybackInfo();
             wasPlayingBeforeFocusLoss = true;
 
-            // NUEVO: Unirse al contador de oyentes si es una estación válida
-            if (currentStation && currentStation.id) {
-                joinStation(currentStation.id);
-            }
-
             // v3.2.9: Inicio optimizado del sistema de polling por servicio
             if (currentStation.service === 'somafm') {
-                // 1. Consulta inmediata
                 updateSongInfo(true);
-                // 2. Inicio del polling optimizado
                 startSomaFmPolling(); 
             } else if (currentStation.service === 'radioparadise') {
-                // 1. Consulta inmediata
                 updateSongInfo(true);
-                // 2. Inicio del polling dedicado y dinámico
                 startRadioParadisePolling();
             } else {
-                // Fallback genérico para otros servicios
                 setTimeout(() => startSongInfoUpdates(), 5000);
             }
 
@@ -1064,18 +993,13 @@ function extractDateFromUrl(url) {
 async function updateSongInfo(bypassRateLimit = false) {
     if (!currentStation || !currentStation.service) return;
     
-    // Protección contra llamadas concurrentes
     if (isUpdatingSongInfo) return;
 
     if (currentStation.service === 'somafm') await updateSomaFmInfo(bypassRateLimit);
     else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
 }
 
-// ==========================================================================
-// v3.2.9: SOMAFM OPTIMIZADO
-// ==========================================================================
 async function updateSomaFmInfo(bypassRateLimit = false) {
-    // Protección de concurrencia
     if (isUpdatingSongInfo) return; 
     isUpdatingSongInfo = true;
 
@@ -1105,7 +1029,6 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 startCountdown();
                 fetchSongDetails(newTrackInfo.artist, newTrackInfo.title, newTrackInfo.album);
 
-                // === NUEVO: Reiniciar lógica de rapid check al cambiar canción ===
                 if (rapidCheckInterval) {
                     clearInterval(rapidCheckInterval);
                     rapidCheckInterval = null;
@@ -1126,20 +1049,14 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
     }
 }
 
-// === v3.2.9: Polling base reducido a 4 segundos ===
 function startSomaFmPolling() {
     if (updateInterval) clearInterval(updateInterval);
-    // Intervalo base optimizado: 4 segundos
     updateInterval = setInterval(() => {
         updateSongInfo(true);
     }, 4000);
 }
 
-// ==========================================================================
-// v3.2.9: RADIO PARADISE OPTIMIZADO (Dedicado)
-// ==========================================================================
 async function updateRadioParadiseInfo(bypassRateLimit = false) {
-    // Protección de concurrencia
     if (isUpdatingSongInfo) return;
     isUpdatingSongInfo = true;
 
@@ -1166,7 +1083,6 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
             updateUIWithTrackInfo(newTrackInfo);
             resetAlbumCover();
 
-            // NUEVO: Intentar obtener la duración desde la propia API de Radio Paradise
             if (data.song_duration && typeof data.song_duration === 'number') {
                 trackDuration = data.song_duration;
             } else {
@@ -1187,24 +1103,20 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
     }
 }
 
-// === v3.2.9: Polling dedicado dinámico para Radio Paradise ===
 function startRadioParadisePolling() {
-    if (updateInterval) clearTimeout(updateInterval); // Usar clearTimeout por si es un loop recursivo
+    if (updateInterval) clearTimeout(updateInterval);
 
     const rpLoop = async () => {
         if (!isPlaying || currentStation?.service !== 'radioparadise') return;
 
-        // Ejecutar actualización
         await updateRadioParadiseInfo(true);
 
-        // Calcular tiempo restante para determinar la velocidad del próximo ciclo
-        let nextDelay = 5000; // Default: 5 segundos
+        let nextDelay = 5000;
 
         if (trackDuration > 0 && trackStartTime > 0) {
             const elapsed = (Date.now() - trackStartTime) / 1000;
             const remaining = trackDuration - elapsed;
 
-            // Acelerar a 2s si quedan menos de 30 segundos
             if (remaining > 0 && remaining < 30) {
                 nextDelay = 2000;
             }
@@ -1213,7 +1125,6 @@ function startRadioParadisePolling() {
         updateInterval = setTimeout(rpLoop, nextDelay);
     };
 
-    // Iniciar el ciclo
     rpLoop();
 }
 
@@ -1340,7 +1251,6 @@ function updateAlbumDetailsWithSpotifyData(data) {
         trackPosition.textContent = '--/--';
     }
 
-    // AGREGADO: Mostrar el ISRC
     if (trackIsrc) {
         if (data.isrc && data.isrc.trim() !== '') {
             trackIsrc.textContent = data.isrc;
@@ -1395,11 +1305,9 @@ function startCountdown() {
         totalDuration.textContent = '(--:--)';
     }
 
-    // === v3.2.9: Lógica para activar rapidCheck en SomaFM ===
     if (currentStation?.service === 'somafm' && !songTransitionDetected) {
         const checkRapidMode = () => {
             const elapsed = (Date.now() - trackStartTime) / 1000;
-            // ACTUALIZADO: Umbral a 150s (2.5 min) y frecuencia a 2s
             if (elapsed > RAPID_CHECK_THRESHOLD && !rapidCheckInterval) {
                 rapidCheckInterval = setInterval(() => {
                     if (currentStation?.service === 'somafm') {
@@ -1413,7 +1321,6 @@ function startCountdown() {
                 }, 2000); 
             }
         };
-        // Ejecutar inmediato y chequeo periódico
         checkRapidMode();
         const rapidCheckTimer = setInterval(() => {
             if (!isPlaying || currentStation?.service !== 'somafm') {
@@ -1423,7 +1330,6 @@ function startCountdown() {
             checkRapidMode();
         }, 10000);
     }
-    // === Fin de la lógica nueva ===
 
     function updateTimer() {
         const now = Date.now();
@@ -1456,7 +1362,6 @@ function startCountdown() {
                 stopBtn.click();
             } else {
                 updateSongInfo(true);
-                // Fallback genérico por si el servicio específico no captó el cambio
                 if (updateInterval) clearInterval(updateInterval);
                 updateInterval = setInterval(() => updateSongInfo(), 30000);
             }
@@ -1495,7 +1400,6 @@ function stopSongInfoUpdates() {
 
 if (stopBtn) {
     stopBtn.addEventListener('click', function() {
-        // NUEVO: Salir del contador de oyentes
         leaveStation(currentStationId);
         connectionManager.stop();
         audioPlayer.pause(); audioPlayer.src = '';
@@ -1621,7 +1525,6 @@ if (audioPlayer) {
             connectionManager.stop();
             showNotification('Conexión restaurada con éxito.');
             if (currentStation && currentStation.service !== 'nrk') {
-                // Reiniciar el polling optimizado correspondiente
                 if (currentStation.service === 'somafm') {
                     startSomaFmPolling();
                 } else if (currentStation.service === 'radioparadise') {
@@ -1677,7 +1580,6 @@ const connectionManager = {
                 showPlaybackInfo();
                 showNotification('Conexión restaurada con éxito.');
                 if (currentStation && currentStation.service !== 'nrk') {
-                     // Reiniciar el polling optimizado correspondiente
                      if (currentStation.service === 'somafm') {
                         startSomaFmPolling();
                     } else if (currentStation.service === 'radioparadise') {
@@ -1719,7 +1621,6 @@ const connectionManager = {
                 this.stop();
                 showNotification('Conexión restaurada con éxito.');
                 if (currentStation.service !== 'nrk') {
-                     // Reiniciar el polling optimizado correspondiente
                      if (currentStation.service === 'somafm') {
                         startSomaFmPolling();
                     } else if (currentStation.service === 'radioparadise') {
