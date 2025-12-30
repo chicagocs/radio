@@ -1,4 +1,4 @@
-// app.js - v3.3.1
+// app.js - v3.4.0
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -67,6 +67,7 @@ let lastPlaybackTime = 0;
 let timeStuckCheckInterval = null;
 let installInvitationTimeout = null;
 let showOnlyFavorites = false;
+
 let wasPlayingBeforeFocusLoss = false;
 let pageFocusCheckInterval = null;
 let lastAudioContextTime = 0;
@@ -78,14 +79,11 @@ let rapidCheckInterval = null;
 let songTransitionDetected = false;
 let isUpdatingSongInfo = false;
 
-// NUEVA: BANDERA PARA EVITAR DESTRUCCIÓN DEL CANAL AL CAMBIAR ESTACIÓN MANUALMENTE
-let isManualStationSwitch = false;
-
 const RAPID_CHECK_THRESHOLD = 150;
 audioPlayer.volume = 0.5;
 
 // ==========================================================================
-// SUPABASE PRESENCE
+// FUNCIONES: SUPABASE PRESENCE (CONTADOR DE OYENTES)
 // ==========================================================================
 function getUserUniqueID() {
     let uid = localStorage.getItem('rm_uid');
@@ -97,10 +95,9 @@ function getUserUniqueID() {
 }
 
 async function joinStation(stationId) {
-    // Verificación inmediata para evitar doble suscripción
     if (stationId === currentStationId) return;
 
-    // Si hay canal activo, salir primero (limpiar)
+    // Si hay un canal activo, salir primero (limpieza)
     if (currentChannel) {
         await leaveStation(currentStationId);
     }
@@ -118,7 +115,6 @@ async function joinStation(stationId) {
             const state = channel.presenceState();
             const count = Object.keys(state).length;
             
-            // Actualizar contador
             const counterElement = document.getElementById('totalListenersValue');
             if (counterElement) {
                 const countStr = String(count).padStart(5, '0');
@@ -151,7 +147,7 @@ async function leaveStation(stationId) {
 }
 
 // ==========================================================================
-// UTILIDADES
+// UTILIDADES Y CONFIGURACIÓN
 // ==========================================================================
 const apiCallTracker = {
     somaFM: { lastCall: 0, minInterval: 5000 },
@@ -200,7 +196,7 @@ function updateVolumeIconPosition() {
     const sliderWidth = volumeSlider.offsetWidth;
     const percent = volumeSlider.value / volumeSlider.max;
     const iconWidth = volumeIcon.offsetWidth;
-    const newPosition = percent * sliderWidth - (iconWidth / 2);
+    const newPosition = percent * sliderWidth - (iconWidth /2);
     volumeIcon.style.left = `${newPosition}px`;
 }
 
@@ -227,9 +223,7 @@ function showNotification(message) {
     if (notification) {
         notification.textContent = message;
         notification.classList.add('show');
-        setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+        setTimeout(() => { notification.classList.remove('show'); }, 3000);
     }
 }
 
@@ -248,18 +242,14 @@ function showInstallInvitation() {
     installInvitationTimeout = true;
 }
 
-function hideInstallInvitation() {
-    installPwaInvitation.style.display = 'none';
-}
+function hideInstallInvitation() { installPwaInvitation.style.display = 'none'; }
 
 function attemptResumePlayback() {
     if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
         setTimeout(() => {
             if (!isPlaying) {
                 audioPlayer.play().then(() => {
-                    isPlaying = true;
-                    updateStatus(true);
-                    startTimeStuckCheck();
+                    isPlaying = true; updateStatus(true); startTimeStuckCheck();
                     showNotification('Reproducción reanudada automáticamente');
                 }).catch(error => {
                     showNotification('Toca para reanudar la reproducción');
@@ -312,7 +302,7 @@ function stopPlaybackChecks() {
 }
 
 // ==========================================================================
-// FAVORITOS
+// GESTIÓN DE FAVORITOS
 // ==========================================================================
 const FAVORITES_KEY = 'radioMax_favorites';
 function getFavorites() {
@@ -325,38 +315,27 @@ function updateFavoriteButtonUI(id, fav) {
     if (!btn) return;
     const name = btn.closest('.custom-option').querySelector('.custom-option-name').textContent;
     if (fav) {
-        btn.innerHTML = '★';
-        btn.classList.add('is-favorite');
+        btn.innerHTML = '★'; btn.classList.add('is-favorite');
         btn.setAttribute('aria-label', `Quitar ${name} de favoritos`);
     } else {
-        btn.innerHTML = '☆';
-        btn.classList.remove('is-favorite');
+        btn.innerHTML = '☆'; btn.classList.remove('is-favorite');
         btn.setAttribute('aria-label', `Añadir ${name} a favoritos`);
     }
 }
 function addFavorite(id) {
-    const favs = getFavorites();
-    if (!favs.includes(id)) {
-        favs.push(id);
-        saveFavorites(favs);
-        updateFavoriteButtonUI(id, true);
-        showNotification('Estación añadida a favoritos');
-    }
+    let favs = getFavorites();
+    if (!favs.includes(id)) { favs.push(id); saveFavorites(favs); updateFavoriteButtonUI(id, true); showNotification('Estación añadida'); }
 }
 function removeFavorite(id) {
-    const favs = getFavorites().filter(fid => fid !== id);
-    saveFavorites(favs);
-    updateFavoriteButtonUI(id, false);
-    showNotification('Estación eliminada de favoritos');
-}
+    let favs = getFavorites().filter(fid => fid !== id); saveFavorites(favs); updateFavoriteButtonUI(id, false); showNotification('Estación eliminada'); }
 function filterStationsByFavorites() {
     const favs = getFavorites();
     document.querySelectorAll('.custom-option').forEach(opt => {
         opt.style.display = favs.includes(opt.dataset.value) ? 'block' : 'none';
     });
     document.querySelectorAll('.custom-optgroup-label').forEach(label => {
-        let next = label.nextElementSibling;
         let has = false;
+        let next = label.nextElementSibling;
         while (next && next.classList.contains('custom-option')) {
             if (next.style.display !== 'none') { has = true; break; }
             next = next.nextElementSibling;
@@ -380,7 +359,6 @@ class CustomSelect {
         this.customSelectTrigger.className = 'custom-select-trigger';
         this.customOptions = document.createElement('div');
         this.customOptions.className = 'custom-options';
-
         this.customSelectWrapper.appendChild(this.customSelectTrigger);
         this.customSelectWrapper.appendChild(this.customOptions);
         this.originalSelect.parentNode.insertBefore(this.customSelectWrapper, this.originalSelect.nextSibling);
@@ -388,18 +366,16 @@ class CustomSelect {
         this.hasScrolledToSelection = false;
         this.init();
     }
-
     init() {
         this.populateOptions();
         this.initEvents();
         this.updateTriggerText();
         this.updateSelectedOption();
         setTimeout(() => {
-            const selectedOption = this.customOptions.querySelector('.custom-option.selected');
-            if (selectedOption) selectedOption.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            const sel = this.customOptions.querySelector('.custom-option.selected');
+            if (sel) sel.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }, 100);
     }
-
     populateOptions() {
         this.customOptions.innerHTML = '';
         Array.from(this.originalSelect.children).forEach(child => {
@@ -414,7 +390,6 @@ class CustomSelect {
             }
         });
     }
-
     createCustomOption(option) {
         const customOption = document.createElement('div');
         customOption.className = 'custom-option';
@@ -445,15 +420,15 @@ class CustomSelect {
             details.appendChild(descEl);
         }
         if (tags.length > 0) {
-            const tagsContainer = document.createElement('div');
-            tagsContainer.className = 'station-tags-container';
+            const tagContainer = document.createElement('div');
+            tagContainer.className = 'station-tags-container';
             tags.forEach(t => {
                 const tagEl = document.createElement('span');
                 tagEl.className = 'station-tag';
                 tagEl.textContent = t;
-                tagsContainer.appendChild(tagEl);
+                tagContainer.appendChild(tagEl);
             });
-            details.appendChild(tagsContainer);
+            details.appendChild(tagContainer);
         }
         container.appendChild(details);
         const favBtn = document.createElement('button');
@@ -464,8 +439,7 @@ class CustomSelect {
         favBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const sid = e.target.dataset.stationId;
-            const isFav = e.target.classList.contains('is-favorite');
-            if (isFav) removeFavorite(sid); else addFavorite(sid);
+            if (e.target.classList.contains('is-favorite')) removeFavorite(sid); else addFavorite(sid);
         });
         container.appendChild(favBtn);
         if (promos.length > 0) {
@@ -485,15 +459,14 @@ class CustomSelect {
         customOption.appendChild(container);
         this.customOptions.appendChild(customOption);
     }
-
     initEvents() {
         this.customSelectTrigger.addEventListener('click', () => {
             this.toggle();
             this.updateSelectedOption();
             if (!this.hasScrolledToSelection) {
-                const opt = this.customOptions.querySelector('.custom-option.selected');
-                if (opt) {
-                    setTimeout(() => opt.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
+                const sel = this.customOptions.querySelector('.custom-option.selected');
+                if (sel) {
+                    setTimeout(() => sel.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
                 }
                 this.hasScrolledToSelection = true;
             }
@@ -522,9 +495,9 @@ class CustomSelect {
         });
     }
     updateTriggerText() {
-        const selOpt = this.originalSelect.options[this.originalSelect.selectedIndex];
-        const st = stationsById[selOpt.value];
-        let txt = selOpt.textContent;
+        const sel = this.originalSelect.options[this.originalSelect.selectedIndex];
+        const st = stationsById[sel.value];
+        let txt = sel.textContent;
         if (st) txt = st.service === 'radioparadise' ? st.name.split(' - ')[1] || st.name : st.name;
         this.customSelectTrigger.textContent = txt || " Seleccionar Estación ";
     }
@@ -533,8 +506,8 @@ class CustomSelect {
 // ==========================================================================
 // PORTADA
 // ==========================================================================
-function displayAlbumCoverFromUrl(imageUrl) {
-    if (!imageUrl) { resetAlbumCover(); return; }
+function displayAlbumCoverFromUrl(url) {
+    if (!url) { resetAlbumCover(); return; }
     albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
     const img = new Image();
     img.decoding = 'async';
@@ -547,8 +520,8 @@ function displayAlbumCoverFromUrl(imageUrl) {
         }
         displayAlbumCover(this);
     };
-    img.onerror = function () { console.warn('Error al cargar portada:', imageUrl); resetAlbumCover(); };
-    img.src = imageUrl;
+    img.onerror = function () { console.warn('Error portada:', url); resetAlbumCover(); };
+    img.src = url;
 }
 function displayAlbumCover(img) {
     albumCover.innerHTML = '';
@@ -562,10 +535,24 @@ function resetAlbumCover() {
     albumCover.innerHTML = `
         <div class="album-cover-placeholder">
             <svg viewBox="0 0 640 640" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs><filter id="glow"><feGaussianBlur stdDeviation="6" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                <defs>
+                    <filter id="glow">
+                        <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                </defs>
                 <rect width="640" height="640" fill="#0A0A0A" />
-                <g stroke="#333333" stroke-width="2" fill="none"><circle cx="320" cy="320" r="280" /><circle cx="320" cy="320" r="220" /><circle cx="320" cy="320" r="160" /></g>
-                <g transform="translate(320, 320)"><path d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" stroke="#FF7A00" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)" /></g>
+                <g stroke="#333333" stroke-width="2" fill="none">
+                    <circle cx="320" cy="320" r="280" />
+                    <circle cx="320" cy="320" r="220" />
+                    <circle cx="320" cy="320" r="160" />
+                </g>
+                <g transform="translate(320, 320)">
+                    <path d="M -90 -80 L -90 80 C -90 80, -60 100, -30 80 L 30 0 L 90 80 M 90 -80 L 90 80" stroke="#FF7A00" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)" />
+                </g>
             </svg>
         </div>
     `;
@@ -576,9 +563,9 @@ function resetAlbumCover() {
 // ==========================================================================
 async function loadStations() {
     try {
-        const response = await fetch('/stations.json');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const allStations = await response.json();
+        const res = await fetch('/stations.json');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const allStations = await res.json();
         const grouped = allStations.reduce((acc, s) => {
             const name = s.service === 'somafm' ? 'SomaFM' : s.service === 'radioparadise' ? 'Radio Paradise' : s.service === 'nrk' ? 'NRK Radio' : 'Otro';
             if (!acc[name]) acc[name] = [];
@@ -586,12 +573,15 @@ async function loadStations() {
             return acc;
         }, {});
         for (const n in grouped) grouped[n].sort((a, b) => a.name.localeCompare(b.name));
+
         if (loadingStations) loadingStations.style.display = 'none';
         if (stationSelect) stationSelect.style.display = 'block';
         if (stationName) stationName.textContent = 'RadioMax';
+
         populateStationSelect(grouped);
         const customSelect = new CustomSelect(stationSelect);
         getFavorites().forEach(id => updateFavoriteButtonUI(id, true));
+
         const last = localStorage.getItem('lastSelectedStation');
         if (last && stationsById[last]) {
             stationSelect.value = last;
@@ -610,8 +600,7 @@ async function loadStations() {
         if (currentStation) {
             audioPlayer.src = currentStation.url;
             songTitle.textContent = 'A sonar';
-            songArtist.textContent = '';
-            songAlbum.textContent = '';
+            songArtist.textContent = ''; songAlbum.textContent = '';
             updateShareButtonVisibility();
             updateStatus(false);
         }
@@ -619,7 +608,7 @@ async function loadStations() {
         return grouped;
     } catch (e) {
         if (loadingStations) { loadingStations.textContent = 'Error al cargar estaciones. Recarga.'; loadingStations.style.color = '#ff6600'; }
-        logErrorForAnalysis('Load error', { error: e.message, timestamp: new Date().toISOString() });
+        logErrorForAnalysis('Station loading error', { error: e.message, timestamp: new Date().toISOString() });
         return [];
     }
 }
@@ -649,15 +638,9 @@ if (filterToggleStar) {
     filterToggleStar.addEventListener('click', function() {
         showOnlyFavorites = !showOnlyFavorites;
         this.classList.toggle('active', showOnlyFavorites);
-        if (showOnlyFavorites) {
-            this.setAttribute('aria-label', 'Mostrar todas las estaciones');
-            this.title = 'Todas las estaciones';
-            filterStationsByFavorites();
-        } else {
-            this.setAttribute('aria-label', 'Mostrar solo las estaciones favoritas');
-            this.title = 'Solo estaciones favoritas';
-            showAllStations();
-        }
+        this.setAttribute('aria-label', showOnlyFavorites ? 'Mostrar todas' : 'Solo favoritas');
+        this.title = showOnlyFavorites ? 'Todas las estaciones' : 'Solo estaciones favoritas';
+        if (showOnlyFavorites) filterStationsByFavorites(); else showAllStations();
     });
 }
 
@@ -671,8 +654,6 @@ if (stationSelect) {
                 stationName.textContent = st.service === 'radioparadise' ? st.name.split(' - ')[1] || st.name : st.name;
                 showWelcomeScreen();
                 playStation();
-            } else {
-                logErrorForAnalysis('Selection error', { id: this.value, timestamp: new Date().toISOString() });
             }
         }
     });
@@ -682,16 +663,13 @@ if (playBtn) {
     playBtn.addEventListener('click', function() {
         this.style.animation = '';
         if (isPlaying) {
-            audioPlayer.pause();
-            isPlaying = false;
-            updateStatus(false);
+            audioPlayer.pause(); isPlaying = false; updateStatus(false);
             if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
             if (updateInterval) { clearInterval(updateInterval); updateInterval = null; }
             wasPlayingBeforeFocusLoss = false;
             stopPlaybackChecks();
         } else {
-            if (currentStation) playStation();
-            else alert('Por favor, seleccionar una estación');
+            if (currentStation) playStation(); else alert('Por favor, seleccionar una estación');
         }
     });
 }
@@ -699,10 +677,10 @@ if (playBtn) {
 function handlePlaybackError() {
     if (connectionManager.isReconnecting) return;
     if (!audioPlayer.paused && audioPlayer.currentTime > 0) {
-        console.log('Audio reproduciendo, no iniciar reconexión');
+        console.log('Audio reproduciendo, no se inicia reconexión');
         return;
     }
-    leaveStation(currentStationId);
+    // FIX: ELIMINADO leaveStation() aquí para mantener el contador activo durante errores de buffer.
     isPlaying = false;
     updateStatus(false);
     audioPlayer.pause();
@@ -720,11 +698,7 @@ function handlePlaybackError() {
     songArtist.textContent = 'La reproducción se reanudará automáticamente.';
     songAlbum.textContent = '';
     updateShareButtonVisibility();
-    logErrorForAnalysis('Playback error', {
-        station: currentStation ? currentStation.id : 'unknown',
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent
-    });
+    logErrorForAnalysis('Playback error', { station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
     connectionManager.start();
 }
 
@@ -734,8 +708,7 @@ function playStation() {
     if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
     const thisPlayId = ++currentPlayPromiseId;
 
-    // FIX: Activar bandera de cambio manual
-    isManualStationSwitch = true;
+    joinStation(currentStation.id);
 
     if (updateInterval) clearInterval(updateInterval);
     if (countdownInterval) clearInterval(countdownInterval);
@@ -748,9 +721,6 @@ function playStation() {
     songArtist.textContent = ''; songAlbum.textContent = '';
     resetAlbumCover(); updateShareButtonVisibility();
 
-    // FIX: Unirse al contador ANTES de play() para actualizar visual inmediatamente
-    joinStation(currentStation.id);
-
     if (currentStation.service === 'nrk') {
         audioPlayer.addEventListener('loadedmetadata', () => {
             trackDuration = audioPlayer.duration; trackStartTime = Date.now();
@@ -762,9 +732,6 @@ function playStation() {
 
     audioPlayer.play()
         .then(() => {
-            // FIX: Resetear bandera solo al final de todo el proceso
-            isManualStationSwitch = false;
-
             if (thisPlayId !== currentPlayPromiseId) {
                 console.log("Play promise ignorada");
                 return;
@@ -772,30 +739,17 @@ function playStation() {
             isPlaying = true; updateStatus(true); startTimeStuckCheck();
             showPlaybackInfo();
             wasPlayingBeforeFocusLoss = true;
-
-            if (currentStation.service === 'somafm') {
-                updateSongInfo(true);
-                startSomaFmPolling(); 
-            } else if (currentStation.service === 'radioparadise') {
-                updateSongInfo(true);
-                startRadioParadisePolling();
-            } else {
-                setTimeout(() => startSongInfoUpdates(), 5000);
-            }
+            if (currentStation.service === 'somafm') { updateSongInfo(true); startSomaFmPolling(); } 
+            else if (currentStation.service === 'radioparadise') { updateSongInfo(true); startRadioParadisePolling(); }
+            else { setTimeout(() => startSongInfoUpdates(), 5000); }
             if (installInvitationTimeout === null) setTimeout(showInstallInvitation, 600000);
             setTimeout(() => { if (isPlaying) startPlaybackChecks(); }, 2000);
         })
         .catch(error => {
             console.warn("Play rejected:", error);
-            // FIX: Si es un aborto manual, no llamar a handlePlaybackError (que mata el canal)
-            if (error.name === 'AbortError' && isManualStationSwitch) {
-                isManualStationSwitch = false;
-                return; 
-            }
-            // Si es otro error real, manejarlo
+            // FIX: No llamamos handlePlaybackError para abortos manuales, para no matar el canal.
+            if (error.name === 'AbortError') return;
             handlePlaybackError();
-            // Asegurar reset de bandera
-            isManualStationSwitch = false;
         });
 }
 
@@ -819,7 +773,12 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
             const s = data.songs[0];
-            const newTrack = { title: s.title || 'Título desconocido', artist: s.artist || 'Artista desconocido', album: s.album || '', date: s.date || null };
+            const newTrack = {
+                title: s.title || 'Título desconocido',
+                artist: s.artist || 'Artista desconocido',
+                album: s.album || '',
+                date: s.date || null
+            };
             const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
             if (isNew) {
                 resetAlbumDetails();
@@ -853,7 +812,11 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         const res = await fetch(u);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
-        const newTrack = { title: d.title || 'Título desconocido', artist: d.artist || 'Artista desconocido', album: d.album || '' };
+        const newTrack = {
+            title: d.title || 'Título desconocido',
+            artist: d.artist || 'Artista desconocido',
+            album: d.album || '',
+        };
         const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
         if (isNew) {
             resetCountdown();
@@ -892,7 +855,8 @@ async function fetchSongDetails(artist, title, album) {
     const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
     try {
-        const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
+        const netlify = 'https://core.chcs.workers.dev/spotify';
+        const u = `${netlify}?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
         const res = await fetch(u);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
@@ -905,7 +869,7 @@ async function fetchSongDetails(artist, title, album) {
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                 return;
-            } else await getMusicBrainzDuration(sA, sT);
+            } else { await getMusicBrainzDuration(sA, sT); }
         }
     } catch (e) {
         logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
@@ -935,18 +899,16 @@ async function getMusicBrainzDuration(artist, title) {
 }
 
 function updateAlbumDetailsWithSpotifyData(d) {
-    const el = document.getElementById('releaseDate');
-    if (el) el.innerHTML = '';
+    const rD = document.getElementById('releaseDate');
+    if (rD) rD.innerHTML = '';
     if (d.release_date) {
         const y = d.release_date.substring(0, 4);
         let t = y;
         if (d.albumTypeDescription && d.albumTypeDescription !== 'Álbum') t += ` (${d.albumTypeDescription})`;
-        el.textContent = t;
-    } else if (el) el.textContent = '----';
-
+        rD.textContent = t;
+    } else if (rD) rD.textContent = '----';
     if (d.label && d.label.trim() !== '') recordLabel.textContent = d.label; else recordLabel.textContent = '----';
     if (d.totalTracks) albumTrackCount.textContent = d.totalTracks; else albumTrackCount.textContent = '--';
-    
     if (d.totalAlbumDuration) {
         let s = d.totalAlbumDuration;
         if (s > 10000) s = Math.floor(s / 1000);
@@ -954,10 +916,8 @@ function updateAlbumDetailsWithSpotifyData(d) {
         const sec = Math.floor(s % 60);
         albumTotalDuration.textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
     } else albumTotalDuration.textContent = '--:--';
-
     if (d.genres && d.genres.length > 0) trackGenre.textContent = d.genres.slice(0, 2).join(', '); else trackGenre.textContent = '--';
     if (d.trackNumber && d.totalTracks) trackPosition.textContent = `Track ${d.trackNumber}/${d.totalTracks}`; else trackPosition.textContent = '--/--';
-    
     if (trackIsrc) {
         if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc; else trackIsrc.textContent = '----';
     }
@@ -998,7 +958,7 @@ function startCountdown() {
     if (trackDuration > 0) {
         const m = Math.floor(trackDuration / 60);
         const s = Math.floor(trackDuration % 60);
-        totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        totalDuration.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     } else totalDuration.textContent = '(--:--)';
 
     if (currentStation?.service === 'somafm' && !songTransitionDetected) {
@@ -1012,22 +972,23 @@ function startCountdown() {
             }
         };
         checkRapid();
-        const t = setInterval(() => {
-            if (!isPlaying || currentStation?.service !== 'somafm') { clearInterval(t); return; }
+        const rT = setInterval(() => {
+            if (!isPlaying || currentStation?.service !== 'somafm') { clearInterval(rT); return; }
             checkRapid();
         }, 10000);
     }
 
     function updateTimer() {
-        const now = Date.now();
-        const el = (now - trackStartTime) / 1000;
-        let d = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
-        const m = Math.floor(d / 60);
-        const s = Math.floor(d % 60);
-        const f = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        const n = Date.now();
+        const el = (n - trackStartTime) / 1000;
+        let disp = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
+        const m = Math.floor(disp / 60);
+        const s = Math.floor(disp % 60);
+        const f = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
         countdownTimer.textContent = f;
-        if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
-        if ((trackDuration > 0 && d > 0) || trackDuration === 0) animationFrameId = requestAnimationFrame(updateTimer);
+        if (trackDuration > 0 && disp < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
+
+        if ((trackDuration > 0 && disp > 0) || trackDuration === 0) animationFrameId = requestAnimationFrame(updateTimer);
         else {
             countdownTimer.textContent = '00:00';
             countdownTimer.classList.remove('ending');
@@ -1070,6 +1031,7 @@ function stopSongInfoUpdates() {
 
 if (stopBtn) {
     stopBtn.addEventListener('click', function() {
+        // Unico lugar donde salir manualmente del canal
         leaveStation(currentStationId);
         connectionManager.stop();
         audioPlayer.pause(); audioPlayer.src = '';
@@ -1086,18 +1048,14 @@ if (audioPlayer) {
         const err = audioPlayer.error;
         if (err) {
             if (err.code == 1 || err.code == 4) { return; }
-            logErrorForAnalysis('Audio error', {
-                code: err.code, msg: err.message,
-                station: currentStation ? currentStation.id : 'unknown',
-                timestamp: new Date().toISOString()
-            });
+            logErrorForAnalysis('Audio error', { code: err.code, msg: err.message, station: currentStation ? currentStation.id : 'unknown', ts: new Date().toISOString() });
             if (err.message.includes('interrupt') || err.message.includes('aborted')) {
                 wasPlayingBeforeFocusLoss = true;
                 setTimeout(() => {
                     if (wasPlayingBeforeFocusLoss && currentStation) {
                         audioPlayer.play().then(() => {
                             isPlaying = true; updateStatus(true); startTimeStuckCheck();
-                            showNotification('Reproducción reanudada automáticamente');
+                            showNotification('Reanudada automáticamente');
                         }).catch(er => {
                             showNotification('Toca para reanudar');
                             playBtn.style.animation = 'pulse 2s infinite';
@@ -1115,8 +1073,8 @@ if (audioPlayer) {
                 if (wasPlayingBeforeFocusLoss && currentStation) {
                     audioPlayer.play().then(() => {
                         isPlaying = true; updateStatus(true); startTimeStuckCheck();
-                        showNotification('Reproducción reanudada automáticamente');
-                    }).catch(er => {
+                        showNotification('Reanudada automáticamente');
+                    }).catch(e => {
                         showNotification('Toca para reanudar');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
@@ -1164,7 +1122,7 @@ if (volumeIcon) {
 }
 
 function updateStatus(now) {
-    if (playBtn) playBtn.textContent = now ? '⏸ PAUSAR' : '▶ SONAR';
+    if (playBtn) { playBtn.textContent = now ? '⏸ PAUSAR' : '▶ SONAR'; }
 }
 
 if (audioPlayer) {
@@ -1187,7 +1145,7 @@ if (audioPlayer) {
 const connectionManager = {
     isReconnecting: false,
     reconnectAttempts: 0,
-    maxReconnectAttempts:5,
+    maxReconnectAttempts: 5,
     initialReconnectDelay: 1000,
     maxReconnectDelay: 30000,
     reconnectTimeoutId: null,
@@ -1224,7 +1182,7 @@ const connectionManager = {
         if (!this.isReconnecting || !currentStation) { this.stop(); return; }
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             songTitle.textContent = 'Error de conexión: no se pudo restaurar';
-            songArtist.textContent = 'Presionar SONAR para intentar manualmente';
+            songArtist.textContent = 'Presiona SONAR para intentar manualmente';
             songAlbum.textContent = ''; updateShareButtonVisibility();
             this.stop(); return;
         }
@@ -1234,8 +1192,7 @@ const connectionManager = {
             try {
                 audioPlayer.src = currentStation.url;
                 await audioPlayer.play();
-                isPlaying = true; updateStatus(true); startTimeStuckCheck();
-                showPlaybackInfo();
+                isPlaying = true; updateStatus(true); startTimeStuckCheck(); showPlaybackInfo();
                 this.stop();
                 showNotification('Conexión restaurada con éxito.');
                 if (currentStation.service !== 'nrk') {
@@ -1257,12 +1214,8 @@ if ('mediaSession' in navigator) {
         title: 'RadioMax', artist: 'Una experiencia inmersiva', album: 'inmersiva',
         artwork: [{ src: '/images/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' }, { src: '/images/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' }]
     });
-    navigator.mediaSession.setActionHandler('play', () => {
-        if (!isPlaying && currentStation) audioPlayer.play().then(() => { isPlaying = true; updateStatus(true); wasPlayingBeforeFocusLoss = true; }).catch(e => {});
-    });
-    navigator.mediaSession.setActionHandler('pause', () => {
-        if (isPlaying) { audioPlayer.pause(); isPlaying = false; updateStatus(false); wasPlayingBeforeFocusLoss = false; }
-    });
+    navigator.mediaSession.setActionHandler('play', () => { if (!isPlaying && currentStation) audioPlayer.play().then(() => { isPlaying = true; updateStatus(true); wasPlayingBeforeFocusLoss = true; }).catch(e => {}); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (isPlaying) { audioPlayer.pause(); isPlaying = false; updateStatus(false); wasPlayingBeforeFocusLoss = false; } });
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -1312,7 +1265,8 @@ const installPwaBtnIos = document.getElementById('install-pwa-btn-ios');
 function showInstallPwaButtons() {
     if (window.matchMedia('(display-mode: standalone)').matches) {
         if (installPwaBtnAndroid) installPwaBtnAndroid.style.display = 'none';
-        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none'; return;
+        if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
+        return;
     }
     const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
     if (isIos) {
@@ -1323,9 +1277,13 @@ function showInstallPwaButtons() {
         if (installPwaBtnIos) installPwaBtnIos.style.display = 'none';
     }
 }
+
 window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); deferredPrompt = e; showInstallPwaButtons();
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallPwaButtons();
 });
+
 if (installPwaBtnAndroid) {
     installPwaBtnAndroid.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -1336,24 +1294,30 @@ if (installPwaBtnAndroid) {
         deferredPrompt = null;
     });
 }
+
 if (installPwaBtnIos) {
     installPwaBtnIos.addEventListener('click', (e) => {
         e.preventDefault();
         showNotification('Para instalar en iOS: Pulsa el botón <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.');
     });
 }
+
 setTimeout(showInstallPwaButtons, 1000);
 
-if (shareButton) shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); });
+if (shareButton) { shareButton.addEventListener('click', () => { shareOptions.classList.toggle('active'); }); }
+
 document.addEventListener('click', (e) => {
-    if (shareButton && shareOptions && !shareButton.contains(e.target) && !shareOptions.contains(e.target)) shareOptions.classList.remove('active');
+    if (shareButton && shareOptions && !shareButton.contains(e.target) && !shareOptions.contains(e.target)) {
+        shareOptions.classList.remove('active');
+    }
 });
 
 if (shareWhatsApp) {
     shareWhatsApp.addEventListener('click', () => {
-        const t = songTitle.textContent; const a = songArtist.textContent;
-        if (t && a && t !== 'a sonar' && t !== 'Conectando...' && t !== 'Seleccionar estación') {
-            const m = `Escuché ${t} de ${a} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
+        const title = songTitle.textContent;
+        const artist = songArtist.textContent;
+        if (title && artist && title !== 'a sonar' && title !== 'Conectando...' && title !== 'Seleccionar estación') {
+            const m = `Escuché ${title} de ${artist} en https://kutt.it/radiomax ¡Temazo en RadioMax!`;
             const isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const isBrave = isMob && /Brave/i.test(navigator.userAgent) && /Android/i.test(navigator.userAgent);
             if (isBrave) {
@@ -1361,15 +1325,17 @@ if (shareWhatsApp) {
                 setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank'); }, 1000);
             } else if (isMob) {
                 const uri = `whatsapp://send?text=${encodeURIComponent(m)}`;
-                const l = document.createElement('a'); l.href = uri; l.target = '_blank'; l.rel = 'noopener noreferrer'; document.body.appendChild(l); l.click(); document.body.removeChild(l);
+                const link = document.createElement('a');
+                link.href = uri; link.target = '_blank'; link.rel = 'noopener noreferrer';
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
                 setTimeout(() => { window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank'); }, 1500);
-            } else window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank');
+            } else { window.open(`https://wa.me/?text=${encodeURIComponent(m)}`, '_blank'); }
             if (shareOptions) shareOptions.classList.remove('active');
-        } else showNotification('Por favor, espera a que comience una canción para compartir');
+        } else { showNotification('Por favor, espera a que comience una canción para compartir'); }
     });
 }
 
-if (closeInvitationBtn) closeInvitationBtn.addEventListener('click', hideInstallInvitation);
+if (closeInvitationBtn) { closeInvitationBtn.addEventListener('click', hideInstallInvitation); }
 
 if (installWindowsBtn) {
     installWindowsBtn.addEventListener('click', (e) => {
@@ -1382,7 +1348,7 @@ if (installWindowsBtn) {
                 deferredPrompt = null;
             });
             hideInstallInvitation();
-        } else showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+        } else { showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"'); }
     });
 }
 
@@ -1397,7 +1363,7 @@ if (installAndroidBtn) {
                 deferredPrompt = null;
             });
             hideInstallInvitation();
-        } else showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"');
+        } else { showNotification('Para instalar, usa el menú del navegador y busca "Añadir a pantalla de inicio"'); }
     });
 }
 
@@ -1441,12 +1407,12 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-if (volumeIcon) updateVolumeIconPosition();
+if (volumeIcon) { updateVolumeIconPosition(); }
 
 const versionSpan = document.getElementById('version-number');
 if (versionSpan) {
     fetch('/sw.js')
-        .then(r => { if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.text(); })
+        .then(res => { if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`); return res.text(); })
         .then(t => {
             const m = t.match(/^(?:\/\/\s*)?v?(\d+(?:\.\d+){1,2})/m);
             if (m && m[1]) versionSpan.textContent = m[1];
@@ -1484,9 +1450,12 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-} catch (error) {
-    console.error("Error fatal:", error);
+// =======================================================================
+// FIN TRY...CATCH
+// =======================================================================
+} catch (e) {
+    console.error("Error fatal:", e);
     const le = document.getElementById('loadingStations');
-    if (le) { le.textContent = `Error crítico: ${error.message}.`; le.style.color = '#ff6600'; }
+    if (le) { le.textContent = `Error crítico: ${e.message}.`; le.style.color = '#ff6600'; }
 }
 });
