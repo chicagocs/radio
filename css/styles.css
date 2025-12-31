@@ -1080,7 +1080,7 @@ footer strong { color: var(--text-main); font-weight: bold; }
     font-size: 12px; 
     font-weight: 700; 
     
-    color: #ff6600;
+    color: #ccc;
     text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
     
     letter-spacing: 0.5px;
