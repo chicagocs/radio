@@ -1076,19 +1076,14 @@ footer strong { color: var(--text-main); font-weight: bold; }
 
 .listeners-badge div {
     font-family: 'Oswald', 'Segoe UI', sans-serif;
-    /* FUSIONADO: Tamaño de fuente reducido a 12px */
     font-size: 12px; 
-    font-weight: 700; 
-    
-    color: #ccc;
+    font-weight: 700;   
+    color: #ff6600;
     text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
-    
-    letter-spacing: 0.5px;
-    
-    /* Asegura que todos los números tengan el mismo ancho (tabular) */
+    letter-spacing: 0.5px;/
     font-variant-numeric: tabular-nums; 
     text-align: center;
-    width: 100%; /* Ocupa todo el ancho disponible del padre */
+    width: 100%;
 }
 
 .listeners-badge2 {
