@@ -1,4 +1,4 @@
-// app.js - v3.4.1
+// app.js - v3.4.2
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
