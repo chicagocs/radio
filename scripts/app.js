@@ -1,4 +1,4 @@
-// app.js - v3.7.4
+// app.js - v3.7.5
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -115,6 +115,7 @@ async function joinStation(stationId) {
         .on('presence', { event: 'sync' }, () => {
             const state = channel.presenceState();
             const count = Object.keys(state).length;
+            
             const counterElement = document.getElementById('totalListenersValue');
             if (counterElement) {
                 const countStr = String(count).padStart(5, '0');
@@ -143,6 +144,7 @@ async function leaveStation(stationId) {
         }
         currentChannel = null;
         currentStationId = null;
+        
         const counterElement = document.getElementById('totalListenersValue');
         if (counterElement) {
             counterElement.textContent = '00000';
@@ -800,6 +802,7 @@ function loadTrackFromCache(trackData) {
     if (!trackData) return;
     
     resetAlbumDetails();
+    
     const newTrack = {
         id: trackData.title + trackData.artist,
         title: trackData.title || 'Título desconocido',
@@ -966,12 +969,8 @@ async function fetchSongDetails(artist, title, album) {
         if (d && d.imageUrl) {
             displayAlbumCoverFromUrl(d.imageUrl);
             updateAlbumDetailsWithSpotifyData(d);
-            // FIX V3.7.4: Solo actualizar variable trackDuration. NO actualizar DOM.
-            // Esto evita el parpadeo (flicker) causado por respuestas asíncronas.
             if (d.duration) {
                 trackDuration = d.duration;
-                // FIX V3.7.4: Eliminamos la escritura en totalDuration.textContent.
-                // startCountdown se encarga de actualizar la pantalla.
                 return;
             } else await getMusicBrainzDuration(sA, sT);
         }
@@ -991,9 +990,7 @@ async function getMusicBrainzDuration(artist, title) {
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
-                // FIX V3.7.4: Solo actualizar variable trackDuration. NO actualizar DOM.
                 trackDuration = Math.floor(r.length / 1000);
-                // FIX V3.7.4: Eliminamos la escritura en totalDuration.textContent.
             }
         }
     } catch (e) {
@@ -1002,8 +999,6 @@ async function getMusicBrainzDuration(artist, title) {
 }
 
 function updateAlbumDetailsWithSpotifyData(d) {
-    // FIX V3.7.4: Eliminar actualización de totalDuration aquí para evitar parpadeo
-    // Delegado a startCountdown
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
     if (d.release_date) {
@@ -1057,21 +1052,26 @@ function resetCountdown() {
 }
 
 function startCountdown() {
-    // FIX V3.7.3: Prevenir bucles superpuestos
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
-    
     if (!trackStartTime) { resetCountdown(); return; }
 
-    // FIX V3.7.4: Actualización única de Total Duración (Origen de Verdad)
-    // Solo se actualiza aquí. Nunca en funciones asíncronas.
-    if (trackDuration > 0) {
-        const m = Math.floor(trackDuration / 60);
-        const s = Math.floor(trackDuration % 60);
-        totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    } else totalDuration.textContent = '(--:--)';
+    // FIX V3.7.5: Variable local para detectar cambios en trackDuration durante la animación
+    let lastRenderedDuration = -1;
 
     function updateTimer() {
-        if (!isPlaying) return; // Stop loop if paused
+        if (!isPlaying) return;
+
+        // FIX V3.7.5: Actualización Reactiva de Total Duración (Anti-Parpadeo)
+        // Si la duración cambia (ej. Spotify responde), actualizamos el DOM inmediatamente
+        if (trackDuration > 0 && trackDuration !== lastRenderedDuration) {
+            lastRenderedDuration = trackDuration;
+            const m = Math.floor(trackDuration / 60);
+            const s = Math.floor(trackDuration % 60);
+            totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        } else if (trackDuration === 0 && lastRenderedDuration !== -1) {
+            lastRenderedDuration = 0;
+            totalDuration.textContent = '(--:--)';
+        }
 
         const n = getSyncedTime();
         let el = (n - trackStartTime) / 1000;
@@ -1089,18 +1089,20 @@ function startCountdown() {
         if (trackDuration > 0 && d <= 0) {
             countdownTimer.textContent = '00:00';
             countdownTimer.classList.remove('ending');
-            // Lógica de fin de canción (Transición)
+            
             if (cachedNextTrack && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
                 loadTrackFromCache(cachedNextTrack);
             } else {
                 updateSongInfo(true);
+                if (updateInterval) clearInterval(updateInterval);
+                updateInterval = setInterval(() => updateSongInfo(), 30000);
             }
         } 
         
-        if (isPlaying) {
+        if ((trackDuration > 0 && d > 0) || trackDuration === 0) {
             animationFrameId = requestAnimationFrame(updateTimer);
         } else {
-            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            if (currentStation && currentStation.service === 'nrk') stopBtn.click();
         }
     }
     updateTimer();
@@ -1176,7 +1178,7 @@ if (audioPlayer) {
                     audioPlayer.play().then(() => {
                         isPlaying = true; updateStatus(true); startTimeStuckCheck();
                         showNotification('Reproducción reanudada automáticamente');
-                    }).catch(e => {
+                    }).catch(er => {
                         showNotification('Toca para reanudar');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
@@ -1247,7 +1249,7 @@ if (audioPlayer) {
 const connectionManager = {
     isReconnecting: false,
     reconnectAttempts: 0,
-    maxReconnectAttempts: 5,
+    maxReconnectAttempts:5,
     initialReconnectDelay: 1000,
     maxReconnectDelay: 30000,
     reconnectTimeoutId: null,
@@ -1289,7 +1291,7 @@ const connectionManager = {
             this.stop(); return;
         }
         this.reconnectAttempts++;
-        const d = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts -1), this.maxReconnectDelay);
+        const d = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
         this.reconnectTimeoutId = setTimeout(async () => {
             try {
                 audioPlayer.src = currentStation.url;
