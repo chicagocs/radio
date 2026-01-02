@@ -1,4 +1,4 @@
-// app.js - v3.7.3
+// app.js - v3.7.4
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -159,7 +159,6 @@ const apiCallTracker = {
     musicBrainz: { lastCall: 0, minInterval: 1000 }
 };
 
-// FIX V3.7.1: Cálculo de desfase de reloj
 function calculateClockSkew(response) {
     try {
         const dateHeader = response.headers.get('Date');
@@ -797,12 +796,10 @@ async function updateSongInfo(bypassRateLimit = false) {
     else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
 }
 
-// FIX V3.7.3: Carga manual de la próxima canción (Transición Instantánea)
 function loadTrackFromCache(trackData) {
     if (!trackData) return;
     
     resetAlbumDetails();
-    
     const newTrack = {
         id: trackData.title + trackData.artist,
         title: trackData.title || 'Título desconocido',
@@ -863,9 +860,7 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
             const isNew = !currentTrackInfo || currentTrackInfo.id !== newTrack.id;
 
             if (isNew) {
-                // FIX V3.7.3: Lógica de Transición Instantánea
                 if (cachedNextTrack) {
-                    console.log("SomaFM: Usando caché para transición inmediata");
                     loadTrackFromCache(cachedNextTrack);
                 } else {
                     resetAlbumDetails();
@@ -925,9 +920,7 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         const isNew = !currentTrackInfo || currentTrackInfo.id !== newTrack.id;
 
         if (isNew) {
-            // FIX V3.7.3: Lógica de Transición Instantánea
             if (cachedNextTrack) {
-                console.log("RP: Usando caché para transición inmediata");
                 loadTrackFromCache(cachedNextTrack);
             } else {
                 resetCountdown();
@@ -936,7 +929,9 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
                 if (d.song_duration && typeof d.song_duration === 'number') trackDuration = d.song_duration;
-                else { trackStartTime = Date.now() - 15000; trackDuration = 0; }
+                else { 
+                    trackStartTime = Date.now() - 15000; trackDuration = 0; 
+                }
                 startCountdown();
                 await fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
             }
@@ -971,13 +966,12 @@ async function fetchSongDetails(artist, title, album) {
         if (d && d.imageUrl) {
             displayAlbumCoverFromUrl(d.imageUrl);
             updateAlbumDetailsWithSpotifyData(d);
+            // FIX V3.7.4: Solo actualizar variable trackDuration. NO actualizar DOM.
+            // Esto evita el parpadeo (flicker) causado por respuestas asíncronas.
             if (d.duration) {
                 trackDuration = d.duration;
-                // FIX V3.7.3: Eliminar actualización de UI aquí para evitar parpadeo
-                // startCountdown se encarga de actualizar totalDuration
-                const m = Math.floor(trackDuration / 60);
-                const s = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                // FIX V3.7.4: Eliminamos la escritura en totalDuration.textContent.
+                // startCountdown se encarga de actualizar la pantalla.
                 return;
             } else await getMusicBrainzDuration(sA, sT);
         }
@@ -997,11 +991,9 @@ async function getMusicBrainzDuration(artist, title) {
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
+                // FIX V3.7.4: Solo actualizar variable trackDuration. NO actualizar DOM.
                 trackDuration = Math.floor(r.length / 1000);
-                // FIX V3.7.3: Actualización UI centralizada
-                const m = Math.floor(trackDuration / 60);
-                const s = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                // FIX V3.7.4: Eliminamos la escritura en totalDuration.textContent.
             }
         }
     } catch (e) {
@@ -1010,7 +1002,7 @@ async function getMusicBrainzDuration(artist, title) {
 }
 
 function updateAlbumDetailsWithSpotifyData(d) {
-    // FIX V3.7.3: Eliminar actualización de totalDuration aquí para evitar parpadeo
+    // FIX V3.7.4: Eliminar actualización de totalDuration aquí para evitar parpadeo
     // Delegado a startCountdown
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
@@ -1054,7 +1046,7 @@ function resetUI() {
 
 function resetCountdown() {
     if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
-    if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } // Detener loop anterior
+    if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
     trackDuration = 0; trackStartTime = 0;
     countdownTimer.textContent = '--:--';
@@ -1065,12 +1057,13 @@ function resetCountdown() {
 }
 
 function startCountdown() {
-    // FIX V3.7.3: Prevenir bucles superpuestos (Flicker/Reimprime)
+    // FIX V3.7.3: Prevenir bucles superpuestos
     if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
     
     if (!trackStartTime) { resetCountdown(); return; }
 
-    // FIX V3.7.3: Actualización de duración total (Una sola vez por inicio de canción)
+    // FIX V3.7.4: Actualización única de Total Duración (Origen de Verdad)
+    // Solo se actualiza aquí. Nunca en funciones asíncronas.
     if (trackDuration > 0) {
         const m = Math.floor(trackDuration / 60);
         const s = Math.floor(trackDuration % 60);
@@ -1078,7 +1071,7 @@ function startCountdown() {
     } else totalDuration.textContent = '(--:--)';
 
     function updateTimer() {
-        if (!isPlaying) return; // FIX: Stop loop if paused
+        if (!isPlaying) return; // Stop loop if paused
 
         const n = getSyncedTime();
         let el = (n - trackStartTime) / 1000;
@@ -1093,24 +1086,20 @@ function startCountdown() {
         
         if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
 
-        // FIX V3.7.3: Lógica de Fin de Canción (00:00) - Loop Infinito
         if (trackDuration > 0 && d <= 0) {
             countdownTimer.textContent = '00:00';
             countdownTimer.classList.remove('ending');
-            
-            // No paramos el loop. Mantenemos el loop vivo.
-            // La canción actual termina, pero la radio sigue sonando.
-            // Esperamos a que llegue la próxima actualización de metadatos.
-            // La lógica en updateSomaFmInfo/RP se encargará de detectar el cambio.
-            // Cuando llegue el cambio, llamarán a resetCountdown/startCountdown.
-            // Este bloque solo actualiza el visual a "00:00".
+            // Lógica de fin de canción (Transición)
+            if (cachedNextTrack && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
+                loadTrackFromCache(cachedNextTrack);
+            } else {
+                updateSongInfo(true);
+            }
         } 
         
-        // FIX V3.7.3: Loop Infinito seguro
         if (isPlaying) {
             animationFrameId = requestAnimationFrame(updateTimer);
         } else {
-            // Si pausamos, paramos el loop explícitamente
             if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
         }
     }
@@ -1160,7 +1149,7 @@ if (audioPlayer) {
     audioPlayer.addEventListener('error', (e) => {
         const err = audioPlayer.error;
         if (err) {
-            if (err.code == 1 || err.code == 4) { return; }
+            if (err.code ==1 || err.code == 4) { return; }
             logErrorForAnalysis('Audio error', { code: err.code, msg: err.message, station: currentStation ? currentStation.id : 'unknown', timestamp: new Date().toISOString() });
             if (err.message.includes('interrupt') || err.message.includes('aborted')) {
                 wasPlayingBeforeFocusLoss = true;
@@ -1187,7 +1176,7 @@ if (audioPlayer) {
                     audioPlayer.play().then(() => {
                         isPlaying = true; updateStatus(true); startTimeStuckCheck();
                         showNotification('Reproducción reanudada automáticamente');
-                    }).catch(er => {
+                    }).catch(e => {
                         showNotification('Toca para reanudar');
                         playBtn.style.animation = 'pulse 2s infinite';
                     });
@@ -1300,7 +1289,7 @@ const connectionManager = {
             this.stop(); return;
         }
         this.reconnectAttempts++;
-        const d = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+        const d = Math.min(this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts -1), this.maxReconnectDelay);
         this.reconnectTimeoutId = setTimeout(async () => {
             try {
                 audioPlayer.src = currentStation.url;
