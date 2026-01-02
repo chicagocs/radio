@@ -1,4 +1,4 @@
-// app.js - v3.7.0
+// app.js - v3.7.1 (Transición Predictiva Instantánea + Sincronización NTP + Corrección de Buffer)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -79,12 +79,12 @@ let rapidCheckInterval = null;
 let songTransitionDetected = false;
 let isUpdatingSongInfo = false;
 
-// FIX V3.7.0: Constantes de Polling y Buffer
+// FIX V3.7.x: Constantes
 const POLL_INTERVAL_SOMAFM = 2000; 
 const POLL_INTERVAL_PARADISE = 2000;
-// FIX V3.7.0: Ajuste para compensar el retraso del buffer de audio (aprox 5-6s)
-// Esto hace que el timer visual coincida con lo que escucha el usuario.
 const ESTIMATED_BUFFER_DELAY_MS = 6000; 
+let clientServerTimeOffset = 0; // Diferencia NTP
+let cachedNextTrack = null; // Cache para transición instantánea
 
 audioPlayer.volume = 0.5;
 
@@ -101,15 +101,11 @@ function getUserUniqueID() {
 }
 
 async function joinStation(stationId) {
-    // FIX: Permite reconexión/renovación al re-seleccionar la estación
     if (stationId === currentStationId) return; 
-
     if (currentChannel) {
         await leaveStation(currentStationId);
     }
-    
     currentStationId = stationId;
-    
     const channelName = `station:${stationId}`;
     const channel = supabase.channel(channelName, {
         config: { presence: { key: getUserUniqueID() } }
@@ -119,7 +115,6 @@ async function joinStation(stationId) {
         .on('presence', { event: 'sync' }, () => {
             const state = channel.presenceState();
             const count = Object.keys(state).length;
-            
             const counterElement = document.getElementById('totalListenersValue');
             if (counterElement) {
                 const countStr = String(count).padStart(5, '0');
@@ -134,7 +129,6 @@ async function joinStation(stationId) {
                 });
             }
         });
-
     currentChannel = channel;
 }
 
@@ -149,7 +143,6 @@ async function leaveStation(stationId) {
         }
         currentChannel = null;
         currentStationId = null;
-        
         const counterElement = document.getElementById('totalListenersValue');
         if (counterElement) {
             counterElement.textContent = '00000';
@@ -158,13 +151,31 @@ async function leaveStation(stationId) {
 }
 
 // ==========================================================================
-// UTILIDADES Y CONFIGURACIÓN
+// UTILIDADES Y CONFIGURACIÓN (NTP Sync)
 // ==========================================================================
 const apiCallTracker = {
     somaFM: { lastCall: 0, minInterval: 5000 },
     radioParadise: { lastCall: 0, minInterval: 5000 },
     musicBrainz: { lastCall: 0, minInterval: 1000 }
 };
+
+// FIX V3.7.1: Cálculo de desfase de reloj (Clock Skew)
+function calculateClockSkew(response) {
+    try {
+        const dateHeader = response.headers.get('Date');
+        if (dateHeader) {
+            const serverTime = new Date(dateHeader).getTime();
+            const clientTime = Date.now();
+            clientServerTimeOffset = serverTime - clientTime;
+        }
+    } catch (e) {
+        console.warn("Error calculando Clock Skew:", e);
+    }
+}
+
+function getSyncedTime() {
+    return Date.now() + clientServerTimeOffset;
+}
 
 function showWelcomeScreen() {
     if (welcomeScreen) welcomeScreen.style.display = 'flex';
@@ -732,6 +743,7 @@ async function playStation() {
     if (rapidCheckInterval) clearInterval(rapidCheckInterval);
     
     currentTrackInfo = null; trackDuration = 0; trackStartTime = 0;
+    cachedNextTrack = null; // Reset cache on play
     resetCountdown(); resetAlbumDetails();
     audioPlayer.src = currentStation.url;
     songTitle.textContent = 'Conectando...';
@@ -785,16 +797,67 @@ async function updateSongInfo(bypassRateLimit = false) {
     else if (currentStation.service === 'radioparadise') await updateRadioParadiseInfo(bypassRateLimit);
 }
 
+// FIX V3.7.2: Carga manual de la próxima canción (Transición Instantánea)
+function loadTrackFromCache(trackData) {
+    if (!trackData) return;
+    
+    resetAlbumDetails();
+    
+    // Crear objeto de pista similar al de la API
+    const newTrack = {
+        id: trackData.title + trackData.artist,
+        title: trackData.title || 'Título desconocido',
+        artist: trackData.artist || 'Artista desconocido',
+        album: trackData.album || ''
+    };
+
+    currentTrackInfo = newTrack;
+    updateUIWithTrackInfo(newTrack);
+    resetAlbumCover();
+    
+    // Ajustar tiempos para la nueva canción
+    trackStartTime = getSyncedTime() + ESTIMATED_BUFFER_DELAY_MS;
+    
+    // Determinar duración
+    if (trackData.duration) {
+        trackDuration = trackData.duration;
+    } else {
+        // Si no hay duración en caché (raro en RP/SomaFM), ponemos un placeholder o buscamos
+        trackDuration = 0; 
+    }
+    
+    startCountdown();
+    fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
+    
+    // Limpiar caché para evitar bucles si falla la actualización de API real
+    cachedNextTrack = null;
+}
+
 async function updateSomaFmInfo(bypassRateLimit = false) {
     if (isUpdatingSongInfo) return; isUpdatingSongInfo = true;
     try {
         const res = await fetch(`https://api.somafm.com/songs/${currentStation.id}.json`);
+        
+        calculateClockSkew(res);
+        
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
             const s = data.songs[0];
             
-            // FIX V3.7.0: Crear ID compuesto para SomaFM (Title + Artist)
+            // FIX V3.7.2: Guardar próxima canción en caché (índice 1)
+            if (data.songs[1]) {
+                cachedNextTrack = {
+                    title: data.songs[1].title,
+                    artist: data.songs[1].artist,
+                    album: data.songs[1].album,
+                    date: data.songs[1].date,
+                    service: 'somafm'
+                };
+            } else {
+                cachedNextTrack = null;
+            }
+
             const newTrackId = `${s.artist}-${s.title}`;
             const newTrack = { 
                 id: newTrackId,
@@ -804,24 +867,21 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 date: s.date || null 
             };
 
-            // FIX V3.7.0: Verificar si la canción es realmente nueva para evitar reinicios
             const isNew = !currentTrackInfo || currentTrackInfo.id !== newTrack.id;
 
             if (isNew) {
+                // Si la caché no se usó (porque el polling llegó antes de que el timer llegara a 0),
+                // actualizamos normalmente.
+                // Si la caché ya se usó, currentTrackInfo.id será igual, así que esto se salta.
                 resetAlbumDetails();
                 currentTrackInfo = newTrack;
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
                 
-                // FIX V3.7.0: Ajustar start_time con el desfase del buffer
-                // Sumamos el delay porque el usuario escucha la canción DESPUÉS de que empezó en servidor
                 trackStartTime = (newTrack.date * 1000) + ESTIMATED_BUFFER_DELAY_MS;
-                
                 trackDuration = 0;
                 startCountdown();
                 fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
-            } else {
-                // Es la misma canción (o corrección menor), no hacemos nada visualmente
             }
         } else resetUI();
     } catch (e) {
@@ -841,10 +901,25 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         const p = `api/now_playing?chan=${currentStation.channelId || 1}`;
         const u = `${w}?url=${encodeURIComponent(p)}`;
         const res = await fetch(u);
+
+        calculateClockSkew(res);
+
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
         
-        // FIX V3.7.0: Usar song_id de la API para detectar cambios exactos
+        // FIX V3.7.2: Guardar próxima canción en caché
+        if (d.next_song) {
+            cachedNextTrack = {
+                title: d.next_song.title,
+                artist: d.next_song.artist,
+                album: d.next_song.album,
+                duration: d.next_song.duration,
+                service: 'rp'
+            };
+        } else {
+            cachedNextTrack = null;
+        }
+
         const newTrackId = d.song_id;
         const newTrack = { 
             id: newTrackId,
@@ -867,11 +942,7 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
             } else { 
                 trackDuration = 0; 
             }
-
-            // FIX V3.7.0: Ajuste de buffer para Radio Paradise
-            // Como no tenemos un timestamp exacto de servidor, asumimos que la canción
-            // empezó "Ahora" menos el delay del buffer.
-            trackStartTime = Date.now() + ESTIMATED_BUFFER_DELAY_MS;
+            trackStartTime = getSyncedTime() + ESTIMATED_BUFFER_DELAY_MS;
 
             startCountdown();
             await fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
@@ -1006,12 +1077,9 @@ function startCountdown() {
     } else totalDuration.textContent = '(--:--)';
 
     function updateTimer() {
-        const n = Date.now();
+        const n = getSyncedTime();
         let el = (n - trackStartTime) / 1000;
         
-        // FIX V3.7.0: Corrección visual inicial para el Buffer
-        // Si el tiempo es negativo (porque el trackStartTime está en el futuro +6s),
-        // mostramos el tiempo total inicial. Esto oculta el vacío del buffer.
         if (el < 0 && trackDuration > 0) {
             el = 0;
         }
@@ -1021,16 +1089,32 @@ function startCountdown() {
         const s = Math.floor(d % 60);
         const f = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
         countdownTimer.textContent = f;
+        
         if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
-        if ((trackDuration > 0 && d > 0) || trackDuration === 0) animationFrameId = requestAnimationFrame(updateTimer);
-        else {
+
+        // FIX V3.7.2: Lógica de Transición Instantánea en 00:00
+        if (trackDuration > 0 && d <= 0) {
             countdownTimer.textContent = '00:00';
             countdownTimer.classList.remove('ending');
-            if (currentStation && currentStation.service === 'nrk') stopBtn.click();
-            else {
+
+            // 1. Intentar usar la caché para cambio inmediato
+            if (cachedNextTrack && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
+                // console.log("TRANSICIÓN INSTANTÁNEA desde caché");
+                loadTrackFromCache(cachedNextTrack);
+            } else {
+                // 2. Fallback: Llamada forzada a API
                 updateSongInfo(true);
+                // Asegurar que el loop de polling se reanuda normalmente si no había caché
                 if (updateInterval) clearInterval(updateInterval);
                 updateInterval = setInterval(() => updateSongInfo(), 30000);
+            }
+        } 
+        // Continuar el bucle si no hemos terminado
+        else {
+            if ((trackDuration > 0 && d > 0) || trackDuration === 0) {
+                animationFrameId = requestAnimationFrame(updateTimer);
+            } else {
+                if (currentStation && currentStation.service === 'nrk') stopBtn.click();
             }
         }
     }
