@@ -1,4 +1,4 @@
-// app.js - v3.6.0 (Solución Definitiva: Polling Agresivo 2s)
+// app.js - v3.7.0
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -79,9 +79,12 @@ let rapidCheckInterval = null;
 let songTransitionDetected = false;
 let isUpdatingSongInfo = false;
 
-// FIX V3.6.0: Constantes de Polling Definitivas
-const POLL_INTERVAL_SOMAFM = 2000; // 2s para máxima inmediatez
-const POLL_INTERVAL_PARADISE = 2000; // 2s para máxima inmediatez
+// FIX V3.7.0: Constantes de Polling y Buffer
+const POLL_INTERVAL_SOMAFM = 2000; 
+const POLL_INTERVAL_PARADISE = 2000;
+// FIX V3.7.0: Ajuste para compensar el retraso del buffer de audio (aprox 5-6s)
+// Esto hace que el timer visual coincida con lo que escucha el usuario.
+const ESTIMATED_BUFFER_DELAY_MS = 6000; 
 
 audioPlayer.volume = 0.5;
 
@@ -790,17 +793,35 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
             const s = data.songs[0];
-            const newTrack = { title: s.title || 'Título desconocido', artist: s.artist || 'Artista desconocido', album: s.album || '', date: s.date || null };
-            const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
+            
+            // FIX V3.7.0: Crear ID compuesto para SomaFM (Title + Artist)
+            const newTrackId = `${s.artist}-${s.title}`;
+            const newTrack = { 
+                id: newTrackId,
+                title: s.title || 'Título desconocido', 
+                artist: s.artist || 'Artista desconocido', 
+                album: s.album || '', 
+                date: s.date || null 
+            };
+
+            // FIX V3.7.0: Verificar si la canción es realmente nueva para evitar reinicios
+            const isNew = !currentTrackInfo || currentTrackInfo.id !== newTrack.id;
+
             if (isNew) {
                 resetAlbumDetails();
                 currentTrackInfo = newTrack;
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
-                trackStartTime = newTrack.date ? newTrack.date * 1000 : Date.now();
+                
+                // FIX V3.7.0: Ajustar start_time con el desfase del buffer
+                // Sumamos el delay porque el usuario escucha la canción DESPUÉS de que empezó en servidor
+                trackStartTime = (newTrack.date * 1000) + ESTIMATED_BUFFER_DELAY_MS;
+                
                 trackDuration = 0;
                 startCountdown();
                 fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
+            } else {
+                // Es la misma canción (o corrección menor), no hacemos nada visualmente
             }
         } else resetUI();
     } catch (e) {
@@ -810,7 +831,6 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
 
 function startSomaFmPolling() {
     if (updateInterval) clearInterval(updateInterval);
-    // FIX V3.6.0: Polling agresivo de 2s para detección inmediata
     updateInterval = setInterval(() => updateSongInfo(true), POLL_INTERVAL_SOMAFM);
 }
 
@@ -823,16 +843,36 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         const res = await fetch(u);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
-        const newTrack = { title: d.title || 'Título desconocido', artist: d.artist || 'Artista desconocido', album: d.album || '' };
-        const isNew = !currentTrackInfo || currentTrackInfo.title !== newTrack.title || currentTrackInfo.artist !== newTrack.artist;
+        
+        // FIX V3.7.0: Usar song_id de la API para detectar cambios exactos
+        const newTrackId = d.song_id;
+        const newTrack = { 
+            id: newTrackId,
+            title: d.title || 'Título desconocido', 
+            artist: d.artist || 'Artista desconocido', 
+            album: d.album || '' 
+        };
+
+        const isNew = !currentTrackInfo || currentTrackInfo.id !== newTrack.id;
+
         if (isNew) {
             resetCountdown();
             resetAlbumDetails();
             currentTrackInfo = newTrack;
             updateUIWithTrackInfo(newTrack);
             resetAlbumCover();
-            if (d.song_duration && typeof d.song_duration === 'number') trackDuration = d.song_duration;
-            else { trackStartTime = Date.now() - 15000; trackDuration = 0; }
+            
+            if (d.song_duration && typeof d.song_duration === 'number') {
+                trackDuration = d.song_duration;
+            } else { 
+                trackDuration = 0; 
+            }
+
+            // FIX V3.7.0: Ajuste de buffer para Radio Paradise
+            // Como no tenemos un timestamp exacto de servidor, asumimos que la canción
+            // empezó "Ahora" menos el delay del buffer.
+            trackStartTime = Date.now() + ESTIMATED_BUFFER_DELAY_MS;
+
             startCountdown();
             await fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album);
         }
@@ -846,7 +886,6 @@ function startRadioParadisePolling() {
     const rpLoop = async () => {
         if (!isPlaying || currentStation?.service !== 'radioparadise') return;
         await updateRadioParadiseInfo(true);
-        // FIX V3.6.0: Polling agresivo de 2s para detección inmediata
         let next = POLL_INTERVAL_PARADISE;
         updateInterval = setTimeout(rpLoop, next);
     };
@@ -968,7 +1007,15 @@ function startCountdown() {
 
     function updateTimer() {
         const n = Date.now();
-        const el = (n - trackStartTime) / 1000;
+        let el = (n - trackStartTime) / 1000;
+        
+        // FIX V3.7.0: Corrección visual inicial para el Buffer
+        // Si el tiempo es negativo (porque el trackStartTime está en el futuro +6s),
+        // mostramos el tiempo total inicial. Esto oculta el vacío del buffer.
+        if (el < 0 && trackDuration > 0) {
+            el = 0;
+        }
+
         let d = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
         const m = Math.floor(d / 60);
         const s = Math.floor(d % 60);
@@ -1362,8 +1409,6 @@ document.addEventListener('keydown', function(event) {
             const opt = matches[lastMatchIndex];
             const id = opt.dataset.value;
             
-            // FIX V3.6.0: Protección básica contra reiniciar la misma estación con el teclado
-            // Se permite re-seleccionar para refrescar audio, pero evitamos bucle infinito visual si se mantiene la tecla
             if (currentStation && currentStation.id === id && key === lastKeyPressed) return;
 
             stationSelect.value = id;
