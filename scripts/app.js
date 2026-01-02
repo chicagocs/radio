@@ -1103,7 +1103,8 @@ function startCountdown() {
       const totSec = Math.floor(trackDuration % 60);
       newTotalText = `${String(totMin).padStart(2, '0')}:${String(totSec).padStart(2, '0')}`;
     } else {
-      newTotalText = '(--:--)';
+      // 000 newTotalText = '(--:--)';
+      newTotalText = '\u2007\u2007:\u2007\u2007';  
     }
 
     if (newTotalText !== lastRenderedTotal) {
