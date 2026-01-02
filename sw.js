@@ -1,5 +1,5 @@
-// v3.7.2
-const CACHE_VERSION = 'v3.7.2';
+// v3.7.3
+const CACHE_VERSION = 'v3.7.3';
 const STATIC_CACHE = `max-static-${CACHE_VERSION}`;
 const API_CACHE = `max-api-${CACHE_VERSION}`;
 
