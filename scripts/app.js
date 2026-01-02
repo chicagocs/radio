@@ -1,4 +1,4 @@
-// app.js - v3.7.1 (Transición Predictiva Instantánea + Sincronización NTP + Corrección de Buffer)
+// app.js - v3.7.2
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -1080,9 +1080,10 @@ function startCountdown() {
         const n = getSyncedTime();
         let el = (n - trackStartTime) / 1000;
         
-        if (el < 0 && trackDuration > 0) {
-            el = 0;
-        }
+        // FIX V3.7.3: Clamping estricto para evitar negativos en transiciones
+        // Si trackStartTime es futuro (compensación buffer), el es negativo.
+        // Forzamos a 0 para evitar mostrar "-00:01".
+        if (el < 0) el = 0;
 
         let d = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
         const m = Math.floor(d / 60);
