@@ -589,6 +589,13 @@ body {
 /* ==========================================================================
    CONTROLES & TIMER
    ========================================================================== */
+
+#totalDuration {
+  min-width: 45px;
+  display: inline-block;
+  text-align: center;
+}
+
 .controls {
     display: flex;
     flex-direction: row;
