@@ -799,7 +799,8 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 currentTrackInfo = newTrack;
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
-                trackStartTime = newTrack.date ? (newTrack.date * 1000)+1000 : Date.now();
+                // 000
+                trackStartTime = newTrack.date ? (newTrack.date * 1000)-1000 : Date.now();
                 trackDuration = 0;
                 startCountdown();
                 
