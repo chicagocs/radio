@@ -786,6 +786,7 @@ body {
     background-size: 10px 2px; /* Longitud del guion 10px, Grosor 2px */
     background-repeat: repeat-x;
     background-position: center;
+    opacity: 0.4;
 }
 
 /* Estilo para la pista (track) en Firefox */
