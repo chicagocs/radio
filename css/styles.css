@@ -802,6 +802,8 @@ body {
     background-size: 10px 2px;
     background-repeat: repeat-x;
     background-position: center;
+
+    opacity: 0.4;
 }
 
 .volume-icon {
