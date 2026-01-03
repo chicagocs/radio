@@ -236,13 +236,10 @@ function showNotification(message) {
     }
 }
 
-// --- MODIFICACIÓN AQUÍ ---
 function showInstallInvitation() {
     if (window.matchMedia('(display-mode: standalone)').matches || installInvitationTimeout) return;
     
     // FIX: Mejora de UX - Verificar si el usuario ya descartó la invitación anteriormente
-    // Esto evita que la invitación aparezca cada vez que se recarga la página en Windows/escritorio
-    // si el usuario ya decidió no instalarla.
     if (localStorage.getItem('rm_pwa_invite_dismissed') === 'true') return;
 
     let os = 'other';
@@ -260,10 +257,8 @@ function showInstallInvitation() {
 
 function hideInstallInvitation() { 
     installPwaInvitation.style.display = 'none'; 
-    // FIX: Guardar preferencia para no mostrar nuevamente en futuras sesiones
     localStorage.setItem('rm_pwa_invite_dismissed', 'true'); 
 }
-// ---------------------------
 
 function attemptResumePlayback() {
     if (wasPlayingBeforeFocusLoss && !isPlaying && currentStation) {
@@ -728,8 +723,6 @@ async function playStation() {
     if (!currentStation) { alert('Por favor, seleccionar una estación'); return; }
     const thisPlayId = ++currentPlayPromiseId;
 
-    // FIX CRÍTICO 1: Asegurar limpieza y setup del canal PREVIOS a iniciar audio
-    // Esto previene la condición de carrera en los contadores.
     await joinStation(currentStation.id);
 
     if (updateInterval) clearInterval(updateInterval);
@@ -755,7 +748,6 @@ async function playStation() {
     try {
         await audioPlayer.play();
         
-        // FIX CRÍTICO 2: Verificación de ID para evitar promesas de play obsoletas
         if (thisPlayId !== currentPlayPromiseId) return;
 
         isPlaying = true; updateStatus(true); startTimeStuckCheck();
@@ -774,7 +766,6 @@ async function playStation() {
         if (installInvitationTimeout === null) setTimeout(showInstallInvitation, 600000);
         setTimeout(() => { if (isPlaying) startPlaybackChecks(); }, 2000);
     } catch (error) {
-        // FIX: Verificamos AbortError ANTES de loguear para no ensuciar consola en cambios rápidos
         if (error.name === 'AbortError') return;
         
         console.warn("Play rejected:", error);
@@ -811,28 +802,20 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 currentTrackInfo = newTrack;
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
-                // 000
                 trackStartTime = newTrack.date ? (newTrack.date * 1000)-1000 : Date.now();
                 trackDuration = 0;
                 startCountdown();
                 
-                // --- FIX CRÍTICO INICIO ---
-                // Eliminamos el 'await' de fetchSongDetails. 
-                // Esto permite que el bloqueo 'isUpdatingSongInfo' se libere inmediatamente 
-                // en el bloque 'finally', permitiendo que el próximo poll (4 seg) ocurra
-                // aunque la búsqueda de portada tarde 10 segundos.
                 fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album)
                     .catch(e => console.error("Error fetchSongDetails (background):", e));
                 
                 if (rapidCheckInterval) { clearInterval(rapidCheckInterval); rapidCheckInterval = null; }
                 songTransitionDetected = true;
-                // --- FIX CRÍTICO FIN ---
             }
         } else resetUI();
     } catch (e) {
         logErrorForAnalysis('SomaFM error', { error: e.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
     } finally { 
-        // Ahora esto se ejecuta inmediatamente después de detectar la canción nueva
         isUpdatingSongInfo = false; 
     }
 }
@@ -865,16 +848,12 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
             else { trackStartTime = Date.now() - 15000; trackDuration = 0; }
             startCountdown();
             
-            // --- FIX CRÍTICO INICIO ---
-            // Misma lógica que SomaFM: No esperamos a la portada para seguir escuchando la radio
             fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album)
                 .catch(e => console.error("Error fetchSongDetails (background):", e));
-            // --- FIX CRÍTICO FIN ---
         }
     } catch (e) {
         logErrorForAnalysis('Radio Paradise error', { error: e.message, stationId: currentStation.id, timestamp: new Date().toISOString() });
     } finally { 
-        // Liberación inmediata del bloqueo
         isUpdatingSongInfo = false; 
     }
 }
@@ -963,7 +942,6 @@ function updateAlbumDetailsWithSpotifyData(d) {
     if (d.genres && d.genres.length > 0) trackGenre.textContent = d.genres.slice(0, 2).join(', '); else trackGenre.textContent = '--';
     if (d.trackNumber && d.totalTracks) trackPosition.textContent = `Track ${d.trackNumber}/${d.totalTracks}`; else trackPosition.textContent = '--/--';
     
-    // FIX: ISRC en mayúsculas
     if (trackIsrc) {
         if (d.isrc && d.isrc.trim() !== '') trackIsrc.textContent = d.isrc.toUpperCase(); 
         else trackIsrc.textContent = '----';
@@ -1028,12 +1006,34 @@ function startCountdown() {
     function updateTimer() {
         const n = Date.now();
         const el = (n - trackStartTime) / 1000;
-        let d = trackDuration > 0 ? Math.max(0, trackDuration - el) : el;
-        const m = Math.floor(d / 60);
-        const s = Math.floor(d % 60);
-        const f = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        countdownTimer.textContent = f;
-        if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
+        let d;
+        let shouldUpdateText = true;
+
+        // FIX: Evitar el glitch de "00:08" (tiempo transcurrido) al inicio de una canción nueva
+        // Cuando trackDuration es 0, el código original cuenta hacia arriba (el).
+        // Esto causa un salto visual cuando la API devuelve la duración real (ej: de 00:08 a 03:45).
+        if (trackDuration === 0) {
+            // Para SomaFM y RadioParadise, esperamos que llegue la duración desde Spotify/MusicBrainz.
+            // Mientras tanto, mantenemos el texto "--:--" (seteado por resetCountdown) o "00:00".
+            if (currentStation && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
+                d = 0; 
+                shouldUpdateText = false; // No actualizar el DOM para evitar ver el conteo errático
+            } else {
+                // Para otros servicios sin duración fija (NRK), contar tiempo transcurrido normal
+                d = el;
+            }
+        } else {
+            d = Math.max(0, trackDuration - el);
+        }
+
+        if (shouldUpdateText) {
+            const m = Math.floor(d / 60);
+            const s = Math.floor(d % 60);
+            const f = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            countdownTimer.textContent = f;
+            if (trackDuration > 0 && d < 10) countdownTimer.classList.add('ending'); else countdownTimer.classList.remove('ending');
+        }
+        
         if ((trackDuration > 0 && d > 0) || trackDuration === 0) animationFrameId = requestAnimationFrame(updateTimer);
         else {
             countdownTimer.textContent = '00:00';
@@ -1404,7 +1404,6 @@ if (installIosBtn) {
 }
 
 let lastKeyPressed = null; let lastMatchIndex = -1;
-// FIX: Añadir protección contra listener duplicado al presionar teclas
 document.addEventListener('keydown', function(event) {
     if (!document.querySelector('.custom-select-wrapper.open') &&
         !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) &&
@@ -1422,7 +1421,6 @@ document.addEventListener('keydown', function(event) {
             const opt = matches[lastMatchIndex];
             const id = opt.dataset.value;
             
-            // FIX: Verificar si es la misma estación para evitar reiniciarla innecesariamente
             if (currentStation && currentStation.id === id) return;
 
             stationSelect.value = id;
