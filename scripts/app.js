@@ -799,7 +799,10 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 currentTrackInfo = newTrack;
                 updateUIWithTrackInfo(newTrack);
                 resetAlbumCover();
-                trackStartTime = newTrack.date ? newTrack.date * 1000 : Date.now();
+                // Añadir 15 segundos de compensación de retraso de stream
+                const BUFFER_OFFSET = 15000; 
+                // trackStartTime = newTrack.date ? newTrack.date * 1000 : Date.now();
+                trackStartTime = newTrack.date ? (newTrack.date * 1000) + BUFFER_OFFSET : Date.now();
                 trackDuration = 0;
                 startCountdown();
                 
