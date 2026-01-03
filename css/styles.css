@@ -811,8 +811,8 @@ body {
     top: 50%;
     transform: translate(-50%, -50%);
     left: 50%; /* Nota: Asegúrate de actualizar este valor con JS para reflejar el volumen real */
-    width: 20px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
     background-color: var(--primary);
     border-radius: 50%;
     cursor: grab;
