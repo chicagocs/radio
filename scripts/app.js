@@ -903,17 +903,60 @@ async function fetchSongDetails(artist, title, album) {
 async function getMusicBrainzDuration(artist, title) {
     if (!canMakeApiCall('musicBrainz')) return;
     try {
+        // 1. Buscamos la grabación para obtener el ID y duración
         const u = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
         const res = await fetch(u, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
+        
+        let recordingId = null;
+
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
+                // Actualizar duración (Lógica original)
                 trackDuration = Math.floor(r.length / 1000);
                 const m = Math.floor(trackDuration / 60);
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                recordingId = r.id; // Guardamos el ID para buscar créditos
+            }
+        }
+
+        // 2. Si encontramos un ID, buscamos los créditos (relaciones)
+        if (recordingId) {
+            try {
+                // Usamos 'inc=artist-rels' para obtener productores, compositores, etc.
+                const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
+                const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
+                if (creditsRes.ok) {
+                    const creditsData = await creditsRes.json();
+                    const creditsElement = document.getElementById('trackCredits');
+                    
+                    if (creditsElement && creditsData.relations) {
+                        // Filtramos relaciones de tipo 'artist-relation'
+                        const artistRelations = creditsData.relations.filter(rel => rel['type'] === 'artist-relation');
+                        
+                        if (artistRelations.length > 0) {
+                            // Formateamos la lista (ej: "Writer: John Doe, Producer: Jane Smith")
+                            const creditList = artistRelations.map(rel => {
+                                // type-id suele ser 'writer', 'producer', 'arranger', etc.
+                                const role = rel['type-id'] ? capitalize(rel['type-id']) : '';
+                                const name = rel.artist ? rel.artist.name : '';
+                                return name ? `${role}: ${name}` : '';
+                            }).filter(txt => txt !== '').join(', ');
+                            
+                            // --- CORRECCIÓN: Mostrar el texto completo. 
+                            // El CSS (text-overflow: ellipsis) se encargará del recorte visual si es necesario.
+                            creditsElement.textContent = creditList;
+                        } else {
+                            creditsElement.textContent = 'N/A';
+                        }
+                    }
+                }
+            } catch (creditError) {
+                console.warn("No se pudieron cargar créditos:", creditError);
+                // No fallamos la app si fallan los créditos
             }
         }
     } catch (e) {
@@ -921,6 +964,12 @@ async function getMusicBrainzDuration(artist, title) {
     }
 }
 
+// Helper para poner mayúscula la primera letra del rol
+function capitalize(s) {
+    if (typeof s !== 'string') return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+   
 function updateAlbumDetailsWithSpotifyData(d) {
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
