@@ -914,49 +914,58 @@ async function getMusicBrainzDuration(artist, title) {
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
-                // Actualizar duración (Lógica original)
+                // Actualizar duración
                 trackDuration = Math.floor(r.length / 1000);
                 const m = Math.floor(trackDuration / 60);
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                recordingId = r.id; // Guardamos el ID para buscar créditos
+                recordingId = r.id; 
             }
         }
 
         // 2. Si encontramos un ID, buscamos los créditos (relaciones)
         if (recordingId) {
             try {
-                // Usamos 'inc=artist-rels' para obtener productores, compositores, etc.
+                // --- FIX CRÍTICO: PAUSA PARA RESPECTAR EL RATE LIMITING (1 petición/seg) ---
+                // Esperamos 1.1 segundos para no chocar con la petición anterior.
+                await new Promise(resolve => setTimeout(resolve, 1100)); 
+                
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
+                
                 if (creditsRes.ok) {
                     const creditsData = await creditsRes.json();
                     const creditsElement = document.getElementById('trackCredits');
                     
-                    if (creditsElement && creditsData.relations) {
-                        // Filtramos relaciones de tipo 'artist-relation'
-                        const artistRelations = creditsData.relations.filter(rel => rel['type'] === 'artist-relation');
-                        
-                        if (artistRelations.length > 0) {
-                            // Formateamos la lista (ej: "Writer: John Doe, Producer: Jane Smith")
-                            const creditList = artistRelations.map(rel => {
-                                // type-id suele ser 'writer', 'producer', 'arranger', etc.
-                                const role = rel['type-id'] ? capitalize(rel['type-id']) : '';
-                                const name = rel.artist ? rel.artist.name : '';
-                                return name ? `${role}: ${name}` : '';
-                            }).filter(txt => txt !== '').join(', ');
+                    if (creditsElement) {
+                        if (creditsData.relations) {
+                            // Filtramos relaciones de tipo 'artist-relation'
+                            const artistRelations = creditsData.relations.filter(rel => rel['type'] === 'artist-relation');
                             
-                            // --- CORRECCIÓN: Mostrar el texto completo. 
-                            // El CSS (text-overflow: ellipsis) se encargará del recorte visual si es necesario.
-                            creditsElement.textContent = creditList;
+                            if (artistRelations.length > 0) {
+                                // Formateamos la lista
+                                const creditList = artistRelations.map(rel => {
+                                    const role = rel['type-id'] ? capitalize(rel['type-id']) : '';
+                                    const name = rel.artist ? rel.artist.name : '';
+                                    return name ? `${role}: ${name}` : '';
+                                }).filter(txt => txt !== '').join(', ');
+                                
+                                creditsElement.textContent = creditList;
+                            } else {
+                                // La API funcionó pero la canción no tiene credits en MB
+                                creditsElement.textContent = 'N/A'; 
+                            }
                         } else {
+                            // No hubo error de red, pero no vino el campo 'relations'
                             creditsElement.textContent = 'N/A';
                         }
                     }
+                } else {
+                    // La petición falló (Probablemente 429 Rate Limit aún así, o 404)
+                    console.warn("Petición de créditos falló (Status:", creditsRes.status, ")");
                 }
             } catch (creditError) {
                 console.warn("No se pudieron cargar créditos:", creditError);
-                // No fallamos la app si fallan los créditos
             }
         }
     } catch (e) {
@@ -969,7 +978,7 @@ function capitalize(s) {
     if (typeof s !== 'string') return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
-   
+    
 function updateAlbumDetailsWithSpotifyData(d) {
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
@@ -1130,6 +1139,8 @@ function resetAlbumDetails() {
     albumTotalDuration.textContent = '--:--';
     trackGenre.textContent = '--';
     trackPosition.textContent = '--/--';
+    const trackCredits = document.getElementById('trackCredits');
+    if (trackCredits) trackCredits.textContent = '--';
 }
 
 function startSongInfoUpdates() {
