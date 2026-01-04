@@ -226,25 +226,28 @@ function updateVolumeIconPosition() {
 function updateShareButtonVisibility() {
     const title = songTitle.textContent;
     const artist = songArtist.textContent;
-    // --- MODIFICACIÓN: INCLUIR TIMER BUTTON ---
     if (title && artist &&
         title !== 'a sonar' &&
-        title !== 'Conectando...' &&
+        title !== 'Conectando ...' &&
         title !== 'Seleccionar estación' &&
         title !== 'A sonar' &&
-        title !== 'Reproduciendo...' &&
+        title !== 'Reproduciendo ...' &&
         title !== 'Error de reproducción' &&
-        title !== 'Reconectando...' &&
+        title !== 'Reconectando ...' &&
         artist !== '') {
         shareButton.classList.add('visible');
-        if (timerButton) timerButton.classList.add('visible');
+        // FIX: Solo operar si el elemento existe
+        if (timerButton && !timerButton.classList.contains('visible')) {
+            timerButton.classList.add('visible');
+        }
     } else {
         shareButton.classList.remove('visible');
-        if (timerButton) timerButton.classList.remove('visible');
         shareOptions.classList.remove('active');
+        // FIX: Solo operar si el elemento existe
+        if (timerButton) timerButton.classList.remove('visible');
     }
 }
-
+    
 function showNotification(message) {
     if (notification) {
         notification.textContent = message;
@@ -1020,7 +1023,6 @@ function updateTimer() {
     animationFrameId = requestAnimationFrame(updateTimer);
 }
 
-// 5. MEJORAS EN updateSomaFmInfo - DETECCIÓN DE CAMBIO POR ID
 async function updateSomaFmInfo(bypassRateLimit = false) {
     if (isUpdatingSongInfo) return; 
     isUpdatingSongInfo = true;
@@ -1032,14 +1034,15 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
         
         if (data.songs && data.songs.length > 0) {
             const s = data.songs[0];
+            // IMPORTANTE: Trim para evitar espacios en blanco
             const newTrack = { 
-                title: s.title || 'Título desconocido', 
-                artist: s.artist || 'Artista desconocido', 
-                album: s.album || '', 
+                title: s.title ? s.title.trim() : 'Título desconocido', 
+                artist: s.artist ? s.artist.trim() : 'Artista desconocido', 
+                album: s.album ? s.album.trim() : '', 
                 date: s.date || null 
             };
             
-            // Crear ID único para detectar cambios (Artista - Título)
+            // Crear ID único con strings limpios
             const newTrackId = `${newTrack.artist}-${newTrack.title}`;
             const isNewTrack = lastKnownTrackId !== newTrackId;
             
@@ -1047,7 +1050,6 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 console.log('🎵 Nueva canción SomaFM:', newTrack.title);
                 lastKnownTrackId = newTrackId;
                 
-                // Reset completo del sistema de countdown para la nueva canción
                 resetCountdown();
                 resetAlbumDetails();
                 
@@ -1059,22 +1061,23 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
                 
                 startCountdown();
                 
-                // Limpiar rapid check anterior
                 if (rapidCheckInterval) {
                     clearInterval(rapidCheckInterval);
                     rapidCheckInterval = null;
                 }
                 songTransitionDetected = true;
 
-                // Buscar detalles en background (Portada, Créditos, etc.)
+                // Solo buscar detalles si cambia la canción
                 fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album)
                     .catch(e => console.error("Error fetchSongDetails (background):", e));
+            } else {
+                // No es nueva canción, verificar si llego la duración
+                if (trackDuration === 0) {
+                    // Seguimos esperando la duración de Spotify/MusicBrainz
+                }
             }
         } else {
-            // No es nueva canción, verificar si llego la duración
-            if (trackDuration === 0) {
-                // Seguimos esperando la duración de Spotify/MusicBrainz
-            }
+            resetUI();
         }
     } catch (e) {
         logErrorForAnalysis('SomaFM error', { 
@@ -1086,7 +1089,7 @@ async function updateSomaFmInfo(bypassRateLimit = false) {
         isUpdatingSongInfo = false; 
     }
 }
-
+    
 function startSomaFmPolling() {
     // Intervalo adaptativo
     if (updateInterval) clearInterval(updateInterval);
@@ -1112,7 +1115,6 @@ function startSomaFmPolling() {
     updateInterval = pollInterval;
 }
 
-// 6. MEJORAS EN updateRadioParadiseInfo - DETECCIÓN DE CAMBIO POR ID
 async function updateRadioParadiseInfo(bypassRateLimit = false) {
     if (isUpdatingSongInfo) return; 
     isUpdatingSongInfo = true;
@@ -1125,13 +1127,14 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
         
+        // IMPORTANTE: Trim para evitar espacios en blanco
         const newTrack = { 
-            title: d.title || 'Título desconocido', 
-            artist: d.artist || 'Artista desconocido', 
-            album: d.album || '' 
+            title: d.title ? d.title.trim() : 'Título desconocido', 
+            artist: d.artist ? d.artist.trim() : 'Artista desconocido', 
+            album: d.album ? d.album.trim() : '' 
         };
         
-        // Crear ID único
+        // Crear ID único con strings limpios
         const newTrackId = `${newTrack.artist}-${newTrack.title}`;
         const isNewTrack = lastKnownTrackId !== newTrackId;
         
@@ -1139,7 +1142,6 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
             console.log('🎵 Nueva canción Radio Paradise:', newTrack.title);
             lastKnownTrackId = newTrackId;
             
-            // Reset completo
             resetCountdown();
             resetAlbumDetails();
             
@@ -1147,13 +1149,12 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
             updateUIWithTrackInfo(newTrack);
             resetAlbumCover();
             
-            // Radio Paradise suele dar la duración directamente
             if (d.song_duration && typeof d.song_duration === 'number') trackDuration = d.song_duration;
             else { trackStartTime = Date.now() - 15000; trackDuration = 0; }
             
             startCountdown();
             
-            // Buscar detalles adicionales
+            // Solo buscar detalles si cambia la canción
             fetchSongDetails(newTrack.artist, newTrack.title, newTrack.album)
                 .catch(e => console.error("Error fetchSongDetails (background):", e));
         }
@@ -1167,7 +1168,7 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
         isUpdatingSongInfo = false; 
     }
 }
-
+    
 function startRadioParadisePolling() {
     if (updateInterval) clearTimeout(updateInterval);
     const rpLoop = async () => {
@@ -1190,7 +1191,7 @@ async function fetchSongDetails(artist, title, album) {
     const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
     
-    let spotifyIsrc = null; // Variable para guardar el ISRC
+    let spotifyIsrc = null;
 
     try {
         const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
@@ -1199,8 +1200,16 @@ async function fetchSongDetails(artist, title, album) {
         const d = await res.json();
         
         if (d && d.imageUrl) {
-            displayAlbumCoverFromUrl(d.imageUrl);
-            updateAlbumDetailsWithSpotifyData(d);
+            // EVITAR RE-CARGA SI LA IMAGEN ES LA MISMA (FIX PARPADEO)
+            const currentImg = albumCover.querySelector('img.loaded');
+            if (currentImg && currentImg.src === d.imageUrl) {
+                // La imagen ya es la correcta. Solo actualizar detalles.
+                updateAlbumDetailsWithSpotifyData(d);
+                // No actualizar portada (evita spinner/fade)
+            } else {
+                displayAlbumCoverFromUrl(d.imageUrl);
+                updateAlbumDetailsWithSpotifyData(d);
+            }
             
             if (d.duration) {
                 trackDuration = d.duration;
@@ -1208,22 +1217,18 @@ async function fetchSongDetails(artist, title, album) {
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
             }
-            // --- CAPTURAMOS EL ISRC ---
             if (d.isrc) {
                 spotifyIsrc = d.isrc;
             }
         }
         
-        // Llamamos a MusicBrainz SIEMPRE. 
-        // Si Spotify nos dio duración, MusicBrainz busca créditos (por ISRC).
-        // Si Spotify falló, MusicBrainz busca duración y créditos (por nombre).
         await getMusicBrainzDuration(sA, sT, sAl, spotifyIsrc);
         
     } catch (e) {
         logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
     }
 }
-
+    
 async function getMusicBrainzDuration(artist, title, album, isrc = null) {
     if (!canMakeApiCall('musicBrainz')) return;
     try {
@@ -1394,9 +1399,12 @@ function updateAlbumDetailsWithSpotifyData(d) {
 }
 
 function updateUIWithTrackInfo(t) {
-    songTitle.textContent = t.title;
-    songArtist.textContent = t.artist;
-    songAlbum.textContent = t.album ? `(${t.album})` : '';
+    if (songTitle.textContent !== t.title) songTitle.textContent = t.title;
+    if (songArtist.textContent !== t.artist) songArtist.textContent = t.artist;
+    
+    const albumText = t.album ? `(${t.album})` : '';
+    if (songAlbum.textContent !== albumText) songAlbum.textContent = albumText;
+    
     updateShareButtonVisibility();
 }
 
