@@ -891,15 +891,18 @@ async function fetchSongDetails(artist, title, album) {
                 const m = Math.floor(trackDuration / 60);
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                return;
-            } else await getMusicBrainzDuration(sA, sT);
+            }
         }
+        // Si Spotify falló o no tiene datos, también intentamos MusicBrainz.
+        // Si Spotify tuvo éxito (duración), también intentamos MusicBrainz para los créditos.
+        await getMusicBrainzDuration(sA, sT);
     } catch (e) {
         logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
     }
+    // Si falló Spotify, intentamos MusicBrainz para la duración también
     await getMusicBrainzDuration(sA, sT);
 }
-
+    
 async function getMusicBrainzDuration(artist, title) {
     if (!canMakeApiCall('musicBrainz')) return;
     try {
