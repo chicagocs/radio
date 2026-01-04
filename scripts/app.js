@@ -929,10 +929,9 @@ async function getMusicBrainzDuration(artist, title) {
         // 2. Si encontramos un ID, buscamos los créditos (relaciones)
         if (recordingId) {
             try {
-                // --- FIX CRÍTICO: PAUSA PARA RESPECTAR EL RATE LIMITING (1 petición/seg) ---
-                // Esperamos 1.1 segundos para no chocar con la petición anterior.
+                // PAUSA PARA RATE LIMITING
                 await new Promise(resolve => setTimeout(resolve, 1100)); 
-                
+
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
@@ -940,35 +939,33 @@ async function getMusicBrainzDuration(artist, title) {
                     const creditsData = await creditsRes.json();
                     const creditsElement = document.getElementById('trackCredits');
                     
-                    if (creditsElement) {
-                        if (creditsData.relations) {
-                            // Filtramos relaciones de tipo 'artist-relation'
-                            const artistRelations = creditsData.relations.filter(rel => rel['type'] === 'artist-relation');
+                    if (creditsElement && creditsData.relations) {
+                        // --- FIX CRÍTICO: FILTRADO CORRECTO ---
+                        // MusicBrainz devuelve 'type' como "writer", "producer", "arranger".
+                        // El parámetro 'inc=artist-rels' ya asegura que son relaciones con artistas,
+                        // por lo que solo filtramos los que tienen datos válidos.
+                        const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
+                        
+                        if (artistRelations.length > 0) {
+                            // Formateamos la lista (ej: "Writer: John Doe, Producer: Jane Smith")
+                            const creditList = artistRelations.map(rel => {
+                                // Usamos 'rel.type' (ej: "writer") que es el nombre legible, no el UUID.
+                                const role = rel.type ? capitalize(rel.type) : '';
+                                const name = rel.artist ? rel.artist.name : '';
+                                return name ? `${role}: ${name}` : '';
+                            }).filter(txt => txt !== '').join(', ');
                             
-                            if (artistRelations.length > 0) {
-                                // Formateamos la lista
-                                const creditList = artistRelations.map(rel => {
-                                    const role = rel['type-id'] ? capitalize(rel['type-id']) : '';
-                                    const name = rel.artist ? rel.artist.name : '';
-                                    return name ? `${role}: ${name}` : '';
-                                }).filter(txt => txt !== '').join(', ');
-                                
-                                creditsElement.textContent = creditList;
-                            } else {
-                                // La API funcionó pero la canción no tiene credits en MB
-                                creditsElement.textContent = 'N/A'; 
-                            }
+                            creditsElement.textContent = creditList;
                         } else {
-                            // No hubo error de red, pero no vino el campo 'relations'
                             creditsElement.textContent = 'N/A';
                         }
                     }
                 } else {
-                    // La petición falló (Probablemente 429 Rate Limit aún así, o 404)
-                    console.warn("Petición de créditos falló (Status:", creditsRes.status, ")");
+                    // Manejo silencioso si falla la petición de créditos (Rate limit, etc)
+                    console.warn("Petición de créditos falló (Status):", creditsRes.status);
                 }
             } catch (creditError) {
-                console.warn("No se pudieron cargar créditos:", creditError);
+                console.warn("Error procesando créditos:", creditError);
             }
         }
     } catch (e) {
@@ -976,7 +973,7 @@ async function getMusicBrainzDuration(artist, title) {
     }
 }
 
-// Helper para poner mayúscula la primera letra del rol
+// Helper para poner mayúscula la primera letra
 function capitalize(s) {
     if (typeof s !== 'string') return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
