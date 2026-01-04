@@ -1,4 +1,4 @@
-// app.js - v3.4.3
+// app.js - v3.5.0
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // ==========================================================================
@@ -879,7 +879,7 @@ async function fetchSongDetails(artist, title, album) {
     const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
     
-    let spotifyIsrc = null; // Variable para guardar el ISRC de Spotify
+    let spotifyIsrc = null; // Variable para guardar el ISRC
 
     try {
         const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
@@ -896,14 +896,13 @@ async function fetchSongDetails(artist, title, album) {
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
             }
-            // --- CAPTURAMOS EL ISRC ---
+            // Capturamos el ISRC si Spotify lo tiene
             if (d.isrc) {
                 spotifyIsrc = d.isrc;
-                console.log("[DEBUG] ISRC obtenido de Spotify:", spotifyIsrc);
             }
         }
         
-        // Llamamos a MusicBrainz pasando el ISRC
+        // Llamamos a MusicBrainz pasando el ISRC (si existe) para búsqueda unívoca
         await getMusicBrainzDuration(sA, sT, sAl, spotifyIsrc);
         
     } catch (e) {
@@ -916,18 +915,17 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
     try {
         let recordingId = null;
 
-        // --- PRIORIDAD 1: BÚSQUEDA POR ISRC (Unívoca) ---
+        // --- PRIORIDAD 1: BÚSQUEDA POR ISRC (MÉTODO IDEAL) ---
         if (isrc) {
             try {
-                console.log(`[DEBUG] Buscando por ISRC: ${isrc}`);
-                // Inc=artist-rels nos trae los créditos (credits) directo en esta búsqueda
+                // 'inc=artist-rels' trae los créditos directamente en esta consulta
                 const isrcUrl = `https://musicbrainz.org/ws/2/isrc/${isrc}?inc=artist-rels&fmt=json`;
                 const res = await fetch(isrcUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
                 if (res.ok) {
                     const data = await res.json();
                     if (data.recordings && data.recordings.length > 0) {
-                        const r = data.recordings[0]; // Usamos la primera coincidencia (debe ser única)
+                        const r = data.recordings[0]; // Coincidencia unívoca
                         
                         // 1. Actualizar Duración
                         if (r.length) {
@@ -937,36 +935,36 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
                             totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                         }
 
-                        // 2. Actualizar Créditos (Ya vinieron en esta respuesta gracias a inc=artist-rels)
+                        // 2. Actualizar Créditos (Ya vienen incluidos en la respuesta ISRC)
                         const creditsElement = document.getElementById('trackCredits');
                         if (creditsElement && r.relations) {
                             const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
                             if (artistRelations.length > 0) {
                                 const creditList = artistRelations.map(rel => {
-                                    const role = rel.type ? capitalize(rel.type) : '';
+                                    // Usamos la función de traducción en lugar de capitalize
+                                    const role = rel.type ? translateRole(rel.type) : '';
                                     const name = rel.artist ? rel.artist.name : '';
                                     return name ? `${role}: ${name}` : '';
                                 }).filter(txt => txt !== '').join(', ');
+                                
                                 creditsElement.textContent = creditList;
                             } else {
                                 creditsElement.textContent = 'N/A';
                             }
                         }
                         
-                        console.log("[DEBUG] Datos obtenidos exitosamente vía ISRC.");
-                        return; // ¡TRABAJO HECHO! No seguimos con la búsqueda por nombre.
+                        return; // Éxito vía ISRC, finalizamos aquí.
                     }
                 }
             } catch (isrcError) {
-                console.warn("Fallo búsqueda por ISRC, intentando por nombre...", isrcError);
-                // Si falla el ISRC (ej: código erróneo), caemos al bloque siguiente
+                // Si falla la búsqueda por ISRC (ej código inválido), intentamos por nombre
+                // No hacemos log aquí para no ensuciar consola
             }
         }
 
         // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO (Fallback) ---
-        // Usamos el título limpio por si acaso
+        // Limpiamos el título eliminando paréntesis de remixes/live
         const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
-        console.log(`[DEBUG] Fallback: Buscando por nombre: ${artist} - ${cleanTitle}`);
         
         const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
         const res = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
@@ -986,7 +984,9 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
 
         if (recordingId) {
             try {
+                // Pausa para Rate Limiting
                 await new Promise(resolve => setTimeout(resolve, 1100)); 
+
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
@@ -996,12 +996,14 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
                     
                     if (creditsElement && creditsData.relations) {
                         const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
+                        
                         if (artistRelations.length > 0) {
                             const creditList = artistRelations.map(rel => {
-                                const role = rel.type ? capitalize(rel.type) : '';
+                                const role = rel.type ? translateRole(rel.type) : '';
                                 const name = rel.artist ? rel.artist.name : '';
                                 return name ? `${role}: ${name}` : '';
                             }).filter(txt => txt !== '').join(', ');
+                            
                             creditsElement.textContent = creditList;
                         } else {
                             creditsElement.textContent = 'N/A';
@@ -1009,7 +1011,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
                     }
                 }
             } catch (creditError) {
-                console.warn("Error procesando créditos (fallback):", creditError);
+                // Silencioso, los créditos no son críticos
             }
         }
     } catch (e) {
@@ -1017,6 +1019,30 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
     }
 }
 
+// Helper para traducir roles técnicos al español
+function translateRole(role) {
+    if (typeof role !== 'string') return '';
+    const lowerRole = role.toLowerCase();
+    const translations = {
+        'writer': 'Escritor',
+        'composer': 'Compositor',
+        'lyricist': 'Letrista',
+        'producer': 'Productor',
+        'co-producer': 'Coproductor',
+        'arranger': 'Arreglista',
+        'engineer': 'Ingeniero',
+        'audio engineer': 'Ingeniero de sonido',
+        'mixing engineer': 'Ingeniero de mezclado',
+        'mastering engineer': 'Ingeniero de mastering',
+        'remixer': 'Remixer',
+        'conductor': 'Director',
+        'performer': 'Intérprete'
+    };
+    // Si no hay traducción específica, usamos la versión en inglés capitalizada
+    return translations[lowerRole] || capitalize(role);
+}
+
+// Helper para poner mayúscula la primera letra (usado como fallback)
 function capitalize(s) {
     if (typeof s !== 'string') return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
