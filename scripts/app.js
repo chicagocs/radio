@@ -878,11 +878,15 @@ async function fetchSongDetails(artist, title, album) {
     const sA = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
+    
+    let spotifyIsrc = null; // Variable para guardar el ISRC de Spotify
+
     try {
         const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
         const res = await fetch(u);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
+        
         if (d && d.imageUrl) {
             displayAlbumCoverFromUrl(d.imageUrl);
             updateAlbumDetailsWithSpotifyData(d);
@@ -892,96 +896,121 @@ async function fetchSongDetails(artist, title, album) {
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
             }
+            // --- CAPTURAMOS EL ISRC ---
+            if (d.isrc) {
+                spotifyIsrc = d.isrc;
+                console.log("[DEBUG] ISRC obtenido de Spotify:", spotifyIsrc);
+            }
         }
-        // Si Spotify falló o no tiene datos, también intentamos MusicBrainz.
-        // Si Spotify tuvo éxito (duración), también intentamos MusicBrainz para los créditos.
-        await getMusicBrainzDuration(sA, sT);
+        
+        // Llamamos a MusicBrainz pasando el ISRC
+        await getMusicBrainzDuration(sA, sT, sAl, spotifyIsrc);
+        
     } catch (e) {
         logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
     }
-    // Si falló Spotify, intentamos MusicBrainz para la duración también
-    await getMusicBrainzDuration(sA, sT);
 }
     
-async function getMusicBrainzDuration(artist, title) {
+async function getMusicBrainzDuration(artist, title, album, isrc = null) {
     if (!canMakeApiCall('musicBrainz')) return;
     try {
-        // --- FIX DE BÚSQUEDA FLEXIBLE ---
-        // Eliminamos el texto entre paréntesis (ej: "(12'' Extended Remix)", "(Live)")
-        // porque MusicBrainz suele tener el título "limpio" mientras que las radios mandan detalles.
-        const cleanSearchTitle = title.replace(/\([^)]*\)/g, '').trim();
-        
-        console.log(`[DEBUG] Búsqueda Original: ${title}`);
-        console.log(`[DEBUG] Búsqueda Limpia: ${cleanSearchTitle}`);
+        let recordingId = null;
 
-        // Usamos el título limpio en la query para aumentar las probabilidades de éxito
-        const u = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(cleanSearchTitle)}"&fmt=json&limit=5`;
-        console.log(`[DEBUG] URL Consulta: ${u}`);
+        // --- PRIORIDAD 1: BÚSQUEDA POR ISRC (Unívoca) ---
+        if (isrc) {
+            try {
+                console.log(`[DEBUG] Buscando por ISRC: ${isrc}`);
+                // Inc=artist-rels nos trae los créditos (credits) directo en esta búsqueda
+                const isrcUrl = `https://musicbrainz.org/ws/2/isrc/${isrc}?inc=artist-rels&fmt=json`;
+                const res = await fetch(isrcUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.recordings && data.recordings.length > 0) {
+                        const r = data.recordings[0]; // Usamos la primera coincidencia (debe ser única)
+                        
+                        // 1. Actualizar Duración
+                        if (r.length) {
+                            trackDuration = Math.floor(r.length / 1000);
+                            const m = Math.floor(trackDuration / 60);
+                            const s = Math.floor(trackDuration % 60);
+                            totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                        }
+
+                        // 2. Actualizar Créditos (Ya vinieron en esta respuesta gracias a inc=artist-rels)
+                        const creditsElement = document.getElementById('trackCredits');
+                        if (creditsElement && r.relations) {
+                            const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
+                            if (artistRelations.length > 0) {
+                                const creditList = artistRelations.map(rel => {
+                                    const role = rel.type ? capitalize(rel.type) : '';
+                                    const name = rel.artist ? rel.artist.name : '';
+                                    return name ? `${role}: ${name}` : '';
+                                }).filter(txt => txt !== '').join(', ');
+                                creditsElement.textContent = creditList;
+                            } else {
+                                creditsElement.textContent = 'N/A';
+                            }
+                        }
+                        
+                        console.log("[DEBUG] Datos obtenidos exitosamente vía ISRC.");
+                        return; // ¡TRABAJO HECHO! No seguimos con la búsqueda por nombre.
+                    }
+                }
+            } catch (isrcError) {
+                console.warn("Fallo búsqueda por ISRC, intentando por nombre...", isrcError);
+                // Si falla el ISRC (ej: código erróneo), caemos al bloque siguiente
+            }
+        }
+
+        // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO (Fallback) ---
+        // Usamos el título limpio por si acaso
+        const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
+        console.log(`[DEBUG] Fallback: Buscando por nombre: ${artist} - ${cleanTitle}`);
         
-        const res = await fetch(u, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
+        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
+        const res = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
         
-        console.log("[DEBUG] Resultados encontrados:", d.count);
-
-        let recordingId = null;
-
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
-                // Actualizar duración
                 trackDuration = Math.floor(r.length / 1000);
                 const m = Math.floor(trackDuration / 60);
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                 recordingId = r.id; 
-                console.log(`[DEBUG] ID encontrado: ${recordingId}`);
             }
         }
 
-        // 2. Buscar Créditos
         if (recordingId) {
             try {
                 await new Promise(resolve => setTimeout(resolve, 1100)); 
-                
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
                 if (creditsRes.ok) {
                     const creditsData = await creditsRes.json();
-                    console.log("[DEBUG] Créditos recibidos. Tiene relations?", !!creditsData.relations);
-
                     const creditsElement = document.getElementById('trackCredits');
                     
-                    if (creditsElement) {
-                        if (creditsData.relations) {
-                            // Filtramos relaciones que tienen tipo y artista
-                            const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
-                            
-                            if (artistRelations.length > 0) {
-                                const creditList = artistRelations.map(rel => {
-                                    // Usamos rel.type (ej: "writer") en lugar del UUID type-id
-                                    const role = rel.type ? capitalize(rel.type) : '';
-                                    const name = rel.artist ? rel.artist.name : '';
-                                    return name ? `${role}: ${name}` : '';
-                                }).filter(txt => txt !== '').join(', ');
-                                
-                                creditsElement.textContent = creditList;
-                            } else {
-                                creditsElement.textContent = 'N/A';
-                            }
+                    if (creditsElement && creditsData.relations) {
+                        const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
+                        if (artistRelations.length > 0) {
+                            const creditList = artistRelations.map(rel => {
+                                const role = rel.type ? capitalize(rel.type) : '';
+                                const name = rel.artist ? rel.artist.name : '';
+                                return name ? `${role}: ${name}` : '';
+                            }).filter(txt => txt !== '').join(', ');
+                            creditsElement.textContent = creditList;
                         } else {
                             creditsElement.textContent = 'N/A';
                         }
                     }
-                } else {
-                    console.warn("Petición de créditos falló (Status):", creditsRes.status);
                 }
             } catch (creditError) {
-                console.warn("Error procesando créditos:", creditError);
+                console.warn("Error procesando créditos (fallback):", creditError);
             }
-        } else {
-            console.warn("[DEBUG] No se obtuvo recordingId tras la búsqueda.");
         }
     } catch (e) {
         logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
