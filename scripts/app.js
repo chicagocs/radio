@@ -906,79 +906,96 @@ async function fetchSongDetails(artist, title, album) {
 async function getMusicBrainzDuration(artist, title) {
     if (!canMakeApiCall('musicBrainz')) return;
     try {
-        // 1. Buscamos la grabación para obtener el ID y duración
+        // 1. Buscar Grabación
         const u = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(title)}"&fmt=json&limit=5`;
+        console.log(`[DEBUG] Buscando: ${artist} - ${title}`);
+        
         const res = await fetch(u, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
         
+        console.log("[DEBUG] Resultados búsqueda (crudo):", d); // <--- MIRA ESTO EN CONSOLA
+
         let recordingId = null;
 
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
-                // Actualizar duración
                 trackDuration = Math.floor(r.length / 1000);
                 const m = Math.floor(trackDuration / 60);
                 const s = Math.floor(trackDuration % 60);
                 totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                 recordingId = r.id; 
+                console.log("[DEBUG] ID de Grabación encontrado:", recordingId); // <--- MIRA ESTO EN CONSOLA
             }
         }
 
-        // 2. Si encontramos un ID, buscamos los créditos (relaciones)
+        // 2. Buscar Créditos
         if (recordingId) {
             try {
-                // PAUSA PARA RATE LIMITING
                 await new Promise(resolve => setTimeout(resolve, 1100)); 
-
+                
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
+                console.log(`[DEBUG] Buscando créditos en URL:`, creditsUrl); // <--- MIRA ESTO EN CONSOLA
+                
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
                 if (creditsRes.ok) {
                     const creditsData = await creditsRes.json();
+                    console.log("[DEBUG] Respuesta completa de créditos:", creditsData); // <--- MUY IMPORTANTE
+
                     const creditsElement = document.getElementById('trackCredits');
                     
-                    if (creditsElement && creditsData.relations) {
-                        // --- FIX CRÍTICO: FILTRADO CORRECTO ---
-                        // MusicBrainz devuelve 'type' como "writer", "producer", "arranger".
-                        // El parámetro 'inc=artist-rels' ya asegura que son relaciones con artistas,
-                        // por lo que solo filtramos los que tienen datos válidos.
-                        const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
-                        
-                        if (artistRelations.length > 0) {
-                            // Formateamos la lista (ej: "Writer: John Doe, Producer: Jane Smith")
-                            const creditList = artistRelations.map(rel => {
-                                // Usamos 'rel.type' (ej: "writer") que es el nombre legible, no el UUID.
-                                const role = rel.type ? capitalize(rel.type) : '';
-                                const name = rel.artist ? rel.artist.name : '';
-                                return name ? `${role}: ${name}` : '';
-                            }).filter(txt => txt !== '').join(', ');
+                    if (creditsElement) {
+                        if (creditsData.relations) {
+                            console.log("[DEBUG] Array de relations existe. Total items:", creditsData.relations.length);
                             
-                            creditsElement.textContent = creditList;
+                            // --- ANTERIOR ---
+                            // const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
+                            
+                            // --- PRUEBA DEP: SIN FILTRO PARA VER QUÉ TIENE ---
+                            const allRelations = creditsData.relations; 
+                            console.log("[DEBUG] Primeras 3 relaciones:", allRelations.slice(0, 3)); 
+
+                            const artistRelations = allRelations.filter(rel => rel.type && rel.artist);
+                            console.log("[DEBUG] Relaciones filtradas (son > 0?):", artistRelations);
+                            
+                            if (artistRelations.length > 0) {
+                                const creditList = artistRelations.map(rel => {
+                                    const role = rel.type ? capitalize(rel.type) : '';
+                                    const name = rel.artist ? rel.artist.name : '';
+                                    console.log(`[DEBUG] Rol: ${role}, Nombre: ${name}`); // <--- MIRA ESTO EN CONSOLA
+                                    return name ? `${role}: ${name}` : '';
+                                }).filter(txt => txt !== '').join(', ');
+                                
+                                creditsElement.textContent = creditList;
+                            } else {
+                                creditsElement.textContent = 'N/A';
+                            }
                         } else {
+                            console.warn("[DEBUG] La respuesta NO trajo 'relations'.");
                             creditsElement.textContent = 'N/A';
                         }
                     }
                 } else {
-                    // Manejo silencioso si falla la petición de créditos (Rate limit, etc)
-                    console.warn("Petición de créditos falló (Status):", creditsRes.status);
+                    console.warn("[DEBUG] Error fetch créditos. Status:", creditsRes.status);
                 }
             } catch (creditError) {
                 console.warn("Error procesando créditos:", creditError);
             }
+        } else {
+            console.warn("[DEBUG] No se obtuvo recordingId, no se buscan créditos.");
         }
     } catch (e) {
         logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
     }
 }
 
-// Helper para poner mayúscula la primera letra
 function capitalize(s) {
     if (typeof s !== 'string') return '';
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
-    
+
 function updateAlbumDetailsWithSpotifyData(d) {
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
