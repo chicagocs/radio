@@ -1031,6 +1031,7 @@ function translateRole(role) {
         'co-producer': 'Coproductor',
         'arranger': 'Arreglista',
         'engineer': 'Ingeniero',
+        'instrument': 'Instrumentista',
         'audio engineer': 'Ingeniero de sonido',
         'mixing engineer': 'Ingeniero de mezclado',
         'mastering engineer': 'Ingeniero de mastering',
