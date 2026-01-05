@@ -1,6 +1,6 @@
 // app.js - v3.5.0
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import {computePosition} from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm';
+import {computePosition, offset, flip} from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm';
 
 // ==========================================================================
 // CONFIGURACIÓN DE SUPABASE (PRESENCIA)
@@ -79,7 +79,7 @@ let lastSongCheckTime = 0;
 let rapidCheckInterval = null;
 let songTransitionDetected = false;
 let isUpdatingSongInfo = false;
-
+let currentCredits = "";
 const RAPID_CHECK_THRESHOLD = 150;
 audioPlayer.volume = 0.5;
 
@@ -210,6 +210,44 @@ function updateVolumeIconPosition() {
     volumeIcon.style.left = `${newPosition}px`;
 }
 
+function updateTooltipPosition() {
+    const referenceEl = document.getElementById('trackCredits');
+    const tooltipEl = document.getElementById('tooltip-credits');
+    
+    // Si no hay créditos o no están cargados, no hacer nada
+    if (!referenceEl || !tooltipEl || currentCredits === '') {
+        if(tooltipEl) tooltipEl.style.opacity = '0';
+        if(referenceEl) {
+            referenceEl.textContent = '--'; // Resetear a guiones si no hay datos
+            referenceEl.style.borderBottom = 'none';
+        }
+        return;
+    }
+
+    // Configuración del tooltip
+    tooltipEl.style.opacity = '0'; // Oculto mientras calculamos
+    tooltipEl.style.visibility = 'visible';
+
+    // Usar Floating UI para calcular posición arriba (Top)
+    computePosition(referenceEl, tooltipEl, {
+        placement: 'top',
+        strategy: 'absolute',
+        middleware: [
+            offset(8), // 8px de distancia respecto al texto
+            flip({
+                mainAxis: true,
+                crossAxis: false
+            })
+        ]
+    }).then(({x, y, placement}) => {
+        // Aplicar coordenadas
+        Object.assign(tooltipEl.style, {
+            left: `${x}px`,
+            top: `${y}px`,
+        });
+    });
+}
+    
 function updateShareButtonVisibility() {
     const title = songTitle.textContent;
     const artist = songArtist.textContent;
@@ -916,57 +954,64 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
     try {
         let recordingId = null;
 
-        // --- PRIORIDAD 1: BÚSQUEDA POR ISRC (MÉTODO IDEAL) ---
+        // --- PRIORIDAD 1: BÚSQUEDA POR ISRC ---
         if (isrc) {
             try {
-                // 'inc=artist-rels' trae los créditos directamente en esta consulta
                 const isrcUrl = `https://musicbrainz.org/ws/2/isrc/${isrc}?inc=artist-rels&fmt=json`;
                 const res = await fetch(isrcUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
                 if (res.ok) {
                     const data = await res.json();
                     if (data.recordings && data.recordings.length > 0) {
-                        const r = data.recordings[0]; // Coincidencia unívoca
+                        const r = data.recordings[0];
                         
                         // 1. Actualizar Duración
-                        if (r.length) {
+                        if (r.length && trackDuration === 0) {
                             trackDuration = Math.floor(r.length / 1000);
                             const m = Math.floor(trackDuration / 60);
                             const s = Math.floor(trackDuration % 60);
                             totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                         }
 
-                        // 2. Actualizar Créditos (Ya vienen incluidos en la respuesta ISRC)
+                        // 2. Actualizar Créditos (Guardar en string, mostrar "VER")
                         const creditsElement = document.getElementById('trackCredits');
                         if (creditsElement && r.relations) {
                             const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
                             if (artistRelations.length > 0) {
                                 const creditList = artistRelations.map(rel => {
-                                    // Usamos la función de traducción en lugar de capitalize
                                     const role = rel.type ? translateRole(rel.type) : '';
                                     const name = rel.artist ? rel.artist.name : '';
                                     return name ? `${role}: ${name}` : '';
                                 }).filter(txt => txt !== '').join(', ');
                                 
-                                creditsElement.textContent = creditList;
+                                // --- NUEVA LÓGICA TOOLTIP ---
+                                // Guardar el texto completo en la variable global
+                                currentCredits = creditList;
+                                
+                                // Mostrar solo "VER" en el texto principal
+                                creditsElement.textContent = 'VER';
+                                creditsElement.title = creditList; // Tooltip nativo del navegador como fallback
+                                
+                                // Actualizar contenido del tooltip flotante
+                                const tooltipContent = document.getElementById('tooltip-credits-content');
+                                if (tooltipContent) tooltipContent.textContent = creditList;
+                                
+                                // Posicionar el tooltip
+                                updateTooltipPosition();
+                                
                             } else {
                                 creditsElement.textContent = 'N/A';
+                                currentCredits = "";
                             }
                         }
-                        
-                        return; // Éxito vía ISRC, finalizamos aquí.
+                        return; // Éxito
                     }
                 }
-            } catch (isrcError) {
-                // Si falla la búsqueda por ISRC (ej código inválido), intentamos por nombre
-                // No hacemos log aquí para no ensuciar consola
-            }
+            } catch (isrcError) {}
         }
 
-        // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO (Fallback) ---
-        // Limpiamos el título eliminando paréntesis de remixes/live
+        // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO ---
         const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
-        
         const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
         const res = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -975,19 +1020,19 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
         if (d.recordings && d.recordings.length > 0) {
             const r = d.recordings.find(r => r.length) || d.recordings[0];
             if (r && r.length) {
-                trackDuration = Math.floor(r.length / 1000);
-                const m = Math.floor(trackDuration / 60);
-                const s = Math.floor(trackDuration % 60);
-                totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                if (trackDuration === 0) {
+                    trackDuration = Math.floor(r.length / 1000);
+                    const m = Math.floor(trackDuration / 60);
+                    const s = Math.floor(trackDuration % 60);
+                    totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                }
                 recordingId = r.id; 
             }
         }
 
         if (recordingId) {
             try {
-                // Pausa para Rate Limiting
                 await new Promise(resolve => setTimeout(resolve, 1100)); 
-
                 const creditsUrl = `https://musicbrainz.org/ws/2/recording/${recordingId}?inc=artist-rels&fmt=json`;
                 const creditsRes = await fetch(creditsUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
                 
@@ -1005,21 +1050,28 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null) {
                                 return name ? `${role}: ${name}` : '';
                             }).filter(txt => txt !== '').join(', ');
                             
-                            creditsElement.textContent = creditList;
+                            // --- NUEVA LÓGICA TOOLTIP (Fallback) ---
+                            currentCredits = creditList;
+                            creditsElement.textContent = 'VER';
+                            creditsElement.title = creditList;
+                            
+                            const tooltipContent = document.getElementById('tooltip-credits-content');
+                            if (tooltipContent) tooltipContent.textContent = creditList;
+                            
+                            updateTooltipPosition();
                         } else {
                             creditsElement.textContent = 'N/A';
+                            currentCredits = "";
                         }
                     }
                 }
-            } catch (creditError) {
-                // Silencioso, los créditos no son críticos
-            }
+            } catch (creditError) {}
         }
     } catch (e) {
         logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
     }
 }
-
+    
 // Helper para traducir roles técnicos al español
 function translateRole(role) {
     if (typeof role !== 'string') return '';
@@ -1078,12 +1130,16 @@ function updateAlbumDetailsWithSpotifyData(d) {
 }
 
 function updateUIWithTrackInfo(t) {
-    songTitle.textContent = t.title;
-    songArtist.textContent = t.artist;
-    songAlbum.textContent = t.album ? `(${t.album})` : '';
+    // Solo actualizar si cambia el texto
+    if (songTitle.textContent !== t.title) songTitle.textContent = t.title;
+    if (songArtist.textContent !== t.artist) songArtist.textContent = t.artist;
+    
+    const albumText = t.album ? `(${t.album})` : '';
+    if (songAlbum.textContent !== albumText) songAlbum.textContent = albumText;
+    
     updateShareButtonVisibility();
 }
-
+    
 function resetUI() {
     if (connectionManager.isReconnecting) return;
     songTitle.textContent = 'Reproduciendo...';
