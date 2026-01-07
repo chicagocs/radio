@@ -1,142 +1,47 @@
-// app.js - v3.6.0
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { computePosition, offset, flip } from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm';
+// app.js - v3.6.1
+let supabase, computePosition, offset, flip;
 
-// ============================================================================
-// CONFIGURACIÓN CENTRAL
-// ============================================================================
+async function loadModules() {
+    try {
+        const [{ createClient }, { computePosition: cp, offset: off, flip: fl }] = await Promise.all([
+            import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'),
+            import('https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm')
+        ]);
+        supabase = createClient('https://xahbzlhjolnugpbpnbmo.supabase.co', 'sb_publishable_G_dlO7Q6PPT7fDQCvSN5lA_mbcqtxVl');
+        computePosition = cp; offset = off; flip = fl;
+    } catch (e) {
+        console.error('Error al cargar módulos ESM:', e);
+        // Si no se pueden cargar, desactivar funcionalidades que dependan de ellos
+        supabase = null;
+        computePosition = null; offset = null; flip = null;
+    }
+}
+
+// Configuración
 const config = {
     supabase: {
         url: 'https://xahbzlhjolnugpbpnbmo.supabase.co',
         key: 'sb_publishable_G_dlO7Q6PPT7fDQCvSN5lA_mbcqtxVl'
     },
-    countdown: {
-        tickMs: 250,
-        endingThreshold: 10,
-        elapsedMax: 30
-    },
-    api: {
-        somaFm: { interval: 4000 },
-        radioParadise: { interval: 5000 },
-        musicBrainz: { minInterval: 1000 }
-    },
-    storage: {
-        volume: 'rm_volume',
-        station: 'rm_last_station',
-        uid: 'rm_uid',
-        pwaDismissed: 'rm_pwa_dismissed',
-        favorites: 'radioMax_favorites'
-    },
-    listeners: {
-        counterEl: 'totalListenersValue'
-    },
-    services: {
-        somaFm: 'somafm',
-        radioParadise: 'radioparadise',
-        nrk: 'nrk'
-    }
+    countdown: { tickMs: 250, endingThreshold: 10, elapsedMax: 30 },
+    api: { somaFm: { interval: 4000 }, radioParadise: { interval: 5000 }, musicBrainz: { minInterval: 1000 } },
+    storage: { volume: 'rm_volume', station: 'rm_last_station', uid: 'rm_uid', pwaDismissed: 'rm_pwa_dismissed', favorites: 'radioMax_favorites' },
+    listeners: { counterEl: 'totalListenersValue' },
+    services: { somaFm: 'somafm', radioParadise: 'radioparadise', nrk: 'nrk' }
 };
 
-// ============================================================================
-// SUPABASE PRESENCE (CONTADOR DE OYENTES)
-// ============================================================================
-const supabase = createClient(config.supabase.url, config.supabase.key);
-
-function getUniqueID() {
-    let uid = localStorage.getItem(config.storage.uid);
-    if (!uid) { uid = 'user_' + Math.random().toString(36).substr(2, 9); localStorage.setItem(config.storage.uid, uid); }
-    return uid;
-}
-
-async function joinStation(stationId) {
-    if (!stationId || stationId === current.stationId) return;
-    if (current.channel) await leaveStation(current.stationId);
-    current.stationId = stationId;
-    const channelName = `station:${stationId}`;
-    const channel = supabase.channel(channelName, {
-        config: { presence: { key: getUniqueID() } }
-    });
-    channel
-        .on('presence', { event: 'sync' }, () => {
-            const state = channel.presenceState();
-            const count = Object.keys(state).length;
-            const el = document.getElementById(config.listeners.counterEl);
-            if (el) el.textContent = String(count).padStart(5, '0');
-        })
-        .subscribe(async (status) => {
-            if (status === 'SUBSCRIBED') {
-                await channel.track({
-                    user_at: new Date().toISOString(),
-                    agent: navigator.userAgent
-                });
-            }
-        });
-    current.channel = channel;
-}
-
-async function leaveStation(stationId) {
-    if (current.channel) {
-        try { await supabase.removeChannel(current.channel); } catch {}
-        current.channel = null;
-    }
-    current.stationId = null;
-    const el = document.getElementById(config.listeners.counterEl);
-    if (el) el.textContent = '00000';
-}
-
-// ============================================================================
-// STORAGE Y FAVORITOS
-// ============================================================================
-const storage = {
-    volume: {
-        get: () => { try { return JSON.parse(localStorage.getItem(config.storage.volume)) || 50; } catch { return 50; } },
-        set: (v) => { try { localStorage.setItem(config.storage.volume, JSON.stringify(v)); } catch {} }
-    },
-    station: {
-        get: () => { try { return JSON.parse(localStorage.getItem(config.storage.station)) || null; } catch { return null; } },
-        set: (id) => { try { localStorage.setItem(config.storage.station, JSON.stringify(id)); } catch {} }
-    },
-    favorites: {
-        get: () => { try { return JSON.parse(localStorage.getItem(config.storage.favorites)) || []; } catch { return []; } },
-        set: (list) => { try { localStorage.setItem(config.storage.favorites, JSON.stringify(list)); } catch {} }
-    },
-    pwaDismissed: () => localStorage.getItem(config.storage.pwaDismissed) === 'true'
+// Variables globales
+let current = {
+    station: null, stationId: null, channel: null, isPlaying: false, isMuted: false, previousVolume: 50,
+    trackInfo: null, trackDuration: 0, trackStartTime: 0, isUpdatingSongInfo: false,
+    ui: { countdown: null, totalDuration: null, credits: null, tooltip: null, tooltipContent: null }
 };
 
-// ============================================================================
-// PLAYER CORE
-// ============================================================================
-const current = {
-    station: null,
-    stationId: null,
-    channel: null,
-    isPlaying: false,
-    isMuted: false,
-    previousVolume: 50,
-    trackInfo: null,
-    trackDuration: 0,
-    trackStartTime: 0,
-    isUpdatingSongInfo: false,
-    ui: {
-        countdown: document.getElementById('countdownTimer'),
-        totalDuration: document.getElementById('totalDuration'),
-        credits: document.getElementById('trackCredits'),
-        tooltip: document.getElementById('tooltip-credits'),
-        tooltipContent: document.getElementById('tooltip-credits-content')
-    }
+let timers = {
+    countdown: null, polling: null, rapid: null, stuck: null, audioCheck: null, resizeDebounce: null, installInvitation: null
 };
 
-const timers = {
-    countdown: null,
-    polling: null,
-    rapid: null,
-    stuck: null,
-    audioCheck: null,
-    resizeDebounce: null,
-    installInvitation: null
-};
-
-const apiTracker = {
+let apiTracker = {
     somaFm: { last: 0, min: config.api.somaFm.interval },
     radioParadise: { last: 0, min: config.api.radioParadise.interval },
     musicBrainz: { last: 0, min: config.api.musicBrainz.minInterval }
@@ -151,17 +56,58 @@ function canMakeApiCall(service) {
 
 function clearAllTimers() {
     if (timers.countdown) { cancelAnimationFrame(timers.countdown); timers.countdown = null; }
-    if (timers.polling) { clearInterval(timers.polling); clearTimeout(timers.polling); timers.polling = null; }
-    if (timers.rapid) { clearInterval(timers.rapid); timers.rapid = null; }
-    if (timers.stuck) { clearInterval(timers.stuck); timers.stuck = null; }
-    if (timers.audioCheck) { clearInterval(timers.audioCheck); timers.audioCheck = null; }
-    if (timers.resizeDebounce) { clearTimeout(timers.resizeDebounce); timers.resizeDebounce = null; }
-    if (timers.installInvitation) { clearInterval(timers.installInvitation); timers.installInvitation = null; }
+    ['polling', 'rapid', 'stuck', 'audioCheck', 'resizeDebounce', 'installInvitation'].forEach(k => {
+        if (timers[k]) { clearInterval(timers[k]); clearTimeout(timers[k]); timers[k] = null; }
+    });
 }
 
-// ============================================================================
-// COUNTDOWN
-// ============================================================================
+// Supabase Presence (con manejo de errores)
+async function joinStation(stationId) {
+    if (!supabase || !stationId || stationId === current.stationId) return;
+    if (current.channel) await leaveStation(current.stationId);
+    current.stationId = stationId;
+    try {
+        const channelName = `station:${stationId}`;
+        const channel = supabase.channel(channelName, { config: { presence: { key: getUniqueID() } } });
+        channel
+            .on('presence', { event: 'sync' }, () => {
+                const state = channel.presenceState();
+                const count = Object.keys(state).length;
+                const el = document.getElementById(config.listeners.counterEl);
+                if (el) el.textContent = String(count).padStart(5, '0');
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    try { await channel.track({ user_at: new Date().toISOString(), agent: navigator.userAgent }); } catch {}
+                }
+            });
+        current.channel = channel;
+    } catch (e) { console.warn('Error en joinStation:', e); }
+}
+
+async function leaveStation(stationId) {
+    if (!supabase || !current.channel) return;
+    try { await supabase.removeChannel(current.channel); } catch {}
+    current.channel = null; current.stationId = null;
+    const el = document.getElementById(config.listeners.counterEl);
+    if (el) el.textContent = '00000';
+}
+
+function getUniqueID() {
+    let uid = localStorage.getItem(config.storage.uid);
+    if (!uid) { uid = 'user_' + Math.random().toString(36).substr(2, 9); try { localStorage.setItem(config.storage.uid, uid); } catch {} }
+    return uid;
+}
+
+// Storage
+const storage = {
+    volume: { get: () => { try { return JSON.parse(localStorage.getItem(config.storage.volume)) || 50; } catch { return 50; } }, set: (v) => { try { localStorage.setItem(config.storage.volume, JSON.stringify(v)); } catch {} } },
+    station: { get: () => { try { return JSON.parse(localStorage.getItem(config.storage.station)) || null; } catch { return null; } }, set: (id) => { try { localStorage.setItem(config.storage.station, JSON.stringify(id)); } catch {} } },
+    favorites: { get: () => { try { return JSON.parse(localStorage.getItem(config.storage.favorites)) || []; } catch { return []; } }, set: (list) => { try { localStorage.setItem(config.storage.favorites, JSON.stringify(list)); } catch {} } },
+    pwaDismissed: () => { try { return localStorage.getItem(config.storage.pwaDismissed) === 'true'; } catch { return false; } }
+};
+
+// Countdown
 function startCountdown() {
     if (!current.trackStartTime) return;
     clearCountdown();
@@ -176,21 +122,15 @@ function startCountdown() {
                 const m = Math.floor(remaining / 60);
                 const s = Math.floor(remaining % 60);
                 display = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                current.ui.countdown.classList.toggle('ending', remaining < config.countdown.endingThreshold);
+                if (current.ui.countdown) current.ui.countdown.classList.toggle('ending', remaining < config.countdown.endingThreshold);
             } else {
                 const m = Math.floor(Math.abs(remaining) / 60);
                 const s = Math.floor(Math.abs(remaining) % 60);
                 display = `+${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                // Forzar refresh si estamos en zona crítica (primer segundo después de 0)
-                if (Math.floor(Math.abs(remaining)) === 1 && canMakeApiCall('somaFm')) {
-                    updateSongInfo(true);
-                }
+                if (Math.floor(Math.abs(remaining)) === 1 && canMakeApiCall('somaFm')) updateSongInfo(true);
             }
-        } else {
-            // Sin duración conocida: dejar "--:--"
-            display = "--:--";
         }
-        if (display !== current.ui.countdown.textContent) {
+        if (current.ui.countdown && display !== current.ui.countdown.textContent) {
             current.ui.countdown.textContent = display;
         }
         timers.countdown = requestAnimationFrame(tick);
@@ -200,16 +140,11 @@ function startCountdown() {
 
 function clearCountdown() {
     if (timers.countdown) { cancelAnimationFrame(timers.countdown); timers.countdown = null; }
-    current.ui.countdown.textContent = "--:--";
-    current.ui.countdown.classList.remove('ending');
-    current.trackDuration = 0;
-    current.trackStartTime = 0;
-    current.trackInfo = null;
+    if (current.ui.countdown) { current.ui.countdown.textContent = "--:--"; current.ui.countdown.classList.remove('ending'); }
+    current.trackDuration = 0; current.trackStartTime = 0; current.trackInfo = null;
 }
 
-// ============================================================================
-// POLLING
-// ============================================================================
+// Polling
 function clearPolling() {
     if (timers.polling) { clearInterval(timers.polling); clearTimeout(timers.polling); timers.polling = null; }
     if (timers.rapid) { clearInterval(timers.rapid); timers.rapid = null; }
@@ -218,9 +153,7 @@ function clearPolling() {
 function startPollingSomaFM() {
     clearPolling();
     timers.polling = setInterval(() => {
-        if (current.isPlaying && current.station && current.station.service === config.services.somaFm) {
-            updateSongInfo(true);
-        }
+        if (current.isPlaying && current.station && current.station.service === config.services.somaFm) updateSongInfo(true);
     }, config.api.somaFm.interval);
 }
 
@@ -237,36 +170,25 @@ function startPollingRadioParadise() {
     loop();
 }
 
-// Para NRK: no polling, solo loadedmetadata
 function handleNrkMetadata() {
     const audio = document.getElementById('audioPlayer');
+    if (!audio) return;
     audio.addEventListener('loadedmetadata', () => {
         current.trackDuration = audio.duration;
         current.trackStartTime = Date.now();
         const t = { title: current.station.name, artist: current.station.description, album: `Emisión del ${extractDateFromUrl(current.station.url)}` };
-        current.trackInfo = t;
-        updateUIWithTrackInfo(t);
-        resetAlbumCover();
-        resetAlbumDetails();
-        startCountdown();
-        updateShareButtonVisibility();
+        current.trackInfo = t; updateUIWithTrackInfo(t); resetAlbumCover(); resetAlbumDetails(); startCountdown(); updateShareButtonVisibility();
     }, { once: true });
 }
 
-// ============================================================================
-// SONG INFO
-// ============================================================================
+// Song Info
 async function updateSongInfo(bypass = false) {
     if (current.isUpdatingSongInfo) return;
     current.isUpdatingSongInfo = true;
     try {
         if (current.station.service === config.services.somaFm) await updateSomaFM();
         else if (current.station.service === config.services.radioParadise) await updateRadioParadise();
-        else if (current.station.service === config.services.nrk) {
-            // No polling, solo metadata
-        } else {
-            // Otros servicios: usar fallback (no polling)
-        }
+        else if (current.station.service === config.services.nrk) { /* no polling */ }
     } finally { current.isUpdatingSongInfo = false; }
 }
 
@@ -281,17 +203,12 @@ async function updateSomaFM() {
         const t = { title: s.title || 'Título desconocido', artist: s.artist || 'Artista desconocido', album: s.album || '' };
         const isNew = !current.trackInfo || t.title !== current.trackInfo.title || t.artist !== current.trackInfo.artist;
         if (isNew) {
-            current.trackInfo = t;
-            updateUIWithTrackInfo(t);
+            current.trackInfo = t; updateUIWithTrackInfo(t);
             current.trackStartTime = (s.date ? (s.date * 1000) - 1000 : Date.now());
-            current.trackDuration = 0; // Esperar a Spotify/MusicBrainz
-            startCountdown();
-            // Iniciar rapid check si hace falta
+            current.trackDuration = 0; startCountdown();
             if (current.trackDuration === 0) {
                 if (timers.rapid) clearInterval(timers.rapid);
-                timers.rapid = setInterval(() => {
-                    if (current.station.service === config.services.somaFm) updateSongInfo(true);
-                }, 2000);
+                timers.rapid = setInterval(() => { if (current.station.service === config.services.somaFm) updateSongInfo(true); }, 2000);
             }
             fetchSongDetails(t.artist, t.title, t.album).catch(() => {});
         }
@@ -307,8 +224,7 @@ async function updateRadioParadise() {
         const t = { title: d.title || 'Título desconocido', artist: d.artist || 'Artista desconocido', album: d.album || '' };
         const isNew = !current.trackInfo || t.title !== current.trackInfo.title || t.artist !== current.trackInfo.artist;
         if (isNew) {
-            current.trackInfo = t;
-            updateUIWithTrackInfo(t);
+            current.trackInfo = t; updateUIWithTrackInfo(t);
             if (d.song_duration) current.trackDuration = d.song_duration;
             else { current.trackStartTime = Date.now() - 15000; current.trackDuration = 0; }
             startCountdown();
@@ -317,9 +233,7 @@ async function updateRadioParadise() {
     } catch {}
 }
 
-// ============================================================================
-// SONG DETAILS (SPOTIFY + MUSICBRAINZ)
-// ============================================================================
+// Song Details
 async function fetchSongDetails(artist, title, album) {
     if (!artist || !title) return;
     let isrc = null;
@@ -371,31 +285,22 @@ async function getMusicBrainzByQuery(artist, title, album) {
 
 function setCreditsFromRelations(relations) {
     const artistRels = relations.filter(r => r.type && r.artist);
-    if (!artistRels.length) { current.ui.credits.textContent = 'N/A'; current.ui.credits.title = ''; return; }
+    if (!artistRels.length) { if (current.ui.credits) current.ui.credits.textContent = 'N/A'; return; }
     const list = artistRels.map(r => `${translateRole(r.type)}: ${r.artist.name}`).join(', ');
-    current.ui.credits.textContent = 'VER';
-    current.ui.credits.title = list;
+    if (current.ui.credits) { current.ui.credits.textContent = 'VER'; current.ui.credits.title = list; }
     if (current.ui.tooltipContent) current.ui.tooltipContent.textContent = list;
     updateTooltipPosition();
 }
 
 function translateRole(role) {
-    const map = { 
-        'writer':'Escritor', 'composer':'Compositor', 'lyricist':'Letrista', 
-        'producer':'Productor', 'co-producer':'Coproductor', 'arranger':'Arreglista', 
-        'engineer':'Ingeniero', 'audio engineer':'Ingeniero de sonido', 
-        'mixing engineer':'Ingeniero de mezclado', 'mastering engineer':'Ingeniero de mastering', 
-        'remixer':'Remixer', 'conductor':'Director', 'performer':'Intérprete' 
-    };
+    const map = { 'writer':'Escritor', 'composer':'Compositor', 'lyricist':'Letrista', 'producer':'Productor', 'co-producer':'Coproductor', 'arranger':'Arreglista', 'engineer':'Ingeniero', 'audio engineer':'Ingeniero de sonido', 'mixing engineer':'Ingeniero de mezclado', 'mastering engineer':'Ingeniero de mastering', 'remixer':'Remixer', 'conductor':'Director', 'performer':'Intérprete' };
     return map[role.toLowerCase()] || role;
 }
 
-// ============================================================================
-// TOOLTIP DE CRÉDITOS
-// ============================================================================
+// Tooltip
 function updateTooltipPosition() {
-    const ref = current.ui.credits;
-    const tip = current.ui.tooltip;
+    if (!computePosition || !offset || !flip) return;
+    const ref = current.ui.credits; const tip = current.ui.tooltip;
     if (!ref || !tip) return;
     tip.style.opacity = '0';
     computePosition(ref, tip, { placement: 'top', strategy: 'absolute', middleware: [offset(8), flip()] })
@@ -407,23 +312,19 @@ window.addEventListener('resize', () => {
     timers.resizeDebounce = setTimeout(updateTooltipPosition, 100);
 });
 
-// ============================================================================
-// PORTADA
-// ============================================================================
+// Portada
 function displayAlbumCoverFromUrl(url) {
     if (!url) { resetAlbumCover(); return; }
-    // Validar protocolo
     const protocol = url.split('://')[0];
     if (!['http', 'https'].includes(protocol)) { resetAlbumCover(); return; }
+    const albumCover = document.getElementById('albumCover');
+    if (!albumCover) return;
     albumCover.innerHTML = '<div class="loading-indicator"><div class="loading-spinner"></div></div>';
     const img = new Image();
     img.decoding = 'async';
     img.onload = function () {
         const placeholder = albumCover.querySelector('.album-cover-placeholder');
-        if (placeholder) {
-            placeholder.style.opacity = '0'; placeholder.style.pointerEvents = 'none';
-            setTimeout(() => { if (placeholder.parentNode === albumCover) placeholder.remove(); }, 300);
-        }
+        if (placeholder) { placeholder.style.opacity = '0'; placeholder.style.pointerEvents = 'none'; setTimeout(() => { if (placeholder.parentNode === albumCover) placeholder.remove(); }, 300); }
         displayAlbumCover(this);
     };
     img.onerror = () => { resetAlbumCover(); };
@@ -431,15 +332,17 @@ function displayAlbumCoverFromUrl(url) {
 }
 
 function displayAlbumCover(img) {
+    const albumCover = document.getElementById('albumCover');
+    if (!albumCover) return;
     albumCover.innerHTML = '';
     const displayImg = document.createElement('img');
-    displayImg.src = img.src;
-    displayImg.alt = 'Portada del álbum';
-    displayImg.classList.add('loaded');
+    displayImg.src = img.src; displayImg.alt = 'Portada del álbum'; displayImg.classList.add('loaded');
     albumCover.appendChild(displayImg);
 }
 
 function resetAlbumCover() {
+    const albumCover = document.getElementById('albumCover');
+    if (!albumCover) return;
     albumCover.innerHTML = `
         <div class="album-cover-placeholder">
             <svg viewBox="0 0 640 640" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -458,9 +361,7 @@ function resetAlbumCover() {
     `;
 }
 
-// ============================================================================
-// ALBUM DETAILS
-// ============================================================================
+// Album Details
 function updateAlbumDetailsWithSpotifyData(d) {
     const el = document.getElementById('releaseDate');
     if (el) el.innerHTML = '';
@@ -468,39 +369,47 @@ function updateAlbumDetailsWithSpotifyData(d) {
         const y = d.release_date.substring(0, 4);
         let t = y;
         if (d?.albumTypeDescription && d.albumTypeDescription !== 'Álbum') t += ` (${d.albumTypeDescription})`;
-        el.textContent = t;
+        if (el) el.textContent = t;
     } else if (el) el.textContent = '----';
-    document.getElementById('recordLabel').textContent = d?.label?.trim() ? d.label : '----';
-    document.getElementById('albumTrackCount').textContent = d?.totalTracks ? d.totalTracks : '--';
+    const recordLabel = document.getElementById('recordLabel');
+    if (recordLabel) recordLabel.textContent = d?.label?.trim() ? d.label : '----';
+    const albumTrackCount = document.getElementById('albumTrackCount');
+    if (albumTrackCount) albumTrackCount.textContent = d?.totalTracks ? d.totalTracks : '--';
+    const albumTotalDuration = document.getElementById('albumTotalDuration');
     if (d?.totalAlbumDuration) {
         let s = d.totalAlbumDuration;
         if (s > 10000) s = Math.floor(s / 1000);
         const m = Math.floor(s / 60);
         const sec = Math.floor(s % 60);
-        document.getElementById('albumTotalDuration').textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-    } else document.getElementById('albumTotalDuration').textContent = '--:--';
-    document.getElementById('trackGenre').textContent = d?.genres?.length ? d.genres.slice(0, 2).join(', ') : '--';
-    const trackPos = document.getElementById('trackPosition');
-    if (trackPos) trackPos.textContent = d?.trackNumber && d?.totalTracks ? `Track ${d.trackNumber}/${d.totalTracks}` : '--/--';
+        if (albumTotalDuration) albumTotalDuration.textContent = `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    } else if (albumTotalDuration) albumTotalDuration.textContent = '--:--';
+    const trackGenre = document.getElementById('trackGenre');
+    if (trackGenre) trackGenre.textContent = d?.genres?.length ? d.genres.slice(0, 2).join(', ') : '--';
+    const trackPosition = document.getElementById('trackPosition');
+    if (trackPosition) trackPosition.textContent = d?.trackNumber && d?.totalTracks ? `Track ${d.trackNumber}/${d.totalTracks}` : '--/--';
     const isrcEl = document.getElementById('trackIsrc');
     if (isrcEl) isrcEl.textContent = d?.isrc?.trim() ? d.isrc.toUpperCase() : '----';
 }
 
 function resetAlbumDetails() {
-    document.getElementById('releaseDate').textContent = '----';
-    document.getElementById('recordLabel').textContent = '----';
-    document.getElementById('albumTrackCount').textContent = '--';
-    document.getElementById('albumTotalDuration').textContent = '--:--';
-    document.getElementById('trackGenre').textContent = '--';
-    document.getElementById('trackPosition').textContent = '--/--';
+    const releaseDate = document.getElementById('releaseDate');
+    if (releaseDate) releaseDate.textContent = '----';
+    const recordLabel = document.getElementById('recordLabel');
+    if (recordLabel) recordLabel.textContent = '----';
+    const albumTrackCount = document.getElementById('albumTrackCount');
+    if (albumTrackCount) albumTrackCount.textContent = '--';
+    const albumTotalDuration = document.getElementById('albumTotalDuration');
+    if (albumTotalDuration) albumTotalDuration.textContent = '--:--';
+    const trackGenre = document.getElementById('trackGenre');
+    if (trackGenre) trackGenre.textContent = '--';
+    const trackPosition = document.getElementById('trackPosition');
+    if (trackPosition) trackPosition.textContent = '--/--';
     const isrcEl = document.getElementById('trackIsrc');
     if (isrcEl) isrcEl.textContent = '----';
-    current.ui.credits.textContent = '--';
+    if (current.ui.credits) current.ui.credits.textContent = '--';
 }
 
-// ============================================================================
-// FAVORITOS
-// ============================================================================
+// Favoritos
 function getFavorites() { return storage.favorites.get(); }
 function saveFavorites(list) { storage.favorites.set(list); }
 function updateFavoriteButtonUI(id, fav) {
@@ -520,17 +429,14 @@ function filterStationsByFavorites() {
     const favs = getFavorites();
     document.querySelectorAll('.custom-option').forEach(opt => { opt.style.display = favs.includes(opt.dataset.value) ? 'block' : 'none'; });
     document.querySelectorAll('.custom-optgroup-label').forEach(label => {
-        let has = false;
-        let next = label.nextElementSibling;
+        let has = false; let next = label.nextElementSibling;
         while (next && next.classList.contains('custom-option')) { if (next.style.display !== 'none') { has = true; break; } next = next.nextElementSibling; }
         label.style.display = has ? 'block' : 'none';
     });
 }
 function showAllStations() { document.querySelectorAll('.custom-option, .custom-optgroup-label').forEach(el => el.style.display = ''); }
 
-// ============================================================================
-// SELECTOR PERSONALIZADO (EXISTENTE, NO MODIFICADO)
-// ============================================================================
+// Custom Select
 class CustomSelect {
     constructor(originalSelect) {
         this.originalSelect = originalSelect;
@@ -670,16 +576,14 @@ class CustomSelect {
     }
 }
 
-// ============================================================================
-// PLAYER UI
-// ============================================================================
+// UI
 function updateUIWithTrackInfo(t) {
     const title = document.getElementById('songTitle');
     const artist = document.getElementById('songArtist');
     const album = document.getElementById('songAlbum');
-    if (title?.textContent !== t.title) title.textContent = t.title;
-    if (artist?.textContent !== t.artist) artist.textContent = t.artist;
-    album.textContent = t.album ? `(${t.album})` : '';
+    if (title && title.textContent !== t.title) title.textContent = t.title;
+    if (artist && artist.textContent !== t.artist) artist.textContent = t.artist;
+    if (album) album.textContent = t.album ? `(${t.album})` : '';
     updateShareButtonVisibility();
 }
 
@@ -694,8 +598,8 @@ function resetUI() {
 }
 
 function updateShareButtonVisibility() {
-    const title = document.getElementById('songTitle').textContent;
-    const artist = document.getElementById('songArtist').textContent;
+    const title = document.getElementById('songTitle')?.textContent || '';
+    const artist = document.getElementById('songArtist')?.textContent || '';
     const btn = document.getElementById('shareButton');
     if (!btn) return;
     const ok = title && artist && !['a sonar','Conectando...','Seleccionar estación','A sonar','Reproduciendo...','Error de reproducción','Reconectando...'].includes(title.toLowerCase());
@@ -707,42 +611,33 @@ function updateStatus(now) {
     if (playBtn) playBtn.textContent = now ? '⏸ PAUSAR' : '▶ SONAR';
 }
 
-// ============================================================================
-// PLAY/STOP
-// ============================================================================
+// Play/Stop
 async function playStation() {
     if (!current.station) { alert('Por favor, seleccionar una estación'); return; }
     await joinStation(current.station.id);
     const audio = document.getElementById('audioPlayer');
+    if (!audio) return;
     audio.src = current.station.url;
     try {
         await audio.play();
-        current.isPlaying = true;
-        updateStatus(true);
-        showPlaybackInfo();
-        startCountdown();
+        current.isPlaying = true; updateStatus(true); showPlaybackInfo(); startCountdown();
         if (current.station.service === config.services.somaFm) startPollingSomaFM();
         else if (current.station.service === config.services.radioParadise) startPollingRadioParadise();
         else if (current.station.service === config.services.nrk) handleNrkMetadata();
-        // Stuck check
         clearStuckCheck();
         timers.stuck = setInterval(() => {
             if (current.isPlaying && audio.paused && audio.currentTime > 0) handlePlaybackError();
         }, 3000);
-    } catch (e) {
-        handlePlaybackError();
-    }
+    } catch (e) { handlePlaybackError(); }
 }
 
 function stopStation() {
     const audio = document.getElementById('audioPlayer');
-    audio.pause(); audio.src = '';
+    if (audio) { audio.pause(); audio.src = ''; }
     leaveStation(current.stationId);
     current.isPlaying = false; current.station = null; current.stationId = null;
     clearCountdown(); clearPolling(); clearStuckCheck();
-    resetUI();
-    updateStatus(false);
-    showWelcomeScreen();
+    resetUI(); updateStatus(false); showWelcomeScreen();
 }
 
 function clearStuckCheck() { if (timers.stuck) { clearInterval(timers.stuck); timers.stuck = null; } }
@@ -750,18 +645,20 @@ function clearStuckCheck() { if (timers.stuck) { clearInterval(timers.stuck); ti
 function handlePlaybackError() {
     const audio = document.getElementById('audioPlayer');
     current.isPlaying = false; updateStatus(false);
-    audio.pause(); clearStuckCheck(); clearCountdown(); clearPolling();
-    current.trackInfo = null;
-    resetAlbumCover(); resetAlbumDetails();
+    if (audio) { audio.pause(); }
+    clearStuckCheck(); clearCountdown(); clearPolling();
+    current.trackInfo = null; resetAlbumCover(); resetAlbumDetails();
     showWelcomeScreen();
-    document.getElementById('songTitle').textContent = 'Reconectando...';
-    document.getElementById('songArtist').textContent = 'La reproducción se reanudará automáticamente.';
-    document.getElementById('songAlbum').textContent = '';
+    const title = document.getElementById('songTitle');
+    const artist = document.getElementById('songArtist');
+    const album = document.getElementById('songAlbum');
+    if (title) title.textContent = 'Reconectando...';
+    if (artist) artist.textContent = 'La reproducción se reanudará automáticamente.';
+    if (album) album.textContent = '';
     updateShareButtonVisibility();
-    // Intentar reconectar en background
     if (!timers.audioCheck) {
         timers.audioCheck = setInterval(async () => {
-            if (!audio.paused && audio.currentTime > 0) {
+            if (audio && !audio.paused && audio.currentTime > 0) {
                 current.isPlaying = true; clearStuckCheck(); clearInterval(timers.audioCheck); timers.audioCheck = null;
                 showPlaybackInfo();
                 if (current.station.service === config.services.somaFm) startPollingSomaFM();
@@ -772,9 +669,7 @@ function handlePlaybackError() {
     }
 }
 
-// ============================================================================
-// VISUAL STATE
-// ============================================================================
+// Visual State
 function showWelcomeScreen() {
     const welcome = document.getElementById('welcomeScreen');
     const info = document.getElementById('playbackInfo');
@@ -792,16 +687,14 @@ function showPlaybackInfo() {
     if (playerHeader) playerHeader.classList.remove('hidden');
 }
 
-// ============================================================================
-// VOLUMEN
-// ============================================================================
+// Volumen
 function loadVolume() {
     const v = storage.volume.get();
     const slider = document.getElementById('volumeSlider');
     const icon = document.getElementById('volumeIcon');
     if (!slider) return;
     slider.value = v;
-    icon.classList.toggle('muted', v === '0');
+    if (icon) icon.classList.toggle('muted', v === '0');
     current.previousVolume = v;
     updateVolumeIconPosition();
 }
@@ -821,12 +714,10 @@ function updateVolumeIconPosition() {
     icon.style.left = `${p * w - (iw / 2)}px`;
 }
 
-// ============================================================================
-// SHARE
-// ============================================================================
+// Share
 function shareOnWhatsApp() {
-    const title = document.getElementById('songTitle').textContent;
-    const artist = document.getElementById('songArtist').textContent;
+    const title = document.getElementById('songTitle')?.textContent || '';
+    const artist = document.getElementById('songArtist')?.textContent || '';
     if (!title || !artist || ['a sonar','Conectando...','Seleccionar estación','A sonar','Reproduciendo...','Error de reproducción','Reconectando...'].includes(title.toLowerCase())) {
         showNotification('Por favor, espera a que comience una canción para compartir');
         return;
@@ -842,9 +733,7 @@ function shareOnWhatsApp() {
     } else window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-// ============================================================================
-// INSTALL PWA
-// ============================================================================
+// Install PWA
 function showInstallInvitation() {
     if (window.matchMedia('(display-mode: standalone)').matches || storage.pwaDismissed()) return;
     let os = 'other';
@@ -864,9 +753,7 @@ function hideInstallInvitation() {
     localStorage.setItem(config.storage.pwaDismissed, 'true');
 }
 
-// ============================================================================
-// NOTIFICATION
-// ============================================================================
+// Notification
 function showNotification(message) {
     const n = document.getElementById('notification');
     if (!n) return;
@@ -874,35 +761,13 @@ function showNotification(message) {
     setTimeout(() => n.classList.remove('show'), 3000);
 }
 
-// ============================================================================
-// UTILS
-// ============================================================================
+// Utils
 function extractDateFromUrl(url) {
     const m = url.match(/nrk_radio_klassisk_natt_(\d{8})_/);
     return m ? `${m[1].substring(6, 8)}-${m[1].substring(4, 6)}-${m[1].substring(0, 4)}` : 'Fecha desconocida';
 }
 
-// ============================================================================
-// DOM EVENTS
-// ============================================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // Cargar estaciones
-        await loadStations();
-        // Cargar volumen
-        loadVolume();
-        // Inicializar eventos
-        initEvents();
-    } catch (error) {
-        console.error("Error fatal:", error);
-        const le = document.getElementById('loadingStations');
-        if (le) { le.textContent = `Error crítico: ${error.message}.`; le.style.color = '#ff6600'; }
-    }
-});
-
-// ============================================================================
-// LOAD STATIONS
-// ============================================================================
+// Load Stations
 let stationsById = {};
 async function loadStations() {
     try {
@@ -924,7 +789,6 @@ async function loadStations() {
         if (name) name.textContent = 'RadioMax';
         populateStationSelect(grouped);
         const customSelect = new CustomSelect(select);
-        // Restaurar favoritos
         const favs = getFavorites();
         favs.forEach(id => updateFavoriteButtonUI(id, true));
         const last = storage.station.get();
@@ -936,10 +800,13 @@ async function loadStations() {
         }
         if (current.station) {
             const audio = document.getElementById('audioPlayer');
-            audio.src = current.station.url;
-            document.getElementById('songTitle').textContent = 'A sonar';
-            document.getElementById('songArtist').textContent = '';
-            document.getElementById('songAlbum').textContent = '';
+            if (audio) audio.src = current.station.url;
+            const title = document.getElementById('songTitle');
+            const artist = document.getElementById('songArtist');
+            const album = document.getElementById('songAlbum');
+            if (title) title.textContent = 'A sonar';
+            if (artist) artist.textContent = '';
+            if (album) album.textContent = '';
             updateShareButtonVisibility();
             updateStatus(false);
         }
@@ -953,6 +820,7 @@ async function loadStations() {
 
 function populateStationSelect(grouped) {
     const select = document.getElementById('stationSelect');
+    if (!select) return;
     while (select.firstChild) select.removeChild(select.firstChild);
     const def = document.createElement('option');
     def.value = ""; def.textContent = " Seleccionar Estación "; def.disabled = true; def.selected = true;
@@ -969,9 +837,7 @@ function populateStationSelect(grouped) {
     }
 }
 
-// ============================================================================
-// INIT EVENTS
-// ============================================================================
+// Init Events
 function initEvents() {
     const select = document.getElementById('stationSelect');
     const playBtn = document.getElementById('playBtn');
@@ -1002,26 +868,20 @@ function initEvents() {
     if (playBtn) {
         playBtn.addEventListener('click', () => {
             playBtn.style.animation = '';
-            if (current.isPlaying) {
-                stopStation();
-            } else {
-                if (current.station) playStation();
-                else alert('Por favor, seleccionar una estación');
-            }
+            if (current.isPlaying) stopStation();
+            else { if (current.station) playStation(); else alert('Por favor, seleccionar una estación'); }
         });
     }
 
     if (stopBtn) {
-        stopBtn.addEventListener('click', () => {
-            stopStation();
-        });
+        stopBtn.addEventListener('click', () => { stopStation(); });
     }
 
     if (volumeSlider) {
         volumeSlider.addEventListener('input', function() {
             const v = this.value / 100;
             const audio = document.getElementById('audioPlayer');
-            audio.volume = v;
+            if (audio) audio.volume = v;
             saveVolume();
             updateVolumeIconPosition();
             if (this.value === '0') { volumeIcon.classList.add('muted'); current.isMuted = true; }
@@ -1034,13 +894,13 @@ function initEvents() {
             if (current.isMuted) {
                 volumeSlider.value = current.previousVolume;
                 const audio = document.getElementById('audioPlayer');
-                audio.volume = current.previousVolume / 100;
+                if (audio) audio.volume = current.previousVolume / 100;
                 volumeIcon.classList.remove('muted'); current.isMuted = false;
             } else {
                 current.previousVolume = volumeSlider.value;
                 volumeSlider.value = '0';
                 const audio = document.getElementById('audioPlayer');
-                audio.volume = 0;
+                if (audio) audio.volume = 0;
                 volumeIcon.classList.add('muted'); current.isMuted = true;
             }
             saveVolume();
@@ -1108,7 +968,7 @@ function initEvents() {
         });
     }
 
-    // Keyboard navigation (solo si no hay select abierto)
+    // Keyboard navigation
     document.addEventListener('keydown', function(event) {
         if (document.querySelector('.custom-select-wrapper.open')) return;
         if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) && /^[a-zA-Z0-9]$/.test(event.key)) {
@@ -1120,12 +980,10 @@ function initEvents() {
                 if (name.startsWith(key)) matches.push(opt);
             });
             if (matches.length > 0) {
-                // Scroll al primer match
                 matches[0].scrollIntoView({ block: 'nearest' });
                 const id = matches[0].dataset.value;
                 const select = document.getElementById('stationSelect');
-                select.value = id;
-                select.dispatchEvent(new Event('change'));
+                if (select) { select.value = id; select.dispatchEvent(new Event('change')); }
             }
         }
     });
@@ -1206,16 +1064,12 @@ function initEvents() {
     setTimeout(showInstallPwaButtons, 1000);
 }
 
-// ============================================================================
-// LOG ERROR
-// ============================================================================
+// Log Error
 function logErrorForAnalysis(type, details) {
     console.error(`Error logged: ${type}`, details);
 }
 
-// ============================================================================
-// VERSION
-// ============================================================================
+// Version
 fetch('/sw.js')
     .then(r => { if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`); return r.text(); })
     .then(t => {
@@ -1226,9 +1080,16 @@ fetch('/sw.js')
     })
     .catch(e => console.error('Error loading sw version:', e));
 
-// ============================================================================
-// FINAL
-// ============================================================================
-window.RadioMax = {
-    playStation, stopStation, loadVolume, saveVolume, updateSongInfo, clearAllTimers
-};
+// Main
+(async () => {
+    try {
+        await loadModules();
+        await loadStations();
+        loadVolume();
+        initEvents();
+    } catch (error) {
+        console.error("Error fatal:", error);
+        const le = document.getElementById('loadingStations');
+        if (le) { le.textContent = `Error crítico: ${error.message}.`; le.style.color = '#ff6600'; }
+    }
+})();
