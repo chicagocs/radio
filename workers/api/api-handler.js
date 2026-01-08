@@ -316,11 +316,7 @@ export default {
     
     // Añadir encabezados de seguridad
     Object.entries(securityHeaders).forEach(([key, value]) => finalHeaders.set(key, value));
-    
-    // 000
-    finalHeaders.set("Cache-Control", "public, max-age=31536000"); // Forzar caché por 1 año
-    // 000 
-    
+       
     // Crear la respuesta final con todos los encabezados
     return new Response(response.body, {
       status: response.status,
