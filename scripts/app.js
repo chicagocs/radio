@@ -869,7 +869,7 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
     isUpdatingSongInfo = true;
     try {
         const w = 'https://core.chcs.workers.dev/radioparadise';
-        const p = `api/now_playing?chan=${currentStation.channelId || 1}`;
+        const p = `api/now_playing?chan=${currentStation.channelId ?? 1}`;
         const u = `${w}?url=${encodeURIComponent(p)}`;
         const res = await fetch(u);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
