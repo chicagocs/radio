@@ -869,6 +869,7 @@ async function updateRadioParadiseInfo(bypassRateLimit = false) {
     isUpdatingSongInfo = true;
     try {
         const w = 'https://core.chcs.workers.dev/radioparadise';
+        // FIX #1: ?? asegura que channelId 0 no se reemplace por 1
         const p = `api/now_playing?chan=${currentStation.channelId ?? 1}`;
         const u = `${w}?url=${encodeURIComponent(p)}`;
         const res = await fetch(u);
@@ -1191,6 +1192,7 @@ function startCountdown() {
         }, 10000);
     }
 
+    // --- FUNCIÓN DE ACTUALIZACIÓN DEL RELOJ (ANIDADA) ---
     function updateTimer() {
         if (!isPlaying) return; 
 
@@ -1203,6 +1205,7 @@ function startCountdown() {
         if (trackDuration === 0) {
             if (currentStation && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
                 d = 0; 
+                // No actualizar el DOM para evitar ver el conteo errático
                 animationFrameId = requestAnimationFrame(updateTimer);
                 return;
             } else {
@@ -1251,76 +1254,7 @@ function startCountdown() {
 
         if (displayText) countdownTimer.textContent = displayText;
 
-        if (isPlaying) {
-            animationFrameId = requestAnimationFrame(updateTimer);
-        }
-    }
-    
-    updateTimer();
- }
-  
-    function updateTimer() {
-        if (!isPlaying) return; // Detener animación si no está sonando
-
-        const n = Date.now();
-        const el = (n - trackStartTime) / 1000;
-        let d;
-        let displayText = '';
-        
-        // FIX: Evitar el glitch de "00:08" (tiempo transcurrido) al inicio de una canción nueva
-        // Cuando trackDuration es 0, el código original cuenta hacia arriba (el).
-        // Esto causa un salto visual cuando la API devuelve la duración real (ej: de 00:08 a 03:45).
-        if (trackDuration === 0) {
-            // Para SomaFM y RadioParadise, esperamos que llegue la duración desde Spotify/MusicBrainz.
-            // Mientras tanto, mantenemos el texto "--:--" (seteado por resetCountdown) o "00:00".
-            if (currentStation && (currentStation.service === 'somafm' || currentStation.service === 'radioparadise')) {
-                d = 0; 
-                // No actualizar el DOM para evitar ver el conteo errático
-                animationFrameId = requestAnimationFrame(updateTimer);
-                return;
-            } else {
-                // Para otros servicios sin duración fija (NRK), contar tiempo transcurrido normal
-                d = el;
-            }
-        } else {
-            d = trackDuration - el;
-        }
-
-        // --- NUEVA LÓGICA: CUENTA ATRÁS O CUENTA HACIA ARRIBA (+) ---
-        if (d < 0) {
-            // Hemos pasado el tiempo estimado de la canción.
-            // Contamos el tiempo transcurrido de la NUEVA canción.
-            // Esto evita el efecto de "congelado" en 00:00.
-            const elapsed = Math.abs(d);
-            const m = Math.floor(elapsed / 60);
-            const s = Math.floor(elapsed % 60);
-            
-            // Usamos '+' para indicar que es tiempo de la siguiente canción (elapsed)
-            displayText = `+${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-
-            // Disparar refresco de metadatos si estamos en zona de riesgo (primer segundo después de 0)
-            // para intentar acelerar la actualización si el polling no ha pillado el cambio.
-            // El polling general maneja esto, pero esto asegura respuesta visual inmediata si se queda pegado mucho tiempo
-            if (!rapidCheckInterval && isPlaying && trackDuration > 0 && Math.floor(elapsed) === 1) {
-                 updateSongInfo(true);
-            }
-        } else {
-            // Tiempo restante normal
-            const m = Math.floor(d / 60);
-            const s = Math.floor(d % 60);
-            displayText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-            
-            // Efecto parpadeo en los últimos segundos
-            if (d < 10) countdownTimer.classList.add('ending'); 
-            else countdownTimer.classList.remove('ending');
-        }
-
-        // Actualizar DOM
-        if (displayText) countdownTimer.textContent = displayText;
-
         // --- FIX: MANTENER EL BUCLE SIEMPRE ACTIVO MIENTRAS HAY AUDIO ---
-        // Antes: if ((trackDuration > 0 && d > 0) || trackDuration === 0) ...
-        // Ahora: Mientras la música suene, el reloj debe moverse.
         if (isPlaying) {
             animationFrameId = requestAnimationFrame(updateTimer);
         }
