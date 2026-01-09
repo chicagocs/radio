@@ -1,22 +1,3 @@
-
-
-Aquí tienes el archivo `app.js` actualizado con las siguientes mejoras solicitadas:
-
-1.  **Visualización tipo Tooltip Flotante**: Se han añadido los eventos (`mouseenter`, `mouseleave`, `focus`, `blur`) al elemento `trackCredits`. Ahora, al pasar el mouse o enfocar, se calcula la posición con Floating UI y se muestra el tooltip.
-2.  **Formato de Créditos**: Se ha modificado la generación de la lista para usar saltos de línea (`\n`) en lugar de comas, logrando "un renglón por instrumento".
-3.  **Traducción**: Se ha mantenido y ligeramente expandido la función `translateRole` para asegurar que los roles técnicos estén en español.
-
-**IMPORTANTE:** Para que los saltos de línea (`\n`) se visualicen correctamente en el navegador, asegúrate de tener la siguiente propiedad CSS en tu contenedor del tooltip (`#tooltip-credits` o `.details-value` si usas un modal):
-
-```css
-#tooltip-credits-content {
-    white-space: pre-wrap; /* Esto respeta los saltos de línea */
-}
-```
-
-Aquí está el `app.js` completo actualizado:
-
-```javascript
 // app.js - v3.5.1
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import {computePosition, offset, flip} from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm';
@@ -1789,4 +1770,3 @@ if (trackCredits && tooltipEl) {
     if (le) { le.textContent = `Error crítico: ${error.message}.`; le.style.color = '#ff6600'; }
 }
 });
-```
