@@ -1049,7 +1049,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
 
                             if (creditHtml) {
                                 currentCredits = creditHtml;
-                                creditsElement.textContent = 'VER';
+                                creditsElement.textContent = 'Ver detalles';
                                 creditsElement.title = creditHtml.replace(/<[^>]*>?/gm, ''); 
                                 
                                 const tooltipContent = document.getElementById('tooltip-credits-content');
