@@ -1211,10 +1211,20 @@ footer strong { color: var(--text-main); font-weight: bold; }
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* IMPORTANTE: Estilo para las negritas */
 #tooltip-credits-content b {
     font-weight: bold !important;
-    color: var(--primary); /* Opcional: Poner el rol en naranja */
+    
+    /* Transformar el rol en una "etiqueta" o "badge" */
+    display: inline-block; /* CLAVE: Permite que el fondo tenga tamaño */
+    
+    background-color: var(--primary); /* Fondo Naranja */
+    color: #000000; /* Texto Negro */
+    
+    /* Ajustes estéticos para el badge */
+    padding: 2px 6px; /* Espacio interno (arriba/abajo, izq/der) */
+    border-radius: 4px; /* Bordes redondeados */
+    margin-right: 6px; /* Espacio entre el badge y el nombre */
+    line-height: 1.4; /* Alineación vertical con el texto */
 }
 
 /* Flechita decorativa */
