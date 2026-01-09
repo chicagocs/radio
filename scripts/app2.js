@@ -929,14 +929,16 @@ function startRadioParadisePolling() {
     rpLoop();
 }
 
-// FIX: Añadido parámetro fetchId
 async function fetchSongDetails(artist, title, album, fetchId) {
     if (!artist || !title) return;
     const sA = artist.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sT = title.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
     const sAl = album ? album.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "") : "";
     
-    let spotifyIsrc = null; // Variable para guardar el ISRC
+    let spotifyIsrc = null;
+    // Variables para guardar los nombres limpios de Spotify
+    let spotifyCleanArtist = '';
+    let spotifyCleanTitle = '';
 
     try {
         const u = `https://core.chcs.workers.dev/spotify?artist=${encodeURIComponent(sA)}&title=${encodeURIComponent(sT)}&album=${encodeURIComponent(sAl)}`;
@@ -957,22 +959,25 @@ async function fetchSongDetails(artist, title, album, fetchId) {
             if (d.isrc) {
                 spotifyIsrc = d.isrc;
             }
+            
+            // MEJORA: Guardamos el artista y título exactos de Spotify para usarlos si falla el ISRC
+            if (d.artists && Array.isArray(d.artists)) {
+                spotifyCleanArtist = d.artists.map(a => a.name).join(', ');
+            }
+            if (d.title) {
+                spotifyCleanTitle = d.title;
+            }
         }
         
-        // Llamamos a MusicBrainz pasando el ISRC (si existe) y el fetchId para búsqueda unívoca
-        await getMusicBrainzDuration(sA, sT, sAl, spotifyIsrc, fetchId);
+        // Llamamos a MusicBrainz pasando los datos de Spotify para el rescate
+        await getMusicBrainzDuration(sA, sT, sAl, spotifyIsrc, fetchId, spotifyCleanArtist, spotifyCleanTitle);
         
     } catch (e) {
         logErrorForAnalysis('Spotify error', { error: e.message, artist: sA, title: sT, timestamp: new Date().toISOString() });
     }
 }
 
-// FIX: Añadido parámetro fetchId y validaciones
-async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId) {
-    // ============================================================
-    // GUARDIÁN: Si el ID recibido no coincide con la canción actual,
-    // detenemos todo. Es una respuesta antigua.
-    // ============================================================
+async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId, spotifyArtist = '', spotifyTitle = '') {
     if (fetchId !== currentSongFetchId) return;
 
     if (!canMakeApiCall('musicBrainz')) return;
@@ -990,7 +995,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                     if (data.recordings && data.recordings.length > 0) {
                         const r = data.recordings[0];
                         
-                        // 1. Actualizar Duración
+                        // Lógica de duración...
                         if (r.length && trackDuration === 0) {
                             trackDuration = Math.floor(r.length / 1000);
                             const m = Math.floor(trackDuration / 60);
@@ -998,50 +1003,47 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                         }
 
-                        // 2. Actualizar Créditos (Guardar en string, mostrar "VER")
+                        // Lógica de créditos...
                         const creditsElement = document.getElementById('trackCredits');
                         if (creditsElement && r.relations) {
                             const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
                             if (artistRelations.length > 0) {
-                                // CAMBIO: Generar lista con saltos de línea (\n)
                                 const creditList = artistRelations.map(rel => {
                                     const role = rel.type ? translateRole(rel.type) : '';
                                     const name = rel.artist ? rel.artist.name : '';
                                     return name ? `${role}: ${name}` : '';
                                 }).filter(txt => txt !== '').join('\n');
                                 
-                                // --- NUEVA LÓGICA TOOLTIP ---
-                                
-                                // GUARDIÁN EXTRA: Verificar de nuevo antes de tocar el DOM
                                 if (fetchId !== currentSongFetchId) return;
 
-                                // Guardar el texto completo en la variable global
                                 currentCredits = creditList;
-                                
-                                // Mostrar solo "VER" en el texto principal
                                 creditsElement.textContent = 'VER';
-                                creditsElement.title = creditList; // Tooltip nativo del navegador como fallback
-                                
-                                // Actualizar contenido del tooltip flotante
+                                creditsElement.title = creditList; 
                                 const tooltipContent = document.getElementById('tooltip-credits-content');
                                 if (tooltipContent) tooltipContent.textContent = creditList;
                                 
                             } else {
-                                // GUARDIÁN EXTRA: Verificar de nuevo antes de tocar el DOM
                                 if (fetchId !== currentSongFetchId) return;
                                 creditsElement.textContent = 'N/A';
                                 currentCredits = "";
                             }
                         }
-                        return; // Éxito
+                        return; // Éxito con ISRC
                     }
                 }
             } catch (isrcError) {}
         }
 
         // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO ---
-        const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
-        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(artist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
+        // MEJORA: Si el ISRC falló, priorizamos usar los nombres de Spotify si están disponibles,
+        // ya que son más precisos que los de la radio.
+        const searchArtist = spotifyArtist ? spotifyArtist : artist;
+        const searchTitle = spotifyTitle ? spotifyTitle : title;
+
+        // Limpiamos título para la búsqueda
+        const cleanTitle = searchTitle.replace(/\([^)]*\)/g, '').trim();
+        const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(searchArtist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
+        
         const res = await fetch(searchUrl, { headers: { 'User-Agent': 'RadioStreamingPlayer/1.0 (https://radiomax.tramax.com.ar)' } });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const d = await res.json();
@@ -1073,16 +1075,12 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                         const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
                         
                         if (artistRelations.length > 0) {
-                            // CAMBIO: Generar lista con saltos de línea (\n)
                             const creditList = artistRelations.map(rel => {
                                 const role = rel.type ? translateRole(rel.type) : '';
                                 const name = rel.artist ? rel.artist.name : '';
                                 return name ? `${role}: ${name}` : '';
                             }).filter(txt => txt !== '').join('\n');
                             
-                            // --- NUEVA LÓGICA TOOLTIP (Fallback) ---
-                            
-                            // GUARDIÁN EXTRA: Verificar de nuevo antes de tocar el DOM
                             if (fetchId !== currentSongFetchId) return;
 
                             currentCredits = creditList;
@@ -1093,7 +1091,6 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             if (tooltipContent) tooltipContent.textContent = creditList;
                             
                         } else {
-                            // GUARDIÁN EXTRA: Verificar de nuevo antes de tocar el DOM
                             if (fetchId !== currentSongFetchId) return;
                             creditsElement.textContent = 'N/A';
                             currentCredits = "";
