@@ -1176,11 +1176,11 @@ footer strong { color: var(--text-main); font-weight: bold; }
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 2000; /* Z-Index alto para que flote sobre todo */
+    z-index: 2000; /* Debe estar sobre todo */
     
-    background-color: var(--bg-surface); /* Usa el fondo oscuro definido en tus variables */
+    background-color: var(--bg-surface);
     color: var(--text-main);
-    border: 1px solid var(--primary); /* Borde naranja principal */
+    border: 1px solid var(--primary);
     border-radius: 8px;
     padding: 10px;
     
@@ -1193,27 +1193,31 @@ footer strong { color: var(--text-main); font-weight: bold; }
     transition: opacity 0.2s ease;
 }
 
-/* Clase para mostrar el tooltip (activada por JS) */
+/* Clase activa para mostrar */
 #tooltip-credits.visible {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
-/* Contenido del texto de los créditos */
+/* Contenido interno */
 #tooltip-credits-content {
+    /* white-space: pre-wrap respeta los saltos de línea generados por <br> o \n */
     white-space: pre-wrap; 
     
     font-size: 12px;
-    line-height: 1.4;
-    max-width: 250px; /* Ancho máximo para que no se vuelva muy ancho */
+    line-height: 1.5; /* Espacio entre líneas para legibilidad */
+    max-width: 250px;
+    font-family: 'Segoe UI', sans-serif;
 }
 
+/* IMPORTANTE: Estilo para las negritas */
 #tooltip-credits-content b {
     font-weight: bold !important;
+    color: var(--primary); /* Opcional: Poner el rol en naranja */
 }
 
-/* Flechita decorativa apuntando hacia abajo (opcional pero recomendado para el estilo UI) */
+/* Flechita decorativa */
 #tooltip-credits::after {
     content: '';
     position: absolute;
