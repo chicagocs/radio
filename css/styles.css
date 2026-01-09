@@ -1166,3 +1166,61 @@ footer strong { color: var(--text-main); font-weight: bold; }
     .station-tag { font-size: 11px; padding: 1px 4px; }
   
 }
+
+/* ==========================================================================
+   TOOLTIP FLOTANTE (Floating UI - CRÉDITOS)
+   ========================================================================== */
+
+/* Contenedor principal del tooltip */
+#tooltip-credits {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2000; /* Z-Index alto para que flote sobre todo */
+    
+    background-color: var(--bg-surface); /* Usa el fondo oscuro definido en tus variables */
+    color: var(--text-main);
+    border: 1px solid var(--primary); /* Borde naranja principal */
+    border-radius: 8px;
+    padding: 10px;
+    
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+    
+    /* Estado inicial: Oculto */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+/* Clase para mostrar el tooltip (activada por JS) */
+#tooltip-credits.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* Contenido del texto de los créditos */
+#tooltip-credits-content {
+    /* IMPORTANTE: 'pre-wrap' respeta los saltos de línea (\n) generados en JS 
+       logrando el efecto de "un renglón por instrumento" */
+    white-space: pre-wrap; 
+    
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 250px; /* Ancho máximo para que no se vuelva muy ancho */
+}
+
+/* Flechita decorativa apuntando hacia abajo (opcional pero recomendado para el estilo UI) */
+#tooltip-credits::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 10px;
+    height: 10px;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--primary);
+    border-bottom: 1px solid var(--primary);
+}
