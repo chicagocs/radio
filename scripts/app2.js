@@ -1081,26 +1081,28 @@ function translateRole(role) {
     if (typeof role !== 'string') return '';
     const lowerRole = role.toLowerCase();
     const translations = {
-        'writer': 'Escritor',
+        'arranger': 'Arreglista',
+        'bass': 'Bajo',
         'composer': 'Compositor',
         'lyricist': 'Letrista',
         'producer': 'Productor',
         'co-producer': 'Coproductor',
-        'arranger': 'Arreglista',
         'engineer': 'Ingeniero',
         'instrument': 'Instrumentista',
         'audio engineer': 'Ingeniero de sonido',
+        'mix': 'Mezclador',
         'mixing engineer': 'Ingeniero de mezclado',
         'mastering engineer': 'Ingeniero de mastering',
+        'recording': 'Grabaciones',
         'remixer': 'Remixer',
         'conductor': 'Director',
         'performer': 'Intérprete',
         'vocal': 'Vocalista',
         'guitar': 'Guitarra',
         'drums': 'Batería',
-        'bass': 'Bajo',
         'keyboard': 'Teclados',
-        'piano': 'Piano'
+        'piano': 'Piano',
+        'writer': 'Escritor'
     };
     // Si no hay traducción específica, usamos la versión en inglés capitalizada
     return translations[lowerRole] || capitalize(role);
