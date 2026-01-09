@@ -25,7 +25,6 @@ const API_HOSTS = ['api.somafm.com', 'musicbrainz.org', 'nrk.no', 'core.chcs.wor
 // INSTALACIÓN
 // ==========================================================================
 self.addEventListener('install', event => {
-  console.log('[SW] Installing v3.2.9');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then(cache => {
@@ -33,7 +32,6 @@ self.addEventListener('install', event => {
         return Promise.allSettled(
           STATIC_ASSETS.map(url => 
             cache.add(url).catch(err => 
-              console.warn(`[SW] Failed to cache ${url}:`, err.message)
             )
           )
         );
@@ -46,7 +44,6 @@ self.addEventListener('install', event => {
 // ACTIVACIÓN
 // ==========================================================================
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating v3.2.9');
   event.waitUntil(
     Promise.all([
       // Limpiar cachés antiguos
@@ -57,7 +54,6 @@ self.addEventListener('activate', event => {
           key !== API_CACHE
         );
         return Promise.all(oldCaches.map(key => {
-          console.log(`[SW] Deleting old cache: ${key}`);
           return caches.delete(key);
         }));
       }),
