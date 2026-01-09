@@ -1131,7 +1131,7 @@ footer strong { color: var(--text-main); font-weight: bold; }
     font-weight: 700;   
     color: #ff6600;
     text-shadow: 0 0 5px rgba(255, 102, 0, 0.6);
-    letter-spacing: 0.5px;/
+    letter-spacing: 0.5px;
     font-variant-numeric: tabular-nums; 
     text-align: center;
     width: 100%;
