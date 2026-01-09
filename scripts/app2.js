@@ -994,25 +994,24 @@ function formatCreditsList(relations) {
             if (!roleMap[role]) {
                 roleMap[role] = [];
             }
-            // Evitar duplicados exactos en el listado del mismo rol
             if (!roleMap[role].includes(name)) {
                 roleMap[role].push(name);
             }
         }
     });
 
-    // 2. Ordenar los roles alfabéticamente (ej: Arreglista, Compositor, Productor)
+    // 2. Ordenar los roles alfabéticamente
     const sortedRoles = Object.keys(roleMap).sort((a, b) => a.localeCompare(b, 'es'));
 
-    // 3. Construir el string HTML con negritas
+    // 3. Construir el string HTML
     return sortedRoles.map(role => {
         const names = roleMap[role].join(', ');
         return `<b>${role}</b>: ${names}`;
-    }).join('<br>'); // Usamos <br> para el salto de línea en HTML
+    }).join('<br>');
 }
 
 // ==========================================================================
-// FUNCIÓN ACTUALIZADA: getMusicBrainzDuration
+// FUNCIÓN: getMusicBrainzDuration
 // ==========================================================================
 async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId, spotifyArtist = '', spotifyTitle = '') {
     if (fetchId !== currentSongFetchId) return;
@@ -1040,12 +1039,10 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                         }
 
-                        // Lógica de créditos ACTUALIZADA
+                        // Lógica de créditos
                         const creditsElement = document.getElementById('trackCredits');
                         if (creditsElement && r.relations) {
                             const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
-                            
-                            // --- USO DE LA NUEVA FUNCIÓN ---
                             const creditHtml = formatCreditsList(artistRelations);
 
                             if (fetchId !== currentSongFetchId) return;
@@ -1053,13 +1050,13 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             if (creditHtml) {
                                 currentCredits = creditHtml;
                                 creditsElement.textContent = 'VER';
-                                // Para el tooltip nativo (title), quitamos etiquetas HTML
                                 creditsElement.title = creditHtml.replace(/<[^>]*>?/gm, ''); 
                                 
                                 const tooltipContent = document.getElementById('tooltip-credits-content');
                                 if (tooltipContent) {
-                                    // Usamos innerHTML para respetar las negritas (<b>)
+                                    // FIX JS: Forzar estilos para asegurar visualización correcta
                                     tooltipContent.innerHTML = creditHtml;
+                                    tooltipContent.style.whiteSpace = 'normal'; // Permite saltos de línea
                                 }
                             } else {
                                 if (fetchId !== currentSongFetchId) return;
@@ -1067,7 +1064,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                                 currentCredits = "";
                             }
                         }
-                        return; // Éxito con ISRC
+                        return; 
                     }
                 }
             } catch (isrcError) {}
@@ -1076,7 +1073,6 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
         // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO ---
         const searchArtist = spotifyArtist ? spotifyArtist : artist;
         const searchTitle = spotifyTitle ? spotifyTitle : title;
-
 
         const cleanTitle = searchTitle.replace(/\([^)]*\)/g, '').trim();
         const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(searchArtist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
@@ -1110,8 +1106,6 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                     
                     if (creditsElement && creditsData.relations) {
                         const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
-                        
-                        // --- USO DE LA NUEVA FUNCIÓN ---
                         const creditHtml = formatCreditsList(artistRelations);
 
                         if (fetchId !== currentSongFetchId) return;
@@ -1123,8 +1117,9 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             
                             const tooltipContent = document.getElementById('tooltip-credits-content');
                             if (tooltipContent) {
-                                // Usamos innerHTML para respetar las negritas (<b>)
+                                // FIX JS: Forzar estilos
                                 tooltipContent.innerHTML = creditHtml;
+                                tooltipContent.style.whiteSpace = 'normal';
                             }
                         } else {
                             if (fetchId !== currentSongFetchId) return;
@@ -1138,8 +1133,8 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
     } catch (e) {
         logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
     }
-}    
-
+}
+    
 function translateRole(role) {
     if (typeof role !== 'string') return '';
     const lowerRole = role.toLowerCase();
