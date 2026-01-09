@@ -1006,7 +1006,7 @@ function formatCreditsList(relations) {
     // 3. Construir el string HTML
     return sortedRoles.map(role => {
         const names = roleMap[role].join(', ');
-        return `<b>${role}</b>: ${names}`;
+        return `<b>${role}:</b> ${names}`;
     }).join('<br>');
 }
 
