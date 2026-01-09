@@ -1202,13 +1202,15 @@ footer strong { color: var(--text-main); font-weight: bold; }
 
 /* Contenido del texto de los créditos */
 #tooltip-credits-content {
-    /* IMPORTANTE: 'pre-wrap' respeta los saltos de línea (\n) generados en JS 
-       logrando el efecto de "un renglón por instrumento" */
     white-space: pre-wrap; 
     
     font-size: 12px;
     line-height: 1.4;
     max-width: 250px; /* Ancho máximo para que no se vuelva muy ancho */
+}
+
+#tooltip-credits-content b {
+    font-weight: bold !important;
 }
 
 /* Flechita decorativa apuntando hacia abajo (opcional pero recomendado para el estilo UI) */
