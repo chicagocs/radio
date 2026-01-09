@@ -1288,8 +1288,12 @@ function resetAlbumDetails() {
         trackCredits.style.borderBottom = 'none';
     }
     currentCredits = ""; 
+    const tooltipContent = document.getElementById('tooltip-credits-content');
+    if (tooltipContent) {
+        tooltipContent.textContent = '';
+    }
 }
-
+    
 function startSongInfoUpdates() {
     updateSongInfo();
     if (updateInterval) clearInterval(updateInterval);
