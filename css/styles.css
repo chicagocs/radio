@@ -1201,14 +1201,11 @@ footer strong { color: var(--text-main); font-weight: bold; }
 }
 
 /* Contenido interno */
-#tooltip-credits-content {
-    /* white-space: pre-wrap respeta los saltos de línea generados por <br> o \n */
-    white-space: pre-wrap; 
+#tooltip-credits-content div {
+    margin-bottom: 2px;
     
-    font-size: 12px;
-    line-height: 1.5; /* Espacio entre líneas para legibilidad */
-    max-width: 250px;
-    font-family: 'Segoe UI', sans-serif;
+    /* (Opcional) Asegurarse de que la altura de la línea del texto sea normal */
+    line-height: 1.4;
 }
 
 #tooltip-credits-content b {
