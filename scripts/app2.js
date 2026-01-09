@@ -985,7 +985,6 @@ function formatCreditsList(relations) {
 
     const roleMap = {};
 
-    // 1. Agrupar nombres por rol traducido
     relations.forEach(rel => {
         const role = rel.type ? translateRole(rel.type) : '';
         const name = rel.artist ? rel.artist.name : '';
@@ -1000,16 +999,15 @@ function formatCreditsList(relations) {
         }
     });
 
-    // 2. Ordenar los roles alfabéticamente
     const sortedRoles = Object.keys(roleMap).sort((a, b) => a.localeCompare(b, 'es'));
 
-    // 3. Construir el string HTML
     return sortedRoles.map(role => {
         const names = roleMap[role].join(', ');
-        return `<b>${role}</b> ${names}`;
-    }).join('<br>');
+        // Envolver en <div> ... </div>
+        return `<div><b>${role}:</b> ${names}</div>`;
+    }).join(''); // Usar '' en lugar de '<br>'
 }
-
+    
 // ==========================================================================
 // FUNCIÓN: getMusicBrainzDuration
 // ==========================================================================
