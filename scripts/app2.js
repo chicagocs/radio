@@ -1283,7 +1283,11 @@ function resetAlbumDetails() {
     trackGenre.textContent = '--';
     trackPosition.textContent = '--/--';
     const trackCredits = document.getElementById('trackCredits');
-    if (trackCredits) trackCredits.textContent = '--';
+    if (trackCredits) {
+        trackCredits.textContent = '--';
+        trackCredits.style.borderBottom = 'none';
+    }
+    currentCredits = ""; 
 }
 
 function startSongInfoUpdates() {
