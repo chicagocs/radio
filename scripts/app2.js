@@ -977,6 +977,43 @@ async function fetchSongDetails(artist, title, album, fetchId) {
     }
 }
 
+// ==========================================================================
+// FORMATEAR CRÉDITOS
+// ==========================================================================
+function formatCreditsList(relations) {
+    if (!relations || !Array.isArray(relations) || relations.length === 0) return null;
+
+    const roleMap = {};
+
+    // 1. Agrupar nombres por rol traducido
+    relations.forEach(rel => {
+        const role = rel.type ? translateRole(rel.type) : '';
+        const name = rel.artist ? rel.artist.name : '';
+        
+        if (role && name) {
+            if (!roleMap[role]) {
+                roleMap[role] = [];
+            }
+            // Evitar duplicados exactos en el listado del mismo rol
+            if (!roleMap[role].includes(name)) {
+                roleMap[role].push(name);
+            }
+        }
+    });
+
+    // 2. Ordenar los roles alfabéticamente (ej: Arreglista, Compositor, Productor)
+    const sortedRoles = Object.keys(roleMap).sort((a, b) => a.localeCompare(b, 'es'));
+
+    // 3. Construir el string HTML con negritas
+    return sortedRoles.map(role => {
+        const names = roleMap[role].join(', ');
+        return `<b>${role}</b>: ${names}`;
+    }).join('<br>'); // Usamos <br> para el salto de línea en HTML
+}
+
+// ==========================================================================
+// FUNCIÓN ACTUALIZADA: getMusicBrainzDuration
+// ==========================================================================
 async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId, spotifyArtist = '', spotifyTitle = '') {
     if (fetchId !== currentSongFetchId) return;
 
@@ -1003,25 +1040,27 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             totalDuration.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                         }
 
-                        // Lógica de créditos...
+                        // Lógica de créditos ACTUALIZADA
                         const creditsElement = document.getElementById('trackCredits');
                         if (creditsElement && r.relations) {
                             const artistRelations = r.relations.filter(rel => rel.type && rel.artist);
-                            if (artistRelations.length > 0) {
-                                const creditList = artistRelations.map(rel => {
-                                    const role = rel.type ? translateRole(rel.type) : '';
-                                    const name = rel.artist ? rel.artist.name : '';
-                                    return name ? `${role}: ${name}` : '';
-                                }).filter(txt => txt !== '').join('\n');
-                                
-                                if (fetchId !== currentSongFetchId) return;
+                            
+                            // --- USO DE LA NUEVA FUNCIÓN ---
+                            const creditHtml = formatCreditsList(artistRelations);
 
-                                currentCredits = creditList;
+                            if (fetchId !== currentSongFetchId) return;
+
+                            if (creditHtml) {
+                                currentCredits = creditHtml;
                                 creditsElement.textContent = 'VER';
-                                creditsElement.title = creditList; 
-                                const tooltipContent = document.getElementById('tooltip-credits-content');
-                                if (tooltipContent) tooltipContent.textContent = creditList;
+                                // Para el tooltip nativo (title), quitamos etiquetas HTML
+                                creditsElement.title = creditHtml.replace(/<[^>]*>?/gm, ''); 
                                 
+                                const tooltipContent = document.getElementById('tooltip-credits-content');
+                                if (tooltipContent) {
+                                    // Usamos innerHTML para respetar las negritas (<b>)
+                                    tooltipContent.innerHTML = creditHtml;
+                                }
                             } else {
                                 if (fetchId !== currentSongFetchId) return;
                                 creditsElement.textContent = 'N/A';
@@ -1035,12 +1074,10 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
         }
 
         // --- PRIORIDAD 2: BÚSQUEDA POR TÍTULO ---
-        // MEJORA: Si el ISRC falló, priorizamos usar los nombres de Spotify si están disponibles,
-        // ya que son más precisos que los de la radio.
         const searchArtist = spotifyArtist ? spotifyArtist : artist;
         const searchTitle = spotifyTitle ? spotifyTitle : title;
 
-        // Limpiamos título para la búsqueda
+
         const cleanTitle = searchTitle.replace(/\([^)]*\)/g, '').trim();
         const searchUrl = `https://musicbrainz.org/ws/2/recording/?query=artist:"${encodeURIComponent(searchArtist)}" AND recording:"${encodeURIComponent(cleanTitle)}"&fmt=json&limit=5`;
         
@@ -1074,22 +1111,21 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                     if (creditsElement && creditsData.relations) {
                         const artistRelations = creditsData.relations.filter(rel => rel.type && rel.artist);
                         
-                        if (artistRelations.length > 0) {
-                            const creditList = artistRelations.map(rel => {
-                                const role = rel.type ? translateRole(rel.type) : '';
-                                const name = rel.artist ? rel.artist.name : '';
-                                return name ? `${role}: ${name}` : '';
-                            }).filter(txt => txt !== '').join('\n');
-                            
-                            if (fetchId !== currentSongFetchId) return;
+                        // --- USO DE LA NUEVA FUNCIÓN ---
+                        const creditHtml = formatCreditsList(artistRelations);
 
-                            currentCredits = creditList;
+                        if (fetchId !== currentSongFetchId) return;
+
+                        if (creditHtml) {
+                            currentCredits = creditHtml;
                             creditsElement.textContent = 'VER';
-                            creditsElement.title = creditList;
+                            creditsElement.title = creditHtml.replace(/<[^>]*>?/gm, '');
                             
                             const tooltipContent = document.getElementById('tooltip-credits-content');
-                            if (tooltipContent) tooltipContent.textContent = creditList;
-                            
+                            if (tooltipContent) {
+                                // Usamos innerHTML para respetar las negritas (<b>)
+                                tooltipContent.innerHTML = creditHtml;
+                            }
                         } else {
                             if (fetchId !== currentSongFetchId) return;
                             creditsElement.textContent = 'N/A';
@@ -1102,9 +1138,8 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
     } catch (e) {
         logErrorForAnalysis('MusicBrainz error', { error: e.message, artist, title, timestamp: new Date().toISOString() });
     }
-}
-    
-// Helper para traducir roles técnicos al español
+}    
+
 function translateRole(role) {
     if (typeof role !== 'string') return '';
     const lowerRole = role.toLowerCase();
