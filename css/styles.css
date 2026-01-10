@@ -1200,6 +1200,16 @@ footer strong { color: var(--text-main); font-weight: bold; }
     pointer-events: auto;
 }
 
+#tooltip-credits-content {
+    white-space: normal;
+    
+    font-size: 12px;
+    
+    line-height: 1.4;
+    max-width: 250px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
 /* Contenido interno */
 #tooltip-credits-content div {
     margin-bottom: 2px;
