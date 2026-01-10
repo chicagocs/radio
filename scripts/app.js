@@ -68,10 +68,7 @@ let lastPlaybackTime = 0;
 let timeStuckCheckInterval = null;
 let installInvitationTimeout = null;
 let showOnlyFavorites = false;
-
-// FIX: Variable para controlar la "canción objetivo" de las peticiones asíncronas
 let currentSongFetchId = 0; 
-
 let wasPlayingBeforeFocusLoss = false;
 let pageFocusCheckInterval = null;
 let lastAudioContextTime = 0;
