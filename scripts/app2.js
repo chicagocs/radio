@@ -1015,7 +1015,7 @@ function formatCreditsList(relations) {
     return sortedRoles.map(role => {
         const names = roleMap[role].join(', ');
         // Envolver en <div> ... </div> y mover dos puntos dentro de <b>
-        return `<div><b>${role}:</b> ${names}</div>`;
+        return `<div><b>${role}</b> ${names}</div>`;
     }).join(''); // Usar '' en lugar de '<br>'
 }
     
