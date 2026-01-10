@@ -1071,7 +1071,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                                 if (fetchId !== currentSongFetchId) return;
                                 
                                 // FIX: Mostrar N/A y limpiar atributos para evitar datos fantasma
-                                creditsElement.textContent = 'N/A';
+                                creditsElement.textContent = 'S/D';
                                 creditsElement.title = ''; // LIMPIAR TITLE NATIVO AQUI
                                 creditsElement.style.borderBottom = 'none';
                                 
@@ -1143,7 +1143,7 @@ async function getMusicBrainzDuration(artist, title, album, isrc = null, fetchId
                             if (fetchId !== currentSongFetchId) return;
                             
                             // FIX: Mostrar N/A y limpiar atributos para evitar datos fantasma
-                            creditsElement.textContent = 'N/A';
+                            creditsElement.textContent = 'S/D';
                             creditsElement.title = ''; // LIMPIAR TITLE NATIVO AQUI
                             creditsElement.style.borderBottom = 'none';
 
