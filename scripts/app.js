@@ -1,4 +1,4 @@
-// app2.js - v3.6.1
+// app.js - v3.6.1
 import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import {computePosition, offset, flip} from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm';
 
@@ -1159,6 +1159,7 @@ function translateRole(role) {
         'audio engineer': 'Ingeniero de sonido',
         'bass': 'Bajo',
         'composer': 'Compositor',
+        'creative direction': 'Dirección creativa',
         'conductor': 'Director',
         'co-producer': 'Coproductor',
         'drums': 'Batería',
