@@ -24,6 +24,9 @@ const API_HOSTS = ['api.somafm.com','api.radioparadise.com','musicbrainz.org','r
 // ==========================================================================
 // INSTALACIÓN
 // ==========================================================================
+// ==========================================================================
+// INSTALACIÓN
+// ==========================================================================
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
@@ -31,8 +34,9 @@ self.addEventListener('install', event => {
         // Pre-cachear en paralelo con manejo de errores individual
         return Promise.allSettled(
           STATIC_ASSETS.map(url => 
-            cache.add(url).catch(err => 
-            )
+            cache.add(url).catch(err => {
+              console.error('[SW] Install failed for:', url, err);
+            })
           )
         );
       })
