@@ -1187,6 +1187,7 @@ function translateRole(role) {
         'performing orchestra': 'Orquesta en vivo',
         'piano': 'Piano',
         'producer': 'Productor',
+        'programming': 'Programación',
         'recording': 'Grabaciones',
         'remixer': 'Remezclador',
         'vocal': 'Vocalista',
