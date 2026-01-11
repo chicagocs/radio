@@ -19,7 +19,7 @@ const STATIC_ASSETS = [
 const API_CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 const MAX_API_CACHE_SIZE = 50; // Límite de entradas en caché API
 const BLOCKED_HOSTS = ['stats.max.com', 'stats.tramax.com.ar'];
-const API_HOSTS = ['api.somafm.com', 'musicbrainz.org', 'nrk.no', 'core.chcs.workers.dev'];
+const API_HOSTS = ['api.somafm.com','api.radioparadise.com','musicbrainz.org','radiomax.pages.dev','core.chcs.workers.dev'];
 
 // ==========================================================================
 // INSTALACIÓN
