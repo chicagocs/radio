@@ -1836,7 +1836,42 @@ if ('serviceWorker' in navigator) {
 }
 
 // =======================================================================
-// NUEVO: INTERACCIÓN DE TOOLTIP (Floating UI)
+// RELOJ
+// =======================================================================
+function updateClock() {
+    const now = new Date();
+    
+    // Obtener horas, minutos y segundos
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    // Obtener el offset GMT en horas
+    const offsetMinutes = -now.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const offsetMins = Math.abs(offsetMinutes) % 60;
+    const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+    
+    // Formatear GMT
+    const gmtString = offsetMins > 0 
+        ? `GMT${offsetSign}${offsetHours}:${String(offsetMins).padStart(2, '0')}`
+        : `GMT${offsetSign}${offsetHours}`;
+    
+    // Actualizar el elemento
+    const timeElement = document.getElementById('currentTime');
+    if (timeElement) {
+        timeElement.textContent = `${hours}:${minutes}:${seconds} (${gmtString})`;
+    }
+}
+
+// Iniciar el reloj cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    updateClock(); // Actualizar inmediatamente
+    setInterval(updateClock, 1000); // Actualizar cada segundo
+});
+    
+// =======================================================================
+// INTERACCIÓN DE TOOLTIP (Floating UI)
 // =======================================================================
 const trackCredits = document.getElementById('trackCredits');
 const tooltipEl = document.getElementById('tooltip-credits');
