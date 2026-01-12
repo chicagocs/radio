@@ -1188,6 +1188,7 @@ function translateRole(role) {
         'performer': 'Intérprete',
         'performing orchestra': 'Orquesta en vivo',
         'piano': 'Piano',
+        'phonographic copyright': 'Derechos fonográficos',
         'producer': 'Productor',
         'programming': 'Programación',
         'recording': 'Grabaciones',
