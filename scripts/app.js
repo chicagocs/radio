@@ -1178,8 +1178,10 @@ function translateRole(role) {
         'guitar': 'Guitarra',
         'instrument': 'Instrumentista',
         'instrument arranger': 'Arreglos de instrumentos',
+        'instrument technician': 'Técnico de instrumento',
         'keyboard': 'Teclados',
-        'mastering engineer': 'Ingeniero de mastering',
+        'mastering': 'Masterización',
+        'mastering engineer': 'Ingeniero de masterización',
         'mix': 'Mezclador',
         'mixing engineer': 'Ingeniero de mezclado',
         'orchestrator': 'Orquestador',
@@ -1190,6 +1192,7 @@ function translateRole(role) {
         'programming': 'Programación',
         'recording': 'Grabaciones',
         'remixer': 'Remezclador',
+        'samples from artist': 'Muestras del artista',
         'vocal': 'Vocalista',
         'writer': 'Escritor'
     };
