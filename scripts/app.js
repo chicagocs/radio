@@ -1194,6 +1194,7 @@ function translateRole(role) {
         'remixer': 'Remezclador',
         'samples from artist': 'Muestras del artista',
         'vocal': 'Vocalista',
+        'vocal arranger': 'Arreglos en voz',
         'writer': 'Escritor'
     };
     // Si no hay traducción específica, usamos la versión en inglés capitalizada
