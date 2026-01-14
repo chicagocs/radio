@@ -1204,7 +1204,7 @@ function translateRole(role) {
         'engineer': 'Ingeniero',
         'guitar': 'Guitarra',
         'instrument': 'Instrumentista',
-        'instrument arranger': 'Arreglos de instrumentos',
+        'instrument arranger': 'Arreglos en instrumentos',
         'instrument technician': 'Técnico de instrumento',
         'keyboard': 'Teclados',
         'mastering': 'Masterización',
