@@ -140,12 +140,10 @@ async function joinStation(stationId) {
                 
                 keepAliveInterval = setInterval(async () => {
                     try {
-                        // Enviamos un track ligero para mantener el socket vivo y sumar actividad
                         await channel.track({ 
                             heartbeat: true,
                             last_seen: new Date().toISOString() 
                         });
-                        console.log('Heartbeat enviado para mantener actividad'); // Debug opcional
                     } catch (err) {
                         console.warn('Error enviando heartbeat:', err);
                     }
