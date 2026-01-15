@@ -733,7 +733,8 @@ function populateStationSelect(grouped) {
 }
 
 loadStations();
-
+initEnvironmentByIP();
+    
 if (filterToggleStar) {
     filterToggleStar.addEventListener('click', function() {
         showOnlyFavorites = !showOnlyFavorites;
