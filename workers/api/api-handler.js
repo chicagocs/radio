@@ -17,27 +17,31 @@ const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
   "X-XSS-Protection": "1; mode=block",
   "Referrer-Policy": "strict-origin-when-cross-origin",
+  
   "Permissions-Policy":
     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), " +
     "magnetometer=(), gyroscope=(), accelerometer=(), autoplay=(), " +
     "encrypted-media=(), fullscreen=(self), picture-in-picture=(self), " +
-  "interest-cohort=(), sync-xhr=()",
+    "interest-cohort=(), sync-xhr=()",
+  
   "Content-Security-Policy":
     "default-src 'none'; " +
-    "script-src 'self' https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
+    "script-src 'self' https://core.chcs.workers.dev https://static.cloudflareinsights.com; " + 
     "worker-src 'self' blob:; " +
-    "style-src 'self'; " +
-    "img-src 'self' data: https://core.chcs.workers.dev https://stats.tramax.com.ar; " +
-    "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev; " +
+    "style-src 'self' 'unsafe-inline'; " + 
+    "img-src 'self' data: https://core.chcs.workers.dev https://e-cdns-images.dzcdn.net https://i.scdn.co; " + 
+    "connect-src 'self' https://api.radioradise.com https://core.chcs.workers.dev https://api.somafm.com https://musicbrainz.org https://ipapi.co https://api.open-meteo.com https://api.sunrise-sunset.org; " +
     "font-src 'self'; " +
     "manifest-src 'self'; " +
     "base-uri 'self'; " +
     "form-action 'self'; " +
     "frame-ancestors 'none'; " +
     "upgrade-insecure-requests",
+  
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Embedder-Policy": "require-corp",
+  // COEP y COOP comentados para permitir carga externa normal (imágenes, scripts de terceros)
+  // "Cross-Origin-Opener-Policy": "same-origin",
+  // "Cross-Origin-Embedder-Policy": "require-corp",
   "Cross-Origin-Resource-Policy": "same-origin"
 };
 
@@ -80,20 +84,24 @@ async function handleSpotifyRequest(request, env) {
     const artist = cleanSearchTerm(url.searchParams.get("artist"));
     const title = cleanSearchTerm(url.searchParams.get("title"));
     const album = cleanSearchTerm(url.searchParams.get("album"));
+    
     if (!artist || !title) {
       return new Response(
         JSON.stringify({ error: 'Faltan los parámetros "artist" y "title".' }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
+    
     const clientId = env.SPOTIFY_CLIENT_ID;
     const clientSecret = env.SPOTIFY_CLIENT_SECRET;
+    
     if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({ error: "Credenciales de Spotify no configuradas" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
+    
     const authString = btoa(`${clientId}:${clientSecret}`);
     const tokenResponse = await fetch(
       "https://accounts.spotify.com/api/token",
@@ -106,10 +114,14 @@ async function handleSpotifyRequest(request, env) {
         body: "grant_type=client_credentials"
       }
     );
+    
     if (!tokenResponse.ok) throw new Error("No se pudo obtener token de Spotify");
     const accessToken = (await tokenResponse.json()).access_token;
+    
     let searchData = null;
     let responseSpotify = null;
+
+    // Estrategia de búsqueda: 1. Exacta con álbum, 2. Exacta artista/título, 3. Búsqueda laxa
     if (album) {
       const q = `track:"${title}" artist:"${artist}" album:"${album}"`;
       responseSpotify = await fetch(
@@ -118,6 +130,7 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
+
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `track:"${title}" artist:"${artist}"`;
       responseSpotify = await fetch(
@@ -126,6 +139,7 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
+
     if (!searchData || searchData.tracks.items.length === 0) {
       const q = `${artist} ${title}`;
       responseSpotify = await fetch(
@@ -134,29 +148,27 @@ async function handleSpotifyRequest(request, env) {
       );
       if (responseSpotify.ok) searchData = await responseSpotify.json();
     }
-    if (!responseSpotify.ok)
-      throw new Error("Error en búsqueda de Spotify");
+
+    if (!responseSpotify.ok) throw new Error("Error en búsqueda de Spotify");
+
     if (searchData && searchData.tracks.items.length > 0) {
       const track = searchData.tracks.items[0];
       const albumData = track.album;
       
-      // =======================================================================
-      // NUEVO: Obtener el ISRC (Requiere una petición extra al endpoint /tracks/{id})
-      // =======================================================================
       let trackIsrc = null;
       if (track.id) {
-          try {
-              const trackResponse = await fetch(
-                  `https://api.spotify.com/v1/tracks/${track.id}`,
-                  { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              if (trackResponse.ok) {
-                  const fullTrack = await trackResponse.json();
-                  trackIsrc = fullTrack.external_ids?.isrc || null;
-              }
-          } catch (e) {
-              console.error("Error obteniendo ISRC:", e);
+        try {
+          const trackResponse = await fetch(
+            `https://api.spotify.com/v1/tracks/${track.id}`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (trackResponse.ok) {
+            const fullTrack = await trackResponse.json();
+            trackIsrc = fullTrack.external_ids?.isrc || null;
           }
+        } catch (e) {
+          console.error("Error obteniendo ISRC:", e);
+        }
       }
 
       const resp = {
@@ -169,8 +181,9 @@ async function handleSpotifyRequest(request, env) {
         totalAlbumDuration: 0,
         trackNumber: null,
         albumTypeDescription: getAlbumTypeDescription(albumData),
-        isrc: trackIsrc // <--- Usamos el valor obtenido arriba
+        isrc: trackIsrc
       };
+
       if (albumData.id) {
         try {
           const full = await fetch(
@@ -191,9 +204,11 @@ async function handleSpotifyRequest(request, env) {
               if (idx !== -1) resp.trackNumber = idx + 1;
             }
           }
-        } catch {
+        } catch (e) {
+          // Ignorar error de album detallado
         }
       }
+
       if (track.artists.length > 0) {
         const tasks = track.artists.slice(0, 3).map(async (a) => {
           try {
@@ -208,11 +223,13 @@ async function handleSpotifyRequest(request, env) {
         });
         resp.genres = [...new Set((await Promise.all(tasks)).flat())];
       }
+
       return new Response(JSON.stringify(resp), {
         status: 200,
         headers: { "Content-Type": "application/json" }
       });
     }
+
     return new Response(
       JSON.stringify({
         imageUrl: null,
@@ -224,7 +241,7 @@ async function handleSpotifyRequest(request, env) {
         totalAlbumDuration: 0,
         trackNumber: null,
         albumTypeDescription: null,
-        isrc: null // Aseguramos que sea null si no hay resultados
+        isrc: null
       }),
       {
         status: 404,
@@ -274,6 +291,34 @@ async function handleRadioParadiseRequest(request) {
 }
 
 // ===============================================================
+//  IP API PROXY HANDLER (Solución al error 403/CORS)
+// ===============================================================
+async function handleIpProxyRequest() {
+  try {
+    // El Worker llama a ipapi.co sin restricciones de CORS
+    const ipResponse = await fetch('https://ipapi.co/json/');
+    
+    if (!ipResponse.ok) {
+      return new Response(JSON.stringify({ error: 'Error obteniendo IP externa' }), { 
+        status: ipResponse.status,
+        headers: { "Content-Type": "application/json" } 
+      });
+    }
+
+    const data = await ipResponse.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: "Error interno Proxy IP", details: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
+// ===============================================================
 //  MÓDULO EXPORTADO (EL NUEVO FETCH HANDLER)
 // ===============================================================
 export default {
@@ -292,6 +337,9 @@ export default {
       response = await handleSpotifyRequest(request, env);
     } else if (url.pathname.startsWith("/radioparadise")) {
       response = await handleRadioParadiseRequest(request);
+    } else if (url.pathname.startsWith("/api/ip")) {
+      // CORRECCIÓN AGREGADA: Ruta para el proxy de IP
+      response = await handleIpProxyRequest();
     } else {
       // Servir archivos estáticos desde ASSETS
       if (env.ASSETS) {
