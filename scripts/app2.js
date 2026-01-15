@@ -1899,6 +1899,132 @@ if (trackCredits && tooltipEl) {
     trackCredits.addEventListener('blur', hideTooltip);
 }
 
+// ==========================================================================
+// SISTEMA DE AMBIENTE (SOLO IP - SIN GPS)
+// ==========================================================================
+// No pedimos permisos al usuario. Usamos su IP pública para aproximar su ciudad.
+
+async function initEnvironmentByIP() {
+    // Verificamos si tenemos datos recientes en caché para ahorrar peticiones
+    // (Usamos la API por IP cada 15 minutos aprox para no saturar)
+    const lastFetch = localStorage.getItem('rm_env_last_fetch');
+    const now = Date.now();
+
+    if (lastFetch && (now - parseInt(lastFetch)) < 900000) { // 15 min = 900000ms
+        console.log("Usando datos ambientales de caché recientes.");
+        loadCachedEnvironment();
+        return;
+    }
+
+    try {
+        // Usamos ipapi.co (Gratuito, fiable, sin Key)
+        // Obtenemos latitud y longitud directamente
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error("Error conectando servicio IP");
+        
+        const data = await res.json();
+
+        if (data.latitude && data.longitude) {
+            // 1. Obtener Clima
+            await updateWeather(data.latitude, data.longitude);
+            
+            // 2. Obtener Sol
+            await updateSunTimesInternal(data.latitude, data.longitude);
+
+            // Guardar tiempo de fetch
+            localStorage.setItem('rm_env_last_fetch', Date.now());
+            console.log(`Ambiente actualizado (IP): ${data.city}, ${data.country_code}`);
+        } else {
+            throw new Error("Coordenadas no disponibles en la respuesta IP");
+        }
+
+    } catch (error) {
+        console.error("Error en geolocalización IP:", error);
+        console.warn("Intentando usar caché existente como último recurso.");
+        loadCachedEnvironment();
+    }
+}
+
+// -------------------------------------------------------------------------
+// CLIMA (Open-Meteo)
+// -------------------------------------------------------------------------
+async function updateWeather(lat, lon) {
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Error API Clima");
+        
+        const data = await res.json();
+        const current = data.current;
+
+        // Actualizar UI
+        const tempEl = document.getElementById('tempValue');
+        const humidEl = document.getElementById('humidityValue');
+        const weatherContainer = document.getElementById('weatherInfo');
+
+        if (weatherContainer) weatherContainer.style.display = 'flex';
+        if (tempEl) tempEl.textContent = Math.round(current.temperature_2m);
+        if (humidEl) humidEl.textContent = Math.round(current.relative_humidity_2m);
+
+        // Guardar en Caché
+        localStorage.setItem('rm_last_temp', Math.round(current.temperature_2m));
+        localStorage.setItem('rm_last_humid', Math.round(current.relative_humidity_2m));
+
+    } catch (e) {
+        console.warn("No se pudo cargar el clima:", e);
+    }
+}
+
+// -------------------------------------------------------------------------
+// SOL (Sunrise-Sunset)
+// -------------------------------------------------------------------------
+async function updateSunTimesInternal(lat, lon) {
+    try {
+        const url = `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&formatted=0`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Error API Sol");
+        
+        const data = await res.json();
+        const results = data.results;
+
+        // Formatear horas
+        const sunriseStr = new Date(results.sunrise).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+        const sunsetStr = new Date(results.sunset).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+
+        // Actualizar UI
+        const sunEl = document.getElementById('sunInfo');
+        if (sunEl) sunEl.style.display = 'flex';
+        document.getElementById('sunriseTime').textContent = sunriseStr;
+        document.getElementById('sunsetTime').textContent = sunsetStr;
+
+        // Guardar en Caché (no tiene sentido guardar texto, pero guardamos la fecha para saber cuando refrescar)
+        // Actualmente usamos 'rm_env_last_fetch' para controlar el refresh global
+
+    } catch (e) {
+        console.warn("No se pudo cargar horario solar:", e);
+    }
+}
+
+// -------------------------------------------------------------------------
+// UTILIDAD: CARGAR DATOS GUARDADOS (FALLBACK)
+// -------------------------------------------------------------------------
+function loadCachedEnvironment() {
+    const temp = localStorage.getItem('rm_last_temp');
+    const humid = localStorage.getItem('rm_last_humid');
+    
+    // Clima
+    if (temp && humid) {
+        const weatherContainer = document.getElementById('weatherInfo');
+        if (weatherContainer) weatherContainer.style.display = 'flex';
+        document.getElementById('tempValue').textContent = temp;
+        document.getElementById('humidityValue').textContent = humid;
+    }
+
+    // Sol (Notar: No guardamos el texto del sol en la lógica anterior, 
+    // así que si falla la IP, el sol se queda en --:-- a menos que lo agreguemos al cache)
+    // Opcional: Si quieres que el sol persista en cache, agrega localStorage.setItem dentro de updateSunTimesInternal
+}    
+    
 // =======================================================================
 // FIN TRY...CATCH
 // =======================================================================
