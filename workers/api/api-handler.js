@@ -4,6 +4,13 @@
 //  CONFIGURACIÓN DE ENCABEZADOS
 // ===============================================================
 
+// Encabezados CORS
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://radiomax.tramax.com.ar",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+};
+
 // Encabezados para permitir solicitudes desde otros orígenes (CORS)
 const securityHeaders = {
   "X-Frame-Options": "SAMEORIGIN",
