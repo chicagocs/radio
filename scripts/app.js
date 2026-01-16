@@ -1190,6 +1190,7 @@ function translateRole(role) {
     const lowerRole = role.toLowerCase();
     const translations = {
         'arranger': 'Arreglista',
+        'artists and repertoire': 'Artistas y repertorio',
         'audio engineer': 'Ingeniero de sonido',
         'bass': 'Bajo',
         'composer': 'Compositor',
